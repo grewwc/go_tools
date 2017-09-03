@@ -23,7 +23,7 @@ func IsExist(path string) bool {
 
 //Move ONLY files in one directory to another directory
 //"from" and "to" are both directory Absolute path.
-func Move(to string, from string) {
+func CopyFile(to string, from string) {
 
 	//change "." to working directory
 	if strings.HasPrefix(from, ".") {
@@ -42,17 +42,18 @@ func Move(to string, from string) {
 		}
 		to = filepath.Join(pathFromDot, filepath.Base(to))
 	}
-
+	fmt.Println(IsExist(to))
 	if !IsExist(to) {
 		if err := os.MkdirAll(to, os.ModeDir|os.ModePerm); err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("maked")
 	}
 	allFiles, err := filepath.Glob(filepath.Join(from, "*"))
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	fmt.Println(to, from)
 	for _, f := range allFiles {
 		fmt.Println(f)
 		stat, err := os.Stat(f)
