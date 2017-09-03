@@ -47,7 +47,6 @@ func CopyFile(to string, from string) {
 		if err := os.MkdirAll(to, os.ModeDir|os.ModePerm); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("maked")
 	}
 	allFiles, err := filepath.Glob(filepath.Join(from, "*"))
 	if err != nil {
@@ -55,7 +54,6 @@ func CopyFile(to string, from string) {
 	}
 	fmt.Println(to, from)
 	for _, f := range allFiles {
-		fmt.Println(f)
 		stat, err := os.Stat(f)
 		if err != nil && !os.IsNotExist(err) {
 			log.Fatal(err)
