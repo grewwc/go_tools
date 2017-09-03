@@ -1,6 +1,7 @@
 package systools
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -28,7 +29,7 @@ func Move(to string, from string) {
 	if strings.HasPrefix(from, ".") {
 		pathFromDot, err := filepath.Abs(".")
 		if err != nil {
-			log.Fatal("myos: line 32", err)
+			log.Fatal(err)
 
 		}
 		from = filepath.Join(pathFromDot, filepath.Base(from))
@@ -37,7 +38,7 @@ func Move(to string, from string) {
 	if strings.HasPrefix(to, ".") {
 		pathFromDot, err := filepath.Abs(".")
 		if err != nil {
-			log.Fatal("myos: line 41", err)
+			log.Fatal(err)
 		}
 		to = filepath.Join(pathFromDot, filepath.Base(to))
 	}
@@ -53,6 +54,7 @@ func Move(to string, from string) {
 	}
 
 	for _, f := range allFiles {
+		fmt.Println(f)
 		stat, err := os.Stat(f)
 		if err != nil && !os.IsNotExist(err) {
 			log.Fatal(err)
