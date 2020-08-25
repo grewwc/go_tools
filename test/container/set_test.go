@@ -1,7 +1,7 @@
 package test
 
 import (
-	"go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/containerW"
 	"log"
 	"testing"
 )

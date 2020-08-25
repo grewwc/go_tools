@@ -1,7 +1,12 @@
 package main
 
-import "go_tools/src/executable/syncDir"
+import (
+	"fmt"
+	"github.com/grewwc/go_tools/src/containerW"
+)
 
 func main() {
-	syncDir.Main()
+	t := containerW.NewTrie()
+	t.Insert("good")
+	fmt.Println(t.Search("goods"))
 }

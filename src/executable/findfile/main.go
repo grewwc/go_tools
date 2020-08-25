@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go_tools/src/stringsW"
-	"go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/terminalW"
 	"io/ioutil"
 	"math"
 	"os"

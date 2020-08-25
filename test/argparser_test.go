@@ -1,7 +1,7 @@
 package test
 
 import (
-	"go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/terminalW"
 	"testing"
 )
 

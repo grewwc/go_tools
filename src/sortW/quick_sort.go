@@ -1,7 +1,7 @@
 package sortW
 
 import (
-	"go_tools/src/algorithmW"
+	"github.com/grewwc/go_tools/src/algorithmW"
 )
 
 func QuicksortInts(nums []int) {

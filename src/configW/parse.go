@@ -3,8 +3,8 @@ package configW
 import (
 	"bufio"
 	"fmt"
-	"go_tools/src/containerW"
-	"go_tools/src/stringsW"
+	"github.com/grewwc/github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/stringsW"
 	"log"
 	"os"
 	"path/filepath"

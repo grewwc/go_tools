@@ -3,7 +3,7 @@ package terminalW
 import (
 	"bytes"
 	"fmt"
-	"go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/stringsW"
 	"strings"
 )
 

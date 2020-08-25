@@ -1,7 +1,7 @@
 package strings
 
 import (
-	"go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/stringsW"
 	"testing"
 )
 

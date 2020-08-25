@@ -2,7 +2,7 @@ package syncDir
 
 import (
 	"fmt"
-	"go_tools/src/configW"
+	"github.com/grewwc/go_tools/src/configW"
 	"io"
 	"io/ioutil"
 	"log"

@@ -1,7 +1,7 @@
 package syncDir
 
 import (
-	"go_tools/src/stringsW/slices"
+	"github.com/grewwc/go_tools/src/stringsW/slices"
 	"io/ioutil"
 	"log"
 	"os"
