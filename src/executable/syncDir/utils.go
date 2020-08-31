@@ -1,12 +1,13 @@
-package syncDir
+package main
 
 import (
-	"github.com/grewwc/go_tools/src/stringsW/slices"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/grewwc/go_tools/src/stringsW/slices"
 )
 
 func trimSpace(strs []string) {

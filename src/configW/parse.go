@@ -3,12 +3,13 @@ package configW
 import (
 	"bufio"
 	"fmt"
-	"github.com/grewwc/github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/stringsW"
 )
 
 var supportedAttrs = containerW.NewSet()

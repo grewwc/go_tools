@@ -1,8 +1,7 @@
-package syncDir
+package main
 
 import (
 	"fmt"
-	"github.com/grewwc/go_tools/src/configW"
 	"io"
 	"io/ioutil"
 	"log"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/grewwc/go_tools/src/configW"
 )
 
 const (
@@ -190,7 +191,7 @@ func run() {
 	wg.Wait()
 }
 
-func Main() {
+func main() {
 	fmt.Printf("  put config files in: %q\n", clean(syncdir))
 	info := "  attribute files are in format *.attr "
 	fmt.Println(info)
