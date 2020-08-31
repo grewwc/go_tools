@@ -1,7 +1,6 @@
 package configW
 
 import (
-	"io/ioutil"
 	"log"
 	"strings"
 )
@@ -18,18 +17,6 @@ func replaceVar(str *string) (string, bool) {
 	}
 
 	return *str, false
-}
-
-func lsDir(fname string) []string {
-	infos, err := ioutil.ReadDir(fname)
-	if err != nil {
-		log.Fatal(err)
-	}
-	res := make([]string, len(infos))
-	for i, info := range infos {
-		res[i] = info.Name()
-	}
-	return res
 }
 
 func trimSpace(strs []string) {

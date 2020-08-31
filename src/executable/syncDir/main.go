@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,8 +11,10 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/grewwc/go_tools/src/configW"
+	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 const (
@@ -31,13 +34,7 @@ var count int64
 // 	supportedAttrs["ignore"] = true
 // }
 
-func init() {
-	homedir := os.Getenv("HOME")
-	if homedir == "" {
-		log.Fatal("home dir is empty")
-	}
-
-	syncdir = filepath.Join(homedir, root)
+func initFunc() {
 
 	parsedResults := configW.Parse(syncdir)
 	variablesMap = parsedResults.Variables
@@ -49,6 +46,17 @@ func init() {
 
 	// replace glob for parsedattrs
 	replaceGlobForIgnore()
+}
+
+func init() {
+	homedir := os.Getenv("HOME")
+	if homedir == "" {
+		log.Fatal("home dir is empty")
+	}
+
+	syncdir = filepath.Join(homedir, root)
+
+	initFunc()
 }
 
 func replaceGlobForDirmap() {
@@ -102,29 +110,28 @@ func copyFile(from, to string, wg *sync.WaitGroup) {
 		return
 	}
 
-	if isDir(to) {
+	if utilsW.IsDir(to) {
 		to = filepath.Join(to, filepath.Base(from))
 	}
 
 	var toUnixNano int64
-	if !isExist(to) {
+	if !utilsW.IsExist(to) {
 		toUnixNano = fromUnixNano - 1
 	} else {
 		toUnixNano = getFileUnixNano(to)
-		overwight = true
 	}
 
 	// if "to" is newer, ignore
 	if fromUnixNano < toUnixNano {
-		// fmt.Println("early", from, to)
 		return
 	}
+	overwight = true
 
 	// fmt.Println(fromUnixNano, toUnixNano)
+	fromInfo, _ := os.Stat(from)
 
-	fto, err := os.OpenFile(to, os.O_CREATE|os.O_WRONLY, 0744)
+	fto, err := os.OpenFile(to, os.O_CREATE|os.O_WRONLY, fromInfo.Mode())
 	if err != nil {
-		// fmt.Println("what")
 		log.Println(err)
 	}
 	defer fto.Close()
@@ -149,7 +156,7 @@ func copyDir(src, dest string, wg *sync.WaitGroup) {
 		return
 	}
 
-	if isDir(src) {
+	if utilsW.IsDir(src) {
 		subs, err := ioutil.ReadDir(src)
 		if err != nil {
 			log.Println(err)
@@ -159,7 +166,8 @@ func copyDir(src, dest string, wg *sync.WaitGroup) {
 		// if dest directory is not exist, create one
 		_, err = os.Stat(dest)
 		if os.IsNotExist(err) {
-			err := os.MkdirAll(dest, 0644)
+			info, _ := os.Stat(src)
+			err := os.MkdirAll(dest, info.Mode())
 			if err != nil {
 				log.Println(err)
 			}
@@ -171,7 +179,7 @@ func copyDir(src, dest string, wg *sync.WaitGroup) {
 			// fmt.Println("here", subDestDir)
 			go copyDir(subSrcDir, subDestDir, wg)
 		}
-	} else if isRegular(src) {
+	} else if utilsW.IsRegular(src) {
 		wg.Add(1)
 		go copyFile(src, dest, wg)
 	}
@@ -192,8 +200,20 @@ func run() {
 }
 
 func main() {
+	backend := flag.Bool("backend", false, "run in backend mode (sync per minute)")
+	flag.Parse()
+	if *backend {
+		ticker := time.NewTicker(time.Minute)
+		for {
+			select {
+			case <-ticker.C:
+				initFunc()
+				run()
+			}
+		}
+	}
 	fmt.Printf("  put config files in: %q\n", clean(syncdir))
-	info := "  attribute files are in format *.attr "
+	info := "  attribute files are in format .txt file "
 	fmt.Println(info)
 	fmt.Println(" ", strings.Repeat("-", len(info)))
 	run()
