@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -25,6 +26,8 @@ func main() {
 			continue
 		}
 		defer os.Chdir("../")
+		filename := utilsW.LsDir(".")[0]
+		fmt.Printf("building %q\n", filename)
 		cmd := exec.Command("go", "build", "-o", outputDir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
