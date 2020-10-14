@@ -207,13 +207,8 @@ func main() {
 		for {
 			select {
 			case <-ticker.C:
-<<<<<<< HEAD
 				run()
 			default:
-=======
-				initFunc()
-				run()
->>>>>>> 0242ebbb496d42e7c935ac8920534e32d0cec77c
 			}
 		}
 	}
