@@ -47,3 +47,16 @@ func GetDirOfTheFile() string {
 	_, dir, _, _ := runtime.Caller(1)
 	return filepath.Dir(dir)
 }
+
+func IsNewer(filename1, filename2 string) bool {
+	info1, err := os.Stat(filename1)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	info2, err := os.Stat(filename2)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return info1.ModTime().After(info2.ModTime())
+}

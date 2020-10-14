@@ -60,6 +60,24 @@ func checkFile(filename string) {
 	})
 }
 
+func checkFileIgnoreCase(filename string) {
+	checkFileFunc(filename, func(target, line string) bool {
+		return strings.Contains(strings.ToLower(line), strings.ToLower(target))
+	})
+}
+
+func checkFileStrict(filename string) {
+	checkFileFunc(filename, func(target, line string) bool {
+		return strings.TrimSpace(target) == line
+	})
+}
+
+func checkFileStrictIgnoreCase(filename string) {
+	checkFileFunc(filename, func(target, line string) bool {
+		return strings.ToLower(strings.TrimSpace(target)) == strings.ToLower(line)
+	})
+}
+
 func checkFileRe(filename string) {
 	checkFileFunc(filename, func(pattern, s string) bool {
 		res, _ := regexp.MatchString(pattern, s)
@@ -68,14 +86,7 @@ func checkFileRe(filename string) {
 }
 
 func main() {
-	quotedArgsStr := strings.Join(terminalW.AddQuote(os.Args[1:]), " ")
-
-	quotedArgsStr = stringsW.Move2EndAll(quotedArgsStr, " -re")
-	quotedArgsStr = stringsW.Move2EndAll(quotedArgsStr, " -v")
-	quotedArgsStr = stringsW.Move2EndAll(quotedArgsStr, " -ignore")
-
-	// fmt.Println("before", quotedArgsStr)
-	quoteArgs := terminalW.Parse(quotedArgsStr)
+	quoteArgs := terminalW.ParseArgs("re", "v", "ignore", "-strict")
 	optionalMap, args := quoteArgs.Optional, quoteArgs.Positional
 	optional := terminalW.MapToString(optionalMap)
 	// fmt.Println("optionalMap", optionalMap)
@@ -92,6 +103,7 @@ func main() {
 	numLevel := fs.Int("level", math.MaxInt32,
 		`how many more directory levels to search. e.g.: src/ main.go "main.go" is the level 0,
 "src" is the level 1`)
+	isStrict := fs.Bool("strict", false, "find exact the same matches (after triming space)")
 
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 
@@ -102,8 +114,18 @@ func main() {
 	var task func(string)
 	if *isReg {
 		task = checkFileRe
+	} else if *isStrict {
+		if *isIgnoreCase {
+			task = checkFileStrictIgnoreCase
+		} else {
+			task = checkFileStrict
+		}
 	} else {
-		task = checkFile
+		if *isIgnoreCase {
+			task = checkFileIgnoreCase
+		} else {
+			task = checkFile
+		}
 	}
 	if *ext != "" {
 		terminalW.Extensions = terminalW.FormatFileExtensions(*ext)
@@ -117,19 +139,10 @@ func main() {
 		fs.PrintDefaults()
 		return
 	}
-	target = strings.ReplaceAll(target, `\\`, `\`)
 
-	// fmt.Printf("here|%s|\n", target)
-	// fmt.Println("re", *isReg)
-	// fmt.Println("rootdir", *rootDir)
-	// fmt.Println(regexp.MatchString(target, ` "PC": 1,  # Planet Candidate.`))
-	if *isIgnoreCase {
+	target = strings.ReplaceAll(target, `\\`, `\`)
+	if *isReg && *isIgnoreCase {
 		target = "(?i)" + target
-		if !*isReg {
-			// fs.PrintDefaults()
-			fmt.Println("\"-ignore\" must use with \"-re\"")
-			return
-		}
 	}
 
 	fmt.Println()

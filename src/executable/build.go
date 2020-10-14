@@ -6,12 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/grewwc/go_tools/src/utilsW"
 )
-
-var test = utilsW.GetDirOfTheFile()
 
 func main() {
 	subdirs := utilsW.LsDir(utilsW.GetDirOfTheFile())
@@ -25,6 +24,7 @@ func main() {
 		if !utilsW.IsDir(filepath.Join(utilsW.GetDirOfTheFile(), subdir)) || strings.Trim(subdir, " ") == "bin" {
 			continue
 		}
+
 		err := os.Chdir(filepath.Join(utilsW.GetDirOfTheFile(), subdir))
 		if err != nil {
 			log.Println(err)
@@ -32,8 +32,16 @@ func main() {
 		}
 		defer os.Chdir("../")
 		filename := utilsW.LsDir(".")[0]
+		executableFilename := filepath.Join(outputDir, subdir)
+		if strings.ToLower(runtime.GOOS) == "windows" {
+			executableFilename += ".exe"
+		}
+		if utilsW.IsExist(executableFilename) && utilsW.IsNewer(executableFilename, filename) {
+			continue
+		}
+
 		fmt.Printf("building %q\n", filename)
-		cmd := exec.Command("go", "build", "-o", outputDir)
+		cmd := exec.Command("go", "build", "-a", "-o", outputDir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err = cmd.Run()

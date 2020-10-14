@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
+
+	"github.com/grewwc/go_tools/src/stringsW"
 )
 
 /*******************************************
@@ -30,7 +33,7 @@ func findKV(cmd string, cur *int) (string, string) {
 
 	(*cur)++
 	var key, val bytes.Buffer
-	for *cur < len(cmd) && cmd[*cur] != ' ' && cmd[*cur] != '=' {
+	for *cur < len(cmd) && cmd[*cur] != '\x00' && cmd[*cur] != '=' {
 		key.WriteByte(cmd[*cur])
 		(*cur)++
 	} // key has been parsed
@@ -47,7 +50,7 @@ func findKV(cmd string, cur *int) (string, string) {
 	// following is for parsing dict value
 
 	// ignore more empty space
-	for *cur < len(cmd) && cmd[*cur] == ' ' {
+	for *cur < len(cmd) && cmd[*cur] == '\x00' {
 		(*cur)++
 	}
 
@@ -55,7 +58,7 @@ func findKV(cmd string, cur *int) (string, string) {
 	inQuote := false
 	// fmt.Println("left", cmd[*cur:])
 	for *cur < len(cmd) && cmd[*cur] != '=' {
-		if cmd[*cur] == ' ' && !inQuote {
+		if cmd[*cur] == '\x00' && !inQuote {
 			break
 		}
 		if cmd[*cur] == '"' {
@@ -81,96 +84,62 @@ func findAllPositonalArguments(cmd string) ([]string, string) {
 		positionalMode = iota
 		optionalKeyMode
 		optionalValMode
-		defaultMode
+		spaceMode
 	)
-	mode := defaultMode
-	inQuote := false
-	var positional, rest bytes.Buffer
-	var allPositionals []string
-	var curByte byte
-	for cur := 0; cur < len(cmd); cur++ {
-		curByte = cmd[cur]
+	mode := spaceMode
+	var positionals []string
+	var pBuf bytes.Buffer
+	var kvBuf bytes.Buffer
+
+	for _, ch := range cmd {
 		switch mode {
-		case positionalMode:
-			if curByte == '"' {
-				inQuote = !inQuote
-				// fmt.Println("changing in pos")
+		case spaceMode:
+			if ch == '\x00' {
 				continue
 			}
-
-			if !inQuote && curByte == ' ' {
-				rest.WriteByte(curByte)
-				allPositionals = append(allPositionals, positional.String())
-				mode = defaultMode
-				positional.Reset()
-				continue
-			}
-
-			positional.WriteByte(curByte)
-		case optionalKeyMode:
-			if curByte == '"' {
-				inQuote = !inQuote
-				// rest.WriteByte(curByte) // newly added
-				// fmt.Println("changing in option key")
-				continue
-			}
-
-			if !inQuote && curByte == ' ' {
-				mode = optionalValMode
-				for cur < len(cmd) && cmd[cur] == ' ' {
-					rest.WriteByte(cmd[cur])
-					cur++
-				}
-				cur-- // because cur will be added again in the main loop
-				continue
-			}
-
-			if curByte == '=' {
-				mode = optionalValMode
-				rest.WriteByte(curByte)
-				continue
-			}
-			rest.WriteByte(curByte)
-		case optionalValMode:
-			if curByte == '"' {
-				inQuote = !inQuote
-				rest.WriteByte(curByte) // newly added
-				// fmt.Printf("changing in option val %c%c\n", cmd[cur-2], cmd[cur-1])
-				// fmt.Println(inQuote, cur)
-				continue
-			}
-
-			if !inQuote && curByte == ' ' {
-				mode = defaultMode
-				rest.WriteByte(curByte)
-				continue
-			}
-			rest.WriteByte(curByte)
-		case defaultMode:
-			if curByte == '"' {
-				inQuote = !inQuote
-				// fmt.Println("changing in default")
-				continue
-			}
-
-			if curByte == ' ' {
-				rest.WriteByte(curByte)
-			} else if curByte == '-' {
+			if ch == '-' {
 				mode = optionalKeyMode
-				rest.WriteByte(curByte)
-			} else { // positional mode
+				kvBuf.WriteRune(ch)
+			} else {
+				pBuf.WriteRune(ch)
 				mode = positionalMode
-				positional.WriteByte(curByte)
+			}
+
+		case positionalMode:
+			if ch == '\x00' {
+				mode = spaceMode
+				positionals = append(positionals, pBuf.String())
+				pBuf.Reset()
+				continue
+			}
+			pBuf.WriteRune(ch)
+
+		case optionalKeyMode:
+			kvBuf.WriteRune(ch)
+			if ch == '\x00' {
+				mode = optionalValMode
+			}
+		case optionalValMode:
+			kvBuf.WriteRune(ch)
+			if ch == '\x00' {
+				mode = spaceMode
 			}
 		}
 	}
-	if positional.String() != "" {
-		allPositionals = append(allPositionals, positional.String())
-	}
-	return allPositionals, rest.String()
+	return positionals, kvBuf.String()
 }
 
-func Parse(cmd string) *ParsedResults {
+// ParseArgs is more powerful than golang default argparser
+func ParseArgs(boolOptionals ...string) *ParsedResults {
+	if len(os.Args) <= 1 {
+		return nil
+	}
+	cmd := strings.Join(os.Args[1:], "\x00")
+	cmd = "\x00" + cmd + "\x00"
+	for _, boolOptional := range boolOptionals {
+		boolOptional = strings.ReplaceAll(boolOptional, "-", "")
+		cmd = stringsW.Move2EndAll(cmd, fmt.Sprintf("\x00-%s", boolOptional))
+	}
 	var cur int
 	var k, v string
 	var res ParsedResults

@@ -1,6 +1,8 @@
 package stringsW
 
-import "strings"
+import (
+	"strings"
+)
 
 func Move2EndAll(original, target string) string {
 	n := strings.Count(original, target)

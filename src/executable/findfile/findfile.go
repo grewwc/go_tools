@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/grewwc/go_tools/src/stringsW"
-	"github.com/grewwc/go_tools/src/terminalW"
 	"io/ioutil"
 	"math"
 	"os"
@@ -13,6 +11,9 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/terminalW"
 )
 
 // target is the target file name
@@ -77,7 +78,7 @@ OUTER:
 }
 
 func main() {
-	res := terminalW.Parse(strings.Join(terminalW.AddQuote(os.Args[1:]), " "))
+	res := terminalW.ParseArgs(strings.Join(terminalW.AddQuote(os.Args[1:]), " "))
 	optionalMap, args := res.Optional, res.Positional
 	optional := terminalW.MapToString(optionalMap)
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
