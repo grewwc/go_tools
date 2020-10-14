@@ -24,62 +24,10 @@ type ParsedResults struct {
 	Positional []string
 }
 
-// find the next 2 values from "cmd"
-// ignore "=", " "
-func findKV(cmd string, cur *int) (string, string) {
-	for *cur < len(cmd) && cmd[*cur] != '-' {
-		(*cur)++
-	}
-
-	(*cur)++
-	var key, val bytes.Buffer
-	for *cur < len(cmd) && cmd[*cur] != '\x00' && cmd[*cur] != '=' {
-		key.WriteByte(cmd[*cur])
-		(*cur)++
-	} // key has been parsed
-
-	// go pass '=' sign
-	if *cur < len(cmd) && cmd[*cur] == '=' {
-		if *cur+1 < len(cmd) && cmd[*cur+1] == '=' {
-			fmt.Fprintf(os.Stdout, "argument error: %s\n", key.String())
-			os.Exit(2)
-		}
-		(*cur)++
-	}
-
-	// following is for parsing dict value
-
-	// ignore more empty space
-	for *cur < len(cmd) && cmd[*cur] == '\x00' {
-		(*cur)++
-	}
-
-	// consider sentence in "" as a complete part
-	inQuote := false
-	// fmt.Println("left", cmd[*cur:])
-	for *cur < len(cmd) && cmd[*cur] != '=' {
-		if cmd[*cur] == '\x00' && !inQuote {
-			break
-		}
-		if cmd[*cur] == '"' {
-			if !inQuote {
-				inQuote = true
-			} else {
-				inQuote = false
-			}
-		} else if cmd[*cur] != '-' || inQuote {
-			val.WriteByte(cmd[*cur])
-		}
-		(*cur)++
-	} // val has been parsed
-	// fmt.Println("here", key.String(), val.String())
-	return key.String(), val.String()
-}
-
 // 1 return: all positional arguments
 // 2 return: rest command line string
 // IMPORTNAT: boolean args needs to put to end  !!!!!!!!
-func findAllPositonalArguments(cmd string) ([]string, string) {
+func classifyArguments(cmd string, endIdx int) ([]string, []string, []string) {
 	const (
 		positionalMode = iota
 		optionalKeyMode
@@ -88,10 +36,13 @@ func findAllPositonalArguments(cmd string) ([]string, string) {
 	)
 	mode := spaceMode
 	var positionals []string
+	var keys []string
+	var vals []string
 	var pBuf bytes.Buffer
-	var kvBuf bytes.Buffer
+	var kBuf bytes.Buffer
+	var vBuf bytes.Buffer
 
-	for _, ch := range cmd {
+	for _, ch := range cmd[:endIdx] {
 		switch mode {
 		case spaceMode:
 			if ch == '\x00' {
@@ -99,7 +50,7 @@ func findAllPositonalArguments(cmd string) ([]string, string) {
 			}
 			if ch == '-' {
 				mode = optionalKeyMode
-				kvBuf.WriteRune(ch)
+				kBuf.WriteRune(ch)
 			} else {
 				pBuf.WriteRune(ch)
 				mode = positionalMode
@@ -115,18 +66,24 @@ func findAllPositonalArguments(cmd string) ([]string, string) {
 			pBuf.WriteRune(ch)
 
 		case optionalKeyMode:
-			kvBuf.WriteRune(ch)
+			kBuf.WriteRune(ch)
 			if ch == '\x00' {
 				mode = optionalValMode
+				keys = append(keys, kBuf.String())
+				kBuf.Reset()
 			}
 		case optionalValMode:
-			kvBuf.WriteRune(ch)
+			vBuf.WriteRune(ch)
 			if ch == '\x00' {
 				mode = spaceMode
+				vals = append(vals, vBuf.String())
+				vBuf.Reset()
 			}
 		}
 	}
-	return positionals, kvBuf.String()
+	rests := stringsW.SplitNoEmpty(cmd[endIdx:], "\x00")
+	keys = append(keys, rests...)
+	return positionals, keys, vals
 }
 
 // ParseArgs is more powerful than golang default argparser
@@ -136,26 +93,35 @@ func ParseArgs(boolOptionals ...string) *ParsedResults {
 	}
 	cmd := strings.Join(os.Args[1:], "\x00")
 	cmd = "\x00" + cmd + "\x00"
+	firstBoolArg := ""
 	for _, boolOptional := range boolOptionals {
 		boolOptional = strings.ReplaceAll(boolOptional, "-", "")
-		cmd = stringsW.Move2EndAll(cmd, fmt.Sprintf("\x00-%s", boolOptional))
+		cmdNew := stringsW.Move2EndAll(cmd, fmt.Sprintf("\x00-%s", boolOptional))
+		if cmdNew != cmd && firstBoolArg != "" {
+			firstBoolArg = cmdNew
+		}
+		cmd = cmdNew
 	}
-	var cur int
-	var k, v string
+
+	idx := strings.Index(cmd, fmt.Sprintf("\x00-%s", firstBoolArg))
+	if idx == -1 {
+		idx = len(cmd)
+	}
 	var res ParsedResults
 
-	allPositionals, rest := findAllPositonalArguments(cmd)
+	allPositionals, keys, vals := classifyArguments(cmd, idx)
 	res.Positional = allPositionals
 
 	res.Optional = make(map[string]string)
-	cmd = rest
-	// fmt.Println("heere ", cmd)
-	for cur < len(cmd) {
-		k, v = findKV(cmd, &cur)
-		if k == "" {
-			continue
+	// fmt.Println("keys", keys)
+	// fmt.Println("vals", vals)
+	for i := range keys {
+		key := keys[i]
+		if i >= len(vals) {
+			res.Optional[key] = ""
+		} else {
+			res.Optional[key] = vals[i]
 		}
-		res.Optional[k] = v
 	}
 	return &res
 }

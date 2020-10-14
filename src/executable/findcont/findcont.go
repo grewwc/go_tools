@@ -86,7 +86,7 @@ func checkFileRe(filename string) {
 }
 
 func main() {
-	quoteArgs := terminalW.ParseArgs("re", "v", "ignore", "-strict")
+	quoteArgs := terminalW.ParseArgs("re", "v", "ignore", "strict")
 	optionalMap, args := quoteArgs.Optional, quoteArgs.Positional
 	optional := terminalW.MapToString(optionalMap)
 	// fmt.Println("optionalMap", optionalMap)
@@ -98,19 +98,19 @@ func main() {
 	verboseFlag := fs.Bool("v", false, "if print error")
 	rootDir := fs.String("d", ".", "root directory for searching")
 	isReg := fs.Bool("re", false, `if use regular expression (use "\" instead of "\\") `)
-	isIgnoreCase := fs.Bool("ignore", false,
-		"case sensitive or not (must use with \"-re\")")
+	isIgnoreCase := fs.Bool("ignore", false, "")
 	numLevel := fs.Int("level", math.MaxInt32,
 		`how many more directory levels to search. e.g.: src/ main.go "main.go" is the level 0,
 "src" is the level 1`)
 	isStrict := fs.Bool("strict", false, "find exact the same matches (after triming space)")
-
+	fmt.Println()
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 
 	*rootDir = filepath.ToSlash(strings.ReplaceAll(*rootDir, `\\`, `\`))
 	terminalW.NumPrint = *num
 	terminalW.Verbose = *verboseFlag
 	terminalW.MaxLevel = int32(*numLevel)
+
 	var task func(string)
 	if *isReg {
 		task = checkFileRe
