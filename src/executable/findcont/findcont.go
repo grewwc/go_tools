@@ -68,13 +68,13 @@ func checkFileIgnoreCase(filename string) {
 
 func checkFileStrict(filename string) {
 	checkFileFunc(filename, func(target, line string) bool {
-		return strings.TrimSpace(target) == line
+		return strings.TrimSpace(target) == strings.TrimSpace(line)
 	})
 }
 
 func checkFileStrictIgnoreCase(filename string) {
 	checkFileFunc(filename, func(target, line string) bool {
-		return strings.ToLower(strings.TrimSpace(target)) == strings.ToLower(line)
+		return strings.ToLower(strings.TrimSpace(target)) == strings.ToLower(strings.TrimSpace(line))
 	})
 }
 
