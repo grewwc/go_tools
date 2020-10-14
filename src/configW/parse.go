@@ -10,6 +10,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 var supportedAttrs = containerW.NewSet()
@@ -39,7 +40,7 @@ func readAttrFromFile(filename string) {
 
 func initSupportedAttrs(syncdir string) {
 	supportedAttrs.Add("ignore")
-	allFiles := lsDir(syncdir)
+	allFiles := utilsW.LsDir(syncdir)
 	var allAttrFiles []string
 	for _, file := range allFiles {
 		if filepath.Ext(file) == attrFile {
@@ -113,7 +114,7 @@ func initialize(syncdir string) {
 func extractAll(syncdir string) map[string]string {
 	res := make(map[string]string)
 
-	allConfigFiles := lsDir(syncdir)
+	allConfigFiles := utilsW.LsDir(syncdir)
 
 	for _, fname := range allConfigFiles {
 		if filepath.Ext(fname) == attrFile {
