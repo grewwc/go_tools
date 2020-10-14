@@ -10,7 +10,7 @@ import (
 
 func main() {
 	if len(os.Args) != 2 && len(os.Args) != 3 {
-		fmt.Fprintln(os.Stderr, "need 2 or 3 arguments")
+		fmt.Fprintln(os.Stderr, "usage: fetchurl url [save file name]")
 		return
 	}
 	url := os.Args[1]
