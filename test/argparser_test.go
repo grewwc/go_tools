@@ -1,8 +1,9 @@
 package test
 
 import (
-	"github.com/grewwc/go_tools/src/terminalW"
 	"testing"
+
+	"github.com/grewwc/go_tools/src/terminalW"
 )
 
 func TestParser(t *testing.T) {

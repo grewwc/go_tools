@@ -5,14 +5,15 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/grewwc/go_tools/src/stringsW"
-	"github.com/grewwc/go_tools/src/terminalW"
 	"math"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/terminalW"
 )
 
 var target string
@@ -125,7 +126,8 @@ func main() {
 	if *isIgnoreCase {
 		target = "(?i)" + target
 		if !*isReg {
-			fs.PrintDefaults()
+			// fs.PrintDefaults()
+			fmt.Println("\"-ignore\" must use with \"-re\"")
 			return
 		}
 	}

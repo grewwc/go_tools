@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/grewwc/go_tools/src/configW"
 )
@@ -192,6 +194,18 @@ func run() {
 }
 
 func main() {
+	backend := flag.Bool("backend", false, "run in backend mode (sync per minute)")
+	flag.Parse()
+	if *backend {
+		ticker := time.NewTicker(time.Minute)
+		for {
+			select {
+			case <-ticker.C:
+				run()
+			default:
+			}
+		}
+	}
 	fmt.Printf("  put config files in: %q\n", clean(syncdir))
 	info := "  attribute files are in format *.attr "
 	fmt.Println(info)

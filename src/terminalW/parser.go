@@ -55,7 +55,7 @@ func findKV(cmd string, cur *int) (string, string) {
 	inQuote := false
 	// fmt.Println("left", cmd[*cur:])
 	for *cur < len(cmd) && cmd[*cur] != '=' {
-		if cmd[*cur] == ' ' && !inQuote{
+		if cmd[*cur] == ' ' && !inQuote {
 			break
 		}
 		if cmd[*cur] == '"' {
