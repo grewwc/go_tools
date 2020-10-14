@@ -41,7 +41,7 @@ func main() {
 		}
 
 		fmt.Printf("building %q\n", filename)
-		cmd := exec.Command("go", "build", "-a", "-o", outputDir)
+		cmd := exec.Command("go", "build", "-a", "-o", filepath.Join(outputDir, filepath.Base(executableFilename)))
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err = cmd.Run()
