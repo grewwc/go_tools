@@ -66,19 +66,22 @@ func classifyArguments(cmd string, endIdx int) ([]string, []string, []string) {
 			pBuf.WriteRune(ch)
 
 		case optionalKeyMode:
-			kBuf.WriteRune(ch)
 			if ch == '\x00' {
 				mode = optionalValMode
 				keys = append(keys, kBuf.String())
 				kBuf.Reset()
+				continue
 			}
+			kBuf.WriteRune(ch)
+
 		case optionalValMode:
-			vBuf.WriteRune(ch)
 			if ch == '\x00' {
 				mode = spaceMode
 				vals = append(vals, vBuf.String())
 				vBuf.Reset()
+				continue
 			}
+			vBuf.WriteRune(ch)
 		}
 	}
 	rests := stringsW.SplitNoEmpty(cmd[endIdx:], "\x00")
@@ -104,7 +107,7 @@ func ParseArgs(boolOptionals ...string) *ParsedResults {
 	}
 
 	idx := strings.Index(cmd, fmt.Sprintf("\x00-%s", firstBoolArg))
-	if idx == -1 {
+	if idx == -1 || firstBoolArg == "" {
 		idx = len(cmd)
 	}
 	var res ParsedResults
