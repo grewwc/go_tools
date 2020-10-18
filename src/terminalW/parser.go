@@ -24,9 +24,6 @@ type ParsedResults struct {
 	Positional []string
 }
 
-// 1 return: all positional arguments
-// 2 return: rest command line string
-// IMPORTNAT: boolean args needs to put to end  !!!!!!!!
 func classifyArguments(cmd string, endIdx int) ([]string, []string, []string) {
 	const (
 		positionalMode = iota
@@ -100,13 +97,15 @@ func ParseArgs(boolOptionals ...string) *ParsedResults {
 	for _, boolOptional := range boolOptionals {
 		boolOptional = strings.ReplaceAll(boolOptional, "-", "")
 		cmdNew := stringsW.Move2EndAll(cmd, fmt.Sprintf("\x00-%s", boolOptional))
-		if cmdNew != cmd && firstBoolArg != "" {
-			firstBoolArg = cmdNew
+		if firstBoolArg == "" && cmdNew != cmd {
+			firstBoolArg = boolOptional
 		}
 		cmd = cmdNew
 	}
 
 	idx := strings.Index(cmd, fmt.Sprintf("\x00-%s", firstBoolArg))
+	fmt.Println("index", idx, "firstboolarg", fmt.Sprintf("\x00-%s", firstBoolArg), cmd)
+
 	if idx == -1 || firstBoolArg == "" {
 		idx = len(cmd)
 	}
@@ -116,8 +115,8 @@ func ParseArgs(boolOptionals ...string) *ParsedResults {
 	res.Positional = allPositionals
 
 	res.Optional = make(map[string]string)
-	// fmt.Println("keys", keys)
-	// fmt.Println("vals", vals)
+	fmt.Println("keys", keys)
+	fmt.Println("vals", vals)
 	for i := range keys {
 		key := keys[i]
 		if i >= len(vals) {

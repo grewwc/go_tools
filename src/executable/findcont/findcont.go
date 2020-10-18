@@ -89,8 +89,8 @@ func main() {
 	quoteArgs := terminalW.ParseArgs("re", "v", "ignore", "strict")
 	optionalMap, args := quoteArgs.Optional, quoteArgs.Positional
 	optional := terminalW.MapToString(optionalMap)
-	// fmt.Println("optionalMap", optionalMap)
-	// fmt.Println("args", args)
+	fmt.Println("optionalMap", optionalMap)
+	fmt.Println("args", args)
 
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	num := fs.Int64("n", terminalW.NumPrint, "number of found results to print")
