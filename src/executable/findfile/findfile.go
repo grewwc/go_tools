@@ -78,7 +78,7 @@ OUTER:
 }
 
 func main() {
-	res := terminalW.ParseArgs(strings.Join(terminalW.AddQuote(os.Args[1:]), " "))
+	res := terminalW.ParseArgsCmd(strings.Join(terminalW.AddQuote(os.Args[1:]), " "))
 	optionalMap, args := res.Optional, res.Positional
 	optional := terminalW.MapToString(optionalMap)
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)

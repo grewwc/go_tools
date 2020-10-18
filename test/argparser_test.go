@@ -7,7 +7,7 @@ import (
 )
 
 func TestParser(t *testing.T) {
-	res := terminalW.ParseArgs("test.exe \"program dir\" -f file -a something night -v")
+	res := terminalW.ParseArgsCmd("test.exe \"program dir\" -f file -a something night -v")
 	t.Logf("positional : %v\n", res.Positional)
 
 	t.Log(res.Optional)

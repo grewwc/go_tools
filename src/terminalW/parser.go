@@ -86,13 +86,8 @@ func classifyArguments(cmd string, endIdx int) ([]string, []string, []string) {
 	return positionals, keys, vals
 }
 
-// ParseArgs is more powerful than golang default argparser
-func ParseArgs(boolOptionals ...string) *ParsedResults {
-	if len(os.Args) <= 1 {
-		return nil
-	}
-	cmd := strings.Join(os.Args[1:], "\x00")
-	cmd = "\x00" + cmd + "\x00"
+// ParseArgsCmd is more powerful than golang default argparser
+func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	firstBoolArg := ""
 	for _, boolOptional := range boolOptionals {
 		boolOptional = strings.ReplaceAll(boolOptional, "-", "")
@@ -104,7 +99,7 @@ func ParseArgs(boolOptionals ...string) *ParsedResults {
 	}
 
 	idx := strings.Index(cmd, fmt.Sprintf("\x00-%s", firstBoolArg))
-	fmt.Println("index", idx, "firstboolarg", fmt.Sprintf("\x00-%s", firstBoolArg), cmd)
+	// fmt.Println("index", idx, "firstboolarg", fmt.Sprintf("\x00-%s", firstBoolArg), cmd)
 
 	if idx == -1 || firstBoolArg == "" {
 		idx = len(cmd)
@@ -115,8 +110,8 @@ func ParseArgs(boolOptionals ...string) *ParsedResults {
 	res.Positional = allPositionals
 
 	res.Optional = make(map[string]string)
-	fmt.Println("keys", keys)
-	fmt.Println("vals", vals)
+	// fmt.Println("keys", keys)
+	// fmt.Println("vals", vals)
 	for i := range keys {
 		key := keys[i]
 		if i >= len(vals) {
@@ -126,4 +121,13 @@ func ParseArgs(boolOptionals ...string) *ParsedResults {
 		}
 	}
 	return &res
+}
+
+func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
+	if len(os.Args) <= 1 {
+		return nil
+	}
+	cmd := strings.Join(os.Args[1:], "\x00")
+	cmd = "\x00" + cmd + "\x00"
+	return ParseArgs(cmd, boolOptionals...)
 }
