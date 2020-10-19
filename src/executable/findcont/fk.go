@@ -91,12 +91,11 @@ func main() {
 	ext := fs.String("t", "", "what type of file to search")
 	verboseFlag := fs.Bool("v", false, "if print error")
 	rootDir := fs.String("d", ".", "root directory for searching")
-	isReg := fs.Bool("re", false, `if use regular expression (use "\" instead of "\\") `)
-	isIgnoreCase := fs.Bool("ignore", false, "")
-	numLevel := fs.Int("level", math.MaxInt32,
-		`how many more directory levels to search. e.g.: src/ main.go "main.go" is the level 0,
-"src" is the level 1`)
+	isReg := fs.Bool("re", false, `turn on regular expression (use "\" instead of "\\") `)
+	isIgnoreCase := fs.Bool("ignore", false, "ignore upper/lower case")
+	numLevel := fs.Int("level", math.MaxInt32, `number of directory levels to search. current directory's level is 0`)
 	isStrict := fs.Bool("strict", false, "find exact the same matches (after triming space)")
+	fs.BoolVar(&terminalW.CheckFileWithoutExt, "noext", false, "check file without extension")
 	fmt.Println()
 
 	parsedResults := terminalW.ParseArgsCmd("re", "v", "ignore", "strict")
@@ -108,10 +107,13 @@ func main() {
 	optional := terminalW.MapToString(optionalMap)
 	// fmt.Println("optionalMap", optionalMap)
 	// fmt.Println("args", args)
-
-	fs.Parse(stringsW.SplitNoEmpty(optional, " "))
+	// fmt.Println(optional, stringsW.SplitNoEmptyKeepQuote(optional, ' '))
+	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 
 	*rootDir = filepath.ToSlash(strings.ReplaceAll(*rootDir, `\\`, `\`))
+	if *num < 0 {
+		*num = math.MaxInt64
+	}
 	terminalW.NumPrint = *num
 	terminalW.Verbose = *verboseFlag
 	terminalW.MaxLevel = int32(*numLevel)
@@ -134,9 +136,12 @@ func main() {
 	}
 	if *ext != "" {
 		terminalW.Extensions = terminalW.FormatFileExtensions(*ext)
+		terminalW.CheckExtension = true
 	} else {
 		terminalW.Extensions = strings.Join(terminalW.DefaultExtensions[:], " ")
+		terminalW.CheckExtension = false
 	}
+	// fmt.Println(terminalW.Extensions)
 	switch len(args) {
 	case 1:
 		target = args[0]
@@ -156,5 +161,10 @@ func main() {
 	wg.Wait()
 	summaryString := fmt.Sprintf("%d matches found\n", terminalW.Count)
 	fmt.Println(strings.Repeat("-", len(summaryString)))
-	fmt.Printf("%v matches found\n", math.Min(float64(terminalW.Count), float64(terminalW.NumPrint)))
+	var additionalInfo string
+	matches := int64(math.Min(float64(terminalW.Count), float64(terminalW.NumPrint)))
+	if matches == terminalW.NumPrint {
+		additionalInfo = "(default) "
+	}
+	fmt.Printf("%v %smatches found\n", matches, additionalInfo)
 }

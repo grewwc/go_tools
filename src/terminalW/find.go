@@ -8,13 +8,16 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"golang.org/x/tools/godoc/util"
 )
 
 var DefaultExtensions = [...]string{".py", ".cpp", ".js", ".txt", ".h", ".c", ".tex", ".html", ".css", ".java", ".go", ".cc"}
 var Extensions string
-var CheckExtension bool = true
+var CheckExtension bool
+var CheckFileWithoutExt bool
 
-var NumPrint int64 = 10
+var NumPrint int64 = 3
 var Count int64
 
 // maximum 5000 threads
@@ -24,6 +27,14 @@ var CountMu sync.Mutex
 
 // how many levels to search
 var MaxLevel int32
+
+func isTextFile(filename string) bool {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil && Verbose {
+		fmt.Fprintln(os.Stderr, err)
+	}
+	return util.IsText(b)
+}
 
 // this function is the main part
 // acts like a framework
@@ -55,7 +66,16 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 			wg.Add(1)
 			go Find(subName, task, wg, atomic.AddInt32(&level, 1))
 			atomic.AddInt32(&level, -1)
-		} else if (!CheckExtension) || (extName != "" && strings.Contains(Extensions, extName)) {
+		} else if !CheckExtension {
+			// read the file content to check if is human readable
+			if extName == "" && !isTextFile(subName) {
+				continue
+			}
+			task(subName)
+		} else if strings.Contains(Extensions, extName) {
+			if extName == "" && (!CheckFileWithoutExt || !isTextFile(subName)) {
+				continue
+			}
 			task(subName)
 		}
 	}
