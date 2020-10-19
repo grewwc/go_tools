@@ -32,7 +32,7 @@ func main() {
 		}
 		defer os.Chdir("../")
 		filename := utilsW.LsDir(".")[0]
-		executableFilename := filepath.Join(outputDir, subdir)
+		executableFilename := filepath.Join(outputDir, utilsW.TrimFileExt(filename))
 		if strings.ToLower(runtime.GOOS) == "windows" {
 			executableFilename += ".exe"
 		}

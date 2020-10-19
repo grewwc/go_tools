@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 func LsDir(fname string) []string {
@@ -59,4 +60,27 @@ func IsNewer(filename1, filename2 string) bool {
 	}
 
 	return info1.ModTime().After(info2.ModTime())
+}
+
+func GetCurrentFileNameAbs() string {
+	_, filename, _, ok := runtime.Caller(1)
+	if !ok {
+		log.Fatalln(ok)
+	}
+
+	return filename
+}
+
+func GetCurrentFileName() string {
+	_, filename, _, ok := runtime.Caller(1)
+	if !ok {
+		log.Fatalln(ok)
+	}
+
+	return filepath.Base(filename)
+}
+
+func TrimFileExt(filename string) string {
+	idx := strings.LastIndex(filename, ".")
+	return filename[:idx]
 }

@@ -86,12 +86,6 @@ func checkFileRe(filename string) {
 }
 
 func main() {
-	quoteArgs := terminalW.ParseArgsCmd("re", "v", "ignore", "strict")
-	optionalMap, args := quoteArgs.Optional, quoteArgs.Positional
-	optional := terminalW.MapToString(optionalMap)
-	// fmt.Println("optionalMap", optionalMap)
-	// fmt.Println("args", args)
-
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	num := fs.Int64("n", terminalW.NumPrint, "number of found results to print")
 	ext := fs.String("t", "", "what type of file to search")
@@ -104,7 +98,18 @@ func main() {
 "src" is the level 1`)
 	isStrict := fs.Bool("strict", false, "find exact the same matches (after triming space)")
 	fmt.Println()
-	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
+
+	parsedResults := terminalW.ParseArgsCmd("re", "v", "ignore", "strict")
+	if parsedResults == nil {
+		fs.PrintDefaults()
+		return
+	}
+	optionalMap, args := parsedResults.Optional, parsedResults.Positional
+	optional := terminalW.MapToString(optionalMap)
+	// fmt.Println("optionalMap", optionalMap)
+	// fmt.Println("args", args)
+
+	fs.Parse(stringsW.SplitNoEmpty(optional, " "))
 
 	*rootDir = filepath.ToSlash(strings.ReplaceAll(*rootDir, `\\`, `\`))
 	terminalW.NumPrint = *num
