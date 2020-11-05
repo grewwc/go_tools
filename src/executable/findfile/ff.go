@@ -64,7 +64,7 @@ OUTER:
 		}
 		atomic.AddInt64(&count, 1)
 		fmt.Fprintf(color.Output, "%s %s\n", color.GreenString(">>"),
-			strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), target, color.RedString(target)))
+			strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.RedString(match)))
 	}
 
 	// check sub directories
