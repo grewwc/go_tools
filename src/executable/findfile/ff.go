@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 )
@@ -62,7 +63,8 @@ OUTER:
 			}
 		}
 		atomic.AddInt64(&count, 1)
-		fmt.Printf(">> %q\n", strings.ReplaceAll(abs, "\\", "/"))
+		fmt.Fprintf(color.Output, "%s %s\n", color.GreenString(">>"),
+			strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), target, color.RedString(target)))
 	}
 
 	// check sub directories
