@@ -18,6 +18,7 @@ import (
 
 var target string
 var wg sync.WaitGroup
+var countMu sync.Mutex
 
 func checkFileFunc(filename string, fn func(target, line string) bool) {
 	file, err := os.Open(filename)
@@ -34,13 +35,13 @@ func checkFileFunc(filename string, fn func(target, line string) bool) {
 		lineno++
 		line := scanner.Text()
 		if fn(target, line) { // cannot reverse the order
-			terminalW.CountMu.Lock()
+			countMu.Lock()
 			terminalW.Count++
 			if terminalW.Count > terminalW.NumPrint {
-				terminalW.CountMu.Unlock()
+				countMu.Unlock()
 				return
 			}
-			terminalW.CountMu.Unlock()
+			countMu.Unlock()
 			filename, err = filepath.Abs(filename)
 			if err != nil {
 				if terminalW.Verbose {
@@ -154,17 +155,9 @@ func main() {
 	if *isReg && *isIgnoreCase {
 		target = "(?i)" + target
 	}
-
 	fmt.Println()
 	wg.Add(1)
 	go terminalW.Find(*rootDir, task, &wg, 0)
 	wg.Wait()
-	summaryString := fmt.Sprintf("%d matches found\n", terminalW.Count)
-	fmt.Println(strings.Repeat("-", len(summaryString)))
-	var additionalInfo string
-	matches := int64(math.Min(float64(terminalW.Count), float64(terminalW.NumPrint)))
-	if matches == terminalW.NumPrint {
-		additionalInfo = "(default) "
-	}
-	fmt.Printf("%v %smatches found\n", matches, additionalInfo)
+
 }
