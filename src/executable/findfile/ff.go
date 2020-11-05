@@ -87,15 +87,15 @@ func main() {
 	verboseFlag := fs.Bool("v", false, "if print error")
 	rootDir := fs.String("d", ".", "root directory for searching")
 	res := terminalW.ParseArgsCmd(strings.Join(terminalW.AddQuote(os.Args[1:]), " "))
+	optionalMap, args := res.Optional, res.Positional
+	optional := terminalW.MapToString(optionalMap)
+	fs.StringVar(&ignores, "i", "", "ignores some file pattern")
+	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
+
 	if res == nil {
 		fs.PrintDefaults()
 		return
 	}
-	optionalMap, args := res.Optional, res.Positional
-	optional := terminalW.MapToString(optionalMap)
-
-	fs.StringVar(&ignores, "i", "", "ignores some file pattern")
-	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
 	verbose = *verboseFlag
