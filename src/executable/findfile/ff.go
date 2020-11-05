@@ -63,8 +63,9 @@ OUTER:
 			}
 		}
 		atomic.AddInt64(&count, 1)
+		match = filepath.Base(match)
 		fmt.Fprintf(color.Output, "%s %s\n", color.GreenString(">>"),
-			strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.RedString(filepath.Base(match))))
+			strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.RedString(match)))
 	}
 
 	// check sub directories
