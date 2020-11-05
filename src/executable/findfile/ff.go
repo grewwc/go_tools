@@ -86,7 +86,10 @@ func main() {
 	fs.Int64Var(&numPrint, "n", 10, "number of found results to print")
 	verboseFlag := fs.Bool("v", false, "if print error")
 	rootDir := fs.String("d", ".", "root directory for searching")
+	fs.StringVar(&ignores, "i", "", "ignores some file pattern")
+
 	res := terminalW.ParseArgsCmd(strings.Join(terminalW.AddQuote(os.Args[1:]), " "))
+
 	if res == nil {
 		fs.PrintDefaults()
 		return
@@ -94,7 +97,6 @@ func main() {
 	optionalMap, args := res.Optional, res.Positional
 	optional := terminalW.MapToString(optionalMap)
 
-	fs.StringVar(&ignores, "i", "", "ignores some file pattern")
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
