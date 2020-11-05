@@ -13,7 +13,7 @@ import (
 	"golang.org/x/tools/godoc/util"
 )
 
-var once sync.Once
+var Once sync.Once
 
 var DefaultExtensions = [...]string{".py", ".cpp", ".js", ".txt", ".h", ".c", ".tex", ".html", ".css", ".java", ".go", ".cc"}
 var Extensions string
@@ -52,7 +52,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	CountMu.Lock()
 	if Count >= NumPrint {
 		CountMu.Unlock()
-		once.Do(func() {
+		Once.Do(func() {
 			summaryString := fmt.Sprintf("%d matches found\n", Count)
 			fmt.Println(strings.Repeat("-", len(summaryString)))
 			matches := int64(math.Min(float64(Count), float64(NumPrint)))

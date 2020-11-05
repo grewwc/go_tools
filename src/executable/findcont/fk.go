@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 )
@@ -20,7 +21,15 @@ var target string
 var wg sync.WaitGroup
 var countMu sync.Mutex
 
-func checkFileFunc(filename string, fn func(target, line string) bool) {
+func colorTargetString(line string, matchedStrings []string) string {
+	var result string
+	for _, matchedString := range matchedStrings {
+		result = strings.ReplaceAll(line, matchedString, color.RedString(matchedString))
+	}
+	return result
+}
+
+func checkFileFunc(filename string, fn func(target, line string) (bool, []string)) {
 	file, err := os.Open(filename)
 	if err != nil {
 		if terminalW.Verbose {
@@ -34,7 +43,8 @@ func checkFileFunc(filename string, fn func(target, line string) bool) {
 	for scanner.Scan() {
 		lineno++
 		line := scanner.Text()
-		if fn(target, line) { // cannot reverse the order
+		matched, matchedStrings := fn(target, line)
+		if matched { // cannot reverse the order
 			countMu.Lock()
 			terminalW.Count++
 			if terminalW.Count > terminalW.NumPrint {
@@ -49,40 +59,74 @@ func checkFileFunc(filename string, fn func(target, line string) bool) {
 				}
 				return
 			}
-			fmt.Printf(">> %q [%d]:  %s\n\n", filepath.ToSlash(filename), lineno,
-				strings.TrimSpace(line))
+			fmt.Printf("%s %q [%d]:  %s\n\n", color.GreenString(">>"),
+				filepath.ToSlash(filename), lineno,
+				colorTargetString(strings.TrimSpace(line), matchedStrings))
 		}
 	}
 }
 
 func checkFile(filename string) {
-	checkFileFunc(filename, func(target, line string) bool {
-		return strings.Contains(line, target)
+	checkFileFunc(filename, func(target, line string) (bool, []string) {
+		return strings.Contains(line, target), []string{target}
 	})
 }
 
 func checkFileIgnoreCase(filename string) {
-	checkFileFunc(filename, func(target, line string) bool {
-		return strings.Contains(strings.ToLower(line), strings.ToLower(target))
+	checkFileFunc(filename, func(target, line string) (bool, []string) {
+		// only support English
+		// undefined behavior for other languages
+		idx := 0
+		result := make([]string, 1)
+		targetLower := strings.ToLower(target)
+		count := 0
+		for {
+			idx = strings.Index(strings.ToLower(line[idx:]), targetLower)
+			if idx == -1 {
+				return count != 0, result
+			}
+			count++
+			result = append(result, line[idx:idx+len(targetLower)])
+			idx += len(targetLower)
+		}
+		// should never reach here
+		return false, nil
 	})
 }
 
 func checkFileStrict(filename string) {
-	checkFileFunc(filename, func(target, line string) bool {
-		return strings.TrimSpace(target) == strings.TrimSpace(line)
+	checkFileFunc(filename, func(target, line string) (bool, []string) {
+		return strings.TrimSpace(target) == strings.TrimSpace(line), []string{target}
 	})
 }
 
 func checkFileStrictIgnoreCase(filename string) {
-	checkFileFunc(filename, func(target, line string) bool {
-		return strings.ToLower(strings.TrimSpace(target)) == strings.ToLower(strings.TrimSpace(line))
+	checkFileFunc(filename, func(target, line string) (bool, []string) {
+		targetLower := strings.ToLower(strings.TrimSpace(target))
+		line = strings.TrimSpace(line)
+		result := make([]string, 1)
+		count := 0
+		for idx := range line {
+			idx = strings.Index(strings.ToLower(line), targetLower)
+			if idx == -1 {
+				return count != 0, result
+			}
+			count++
+			result = append(result, line[idx:idx+len(targetLower)])
+		}
+		// should not reach here forever
+		return false, nil
 	})
 }
 
 func checkFileRe(filename string) {
-	checkFileFunc(filename, func(pattern, s string) bool {
-		res, _ := regexp.MatchString(pattern, s)
-		return res
+	checkFileFunc(filename, func(pattern, s string) (bool, []string) {
+		r := regexp.MustCompile(pattern)
+		result := r.FindAllString(s, -1)
+		if result == nil {
+			return false, nil
+		}
+		return true, result
 	})
 }
 
@@ -159,5 +203,12 @@ func main() {
 	wg.Add(1)
 	go terminalW.Find(*rootDir, task, &wg, 0)
 	wg.Wait()
+
+	terminalW.Once.Do(func() {
+		summaryString := fmt.Sprintf("%d matches found\n", terminalW.Count)
+		fmt.Println(strings.Repeat("-", len(summaryString)))
+		matches := int64(math.Min(float64(terminalW.Count), float64(terminalW.NumPrint)))
+		fmt.Printf("%v matches found\n", matches)
+	})
 
 }
