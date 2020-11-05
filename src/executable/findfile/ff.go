@@ -99,6 +99,11 @@ func main() {
 
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 
+	if res == nil {
+		fs.PrintDefaults()
+		return
+	}
+
 	ignores = strings.ReplaceAll(ignores, ",", " ")
 	verbose = *verboseFlag
 	switch len(args) {
