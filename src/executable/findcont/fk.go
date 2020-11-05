@@ -59,7 +59,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 				}
 				return
 			}
-			fmt.Printf("%s %q [%d]:  %s\n\n", color.GreenString(">>"),
+			fmt.Fprintf(color.Output, "%s %q [%d]:  %s\n\n", color.GreenString(">>"),
 				filepath.ToSlash(filename), lineno,
 				colorTargetString(strings.TrimSpace(line), matchedStrings))
 		}
