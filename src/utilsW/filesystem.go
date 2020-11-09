@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"golang.org/x/tools/godoc/util"
 )
 
 func LsDir(fname string) []string {
@@ -91,5 +89,5 @@ func TrimFileExt(filename string) string {
 func IsTextFile(filename string) bool {
 	buf, _ := ioutil.ReadFile(filename)
 	t := http.DetectContentType(buf)
-	return strings.HasPrefix(t, "text/plain") && util.IsText(buf)
+	return strings.HasPrefix(t, "text/plain")
 }

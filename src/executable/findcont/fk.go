@@ -180,6 +180,7 @@ func main() {
 			task = checkFile
 		}
 	}
+
 	if *ext != "" {
 		terminalW.Extensions = terminalW.FormatFileExtensions(*ext)
 		terminalW.CheckExtension = true
@@ -217,5 +218,4 @@ func main() {
 		matches := int64(math.Min(float64(terminalW.Count), float64(terminalW.NumPrint)))
 		fmt.Printf("%v matches found\n", matches)
 	})
-
 }
