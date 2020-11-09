@@ -10,6 +10,12 @@ func (s *Set) Add(item interface{}) {
 	s.data[item] = true
 }
 
+func (s *Set) AddAll(items ...interface{}) {
+	for _, item := range items {
+		s.Add(item)
+	}
+}
+
 func (s *Set) Contains(item interface{}) bool {
 	if _, exist := s.data[item]; exist {
 		return true
@@ -22,8 +28,44 @@ func (s *Set) Delete(item interface{}) bool {
 		delete(s.data, item)
 		return true
 	}
-
 	return false
+}
+
+func (s *Set) DeleteAll(items ...interface{}) {
+	for _, item := range items {
+		s.Delete(item)
+	}
+}
+
+func (s Set) Intersect(another Set) *Set {
+	result := NewSet()
+	for k := range s.data {
+		if another.Contains(k) {
+			result.Add(k)
+		}
+	}
+	return result
+}
+
+func (s Set) Union(another Set) *Set {
+	result := NewSet()
+	for k := range s.data {
+		result.Add(k)
+	}
+	return result
+}
+
+func (s Set) IsSuperSet(another Set) bool {
+	for k := range s.data {
+		if !another.Contains(k) {
+			return false
+		}
+	}
+	return true
+}
+
+func (s Set) IsSubSet(another Set) bool {
+	return another.IsSuperSet(s)
 }
 
 func (s *Set) Empty() bool {
@@ -44,6 +86,20 @@ func (s *Set) String() string {
 		res = append(res, k)
 	}
 	return fmt.Sprintf("%v\n", res)
+}
+
+func (s Set) ShallowCopy() *Set {
+	result := NewSet()
+	for k := range s.data {
+		result.Add(k)
+	}
+	return result
+}
+
+func (s *Set) Subtract(another Set) {
+	for k := range another.data {
+		s.Delete(k)
+	}
 }
 
 func NewSet() *Set {

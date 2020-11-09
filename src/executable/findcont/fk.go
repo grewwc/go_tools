@@ -59,8 +59,11 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 				}
 				return
 			}
-			fmt.Fprintf(color.Output, "%s %q [%d]:  %s\n\n", color.GreenString(">>"),
-				filepath.ToSlash(filename), lineno,
+			filename = filepath.ToSlash(filename)
+			dir := filepath.Dir(filename)
+			base := filepath.Base(filename)
+			fmt.Fprintf(color.Output, "%s \"%s/%s\" [%d]:  %s\n\n", color.GreenString(">>"),
+				dir, color.YellowString(base), lineno,
 				colorTargetString(strings.TrimSpace(line), matchedStrings))
 		}
 	}
@@ -140,7 +143,7 @@ func main() {
 	isIgnoreCase := fs.Bool("ignore", false, "ignore upper/lower case")
 	numLevel := fs.Int("level", math.MaxInt32, `number of directory levels to search. current directory's level is 0`)
 	isStrict := fs.Bool("strict", false, "find exact the same matches (after triming space)")
-	fs.BoolVar(&terminalW.CheckFileWithoutExt, "noext", false, "check file without extension")
+	extExclude := fs.String("nt", "", "check files which are not some types")
 	fmt.Println()
 
 	parsedResults := terminalW.ParseArgsCmd("re", "v", "ignore", "strict")
@@ -183,9 +186,17 @@ func main() {
 		terminalW.Extensions = terminalW.FormatFileExtensions(*ext)
 		terminalW.CheckExtension = true
 	} else {
-		terminalW.Extensions = strings.Join(terminalW.DefaultExtensions[:], " ")
+		terminalW.Extensions = terminalW.DefaultExtensions.ShallowCopy()
 		terminalW.CheckExtension = false
 	}
+
+	if *extExclude != "" {
+		// need to exclude some type of files
+		excludeSet := terminalW.FormatFileExtensions(*extExclude)
+		terminalW.Extensions.Subtract(*excludeSet)
+		terminalW.CheckExtension = true
+	}
+
 	// fmt.Println(terminalW.Extensions)
 	switch len(args) {
 	case 1:

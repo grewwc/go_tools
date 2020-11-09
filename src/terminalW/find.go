@@ -10,15 +10,22 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/grewwc/go_tools/src/containerW"
 	"golang.org/x/tools/godoc/util"
 )
 
 var Once sync.Once
 
-var DefaultExtensions = [...]string{".py", ".cpp", ".js", ".txt", ".h", ".c", ".tex", ".html", ".css", ".java", ".go", ".cc"}
-var Extensions string
+var DefaultExtensions = containerW.NewSet()
+
+func init() {
+	DefaultExtensions.AddAll(".py", ".cpp", ".js", ".txt", ".h", ".c", ".tex", ".html",
+		".css", ".java", ".go", ".cc")
+}
+
+var Extensions = containerW.NewSet()
 var CheckExtension bool
-var CheckFileWithoutExt bool
+var Exclude bool
 
 var NumPrint int64 = 5
 
@@ -77,16 +84,12 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 			wg.Add(1)
 			go Find(subName, task, wg, atomic.AddInt32(&level, 1))
 			atomic.AddInt32(&level, -1)
-		} else if !CheckExtension {
-			// read the file content to check if is human readable
-			if extName == "" && !isTextFile(subName) {
-				continue
-			}
+		} else if !isTextFile(subName) {
+			continue
+		}
+		if !CheckExtension {
 			task(subName)
-		} else if strings.Contains(Extensions, extName) {
-			if extName == "" && (!CheckFileWithoutExt || !isTextFile(subName)) {
-				continue
-			}
+		} else if Extensions.Contains(extName) {
 			task(subName)
 		}
 	}
