@@ -202,7 +202,6 @@ func main() {
 		fs.PrintDefaults()
 		return
 	}
-
 	target = strings.ReplaceAll(target, `\\`, `\`)
 	if *isReg && *isIgnoreCase {
 		target = "(?i)" + target
