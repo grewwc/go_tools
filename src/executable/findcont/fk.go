@@ -92,8 +92,6 @@ func checkFileIgnoreCase(filename string) {
 			result = append(result, line[idx:idx+len(targetLower)])
 			idx += len(targetLower)
 		}
-		// should never reach here
-		return false, nil
 	})
 }
 
@@ -189,7 +187,6 @@ func main() {
 		terminalW.Extensions = terminalW.DefaultExtensions.ShallowCopy()
 		terminalW.CheckExtension = false
 	}
-
 	if *extExclude != "" {
 		// need to exclude some type of files
 		excludeSet := terminalW.FormatFileExtensions(*extExclude)

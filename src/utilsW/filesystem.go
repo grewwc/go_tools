@@ -3,6 +3,7 @@ package utilsW
 import (
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -83,4 +84,15 @@ func GetCurrentFileName() string {
 func TrimFileExt(filename string) string {
 	idx := strings.LastIndex(filename, ".")
 	return filename[:idx]
+}
+
+func IsTextFile(filename string) bool {
+	fin, err := os.Open(filename)
+	if err != nil {
+		log.Println(err)
+	}
+	buf := make([]byte, 0, 64)
+	fin.Read(buf)
+	t := http.DetectContentType(buf)
+	return strings.HasPrefix(t, "text/plain")
 }

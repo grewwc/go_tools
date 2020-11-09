@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/grewwc/go_tools/src/containerW"
-	"golang.org/x/tools/godoc/util"
+	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 var Once sync.Once
@@ -38,14 +38,6 @@ var CountMu sync.Mutex
 
 // how many levels to search
 var MaxLevel int32
-
-func isTextFile(filename string) bool {
-	b, err := ioutil.ReadFile(filename)
-	if err != nil && Verbose {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	return util.IsText(b)
-}
 
 // this function is the main part
 // acts like a framework
@@ -84,7 +76,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 			wg.Add(1)
 			go Find(subName, task, wg, atomic.AddInt32(&level, 1))
 			atomic.AddInt32(&level, -1)
-		} else if !isTextFile(subName) {
+		} else if !utilsW.IsTextFile(subName) {
 			continue
 		}
 		if !CheckExtension {
