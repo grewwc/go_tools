@@ -62,8 +62,8 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			filename = filepath.ToSlash(filename)
 			dir := filepath.Dir(filename)
 			base := filepath.Base(filename)
-			fmt.Fprintf(color.Output, "%s \"%s/%s\" [%d]:  %s\n\n", color.GreenString(">>"),
-				dir, color.YellowString(base), lineno,
+			fmt.Fprintf(color.Output, "%s \"%s%c%s\" [%d]:  %s\n\n", color.GreenString(">>"),
+				dir, filepath.Separator, color.YellowString(base), lineno,
 				colorTargetString(strings.TrimSpace(line), matchedStrings))
 		}
 	}
