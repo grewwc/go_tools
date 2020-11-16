@@ -127,6 +127,9 @@ func checkFileRe(filename string) {
 		if result == nil {
 			return false, nil
 		}
+		if len(result) == 0 {
+			return false, result
+		}
 		return true, result
 	})
 }
@@ -142,9 +145,15 @@ func main() {
 	numLevel := fs.Int("level", math.MaxInt32, `number of directory levels to search. current directory's level is 0`)
 	isStrict := fs.Bool("strict", false, "find exact the same matches (after triming space)")
 	extExclude := fs.String("nt", "", "check files which are not some types")
+	findWord := fs.Bool("word", false, "only match the concrete word, is a shortcut for "+
+		"-re")
+	all := fs.Bool("all", false, "shortcut for -n=-1")
+	files := fs.String("f", "", "check only these files") // this flag will override -t
+	notFiles := fs.String("nf", "", "don't check these files")
+
 	fmt.Println()
 
-	parsedResults := terminalW.ParseArgsCmd("re", "v", "ignore", "strict")
+	parsedResults := terminalW.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word")
 	if parsedResults == nil {
 		fs.PrintDefaults()
 		return
@@ -157,14 +166,59 @@ func main() {
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 
 	*rootDir = filepath.ToSlash(strings.ReplaceAll(*rootDir, `\\`, `\`))
-	if *num < 0 {
+	if *num < 0 || *all {
 		*num = math.MaxInt64
 	}
 	terminalW.NumPrint = *num
 	terminalW.Verbose = *verboseFlag
 	terminalW.MaxLevel = int32(*numLevel)
 
+	// below the main thing is to define the task
 	var task func(string)
+
+	// fmt.Println(terminalW.Extensions)
+	switch len(args) {
+	case 1:
+		target = args[0]
+	default:
+		fs.PrintDefaults()
+		return
+	}
+	target = strings.ReplaceAll(target, `\\`, `\`)
+
+	if *findWord {
+		*isReg = true
+		wordPattern := regexp.MustCompile("\\w+")
+		if !wordPattern.MatchString(target) {
+			fmt.Println("here", target)
+			fmt.Println("You should pass in a word if set \"-word\" option")
+			fs.PrintDefaults()
+			os.Exit(1)
+		}
+		target = fmt.Sprintf("\\b%s\\b", target)
+	}
+
+	if *files != "" {
+		*files = strings.ReplaceAll(*files, ",", " ")
+		for _, f := range stringsW.SplitNoEmpty(*files, " ") {
+			terminalW.FileNamesToCheck.Add(f)
+		}
+		*ext = ""
+		*extExclude = ""
+	}
+
+	if *notFiles != "" {
+		*notFiles = strings.ReplaceAll(*notFiles, ",", "")
+		for _, f := range stringsW.SplitNoEmpty(*notFiles, " ") {
+			terminalW.FileNamesNOTCheck.Add(f)
+			terminalW.FileNamesToCheck.Delete(f)
+		}
+		// because previous notFiles may make files empty
+		if *files != "" && terminalW.FileNamesToCheck.Empty() {
+			terminalW.FileNamesToCheck.Add(nil)
+		}
+	}
+
 	if *isReg {
 		task = checkFileRe
 	} else if *isStrict {
@@ -195,15 +249,6 @@ func main() {
 		terminalW.CheckExtension = true
 	}
 
-	// fmt.Println(terminalW.Extensions)
-	switch len(args) {
-	case 1:
-		target = args[0]
-	default:
-		fs.PrintDefaults()
-		return
-	}
-	target = strings.ReplaceAll(target, `\\`, `\`)
 	if *isReg && *isIgnoreCase {
 		target = "(?i)" + target
 	}

@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -17,10 +18,12 @@ import (
 var Once sync.Once
 
 var DefaultExtensions = containerW.NewSet()
+var FileNamesToCheck = containerW.NewSet()
+var FileNamesNOTCheck = containerW.NewSet()
 
 func init() {
 	DefaultExtensions.AddAll(".py", ".cpp", ".js", ".txt", ".h", ".c", ".tex", ".html",
-		".css", ".java", ".go", ".cc")
+		".css", ".java", ".go", ".cc", ".htm", ".ts", "")
 }
 
 var Extensions = containerW.NewSet()
@@ -77,6 +80,17 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 			go Find(subName, task, wg, atomic.AddInt32(&level, 1))
 			atomic.AddInt32(&level, -1)
 		} else if !utilsW.IsTextFile(subName) {
+			continue
+		}
+
+		if !FileNamesToCheck.Empty() {
+			if FileNamesToCheck.Contains(filepath.Base(subName)) {
+				task(subName)
+			}
+			continue
+		}
+
+		if FileNamesNOTCheck.Contains(filepath.Base(subName)) {
 			continue
 		}
 		if !CheckExtension {
