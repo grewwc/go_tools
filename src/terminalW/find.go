@@ -1,7 +1,6 @@
 package terminalW
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math"
 	"os"
@@ -38,6 +37,7 @@ var Count int64
 var maxThreads = make(chan struct{}, 5000)
 var Verbose bool
 var CountMu sync.Mutex
+var PrintMu sync.Mutex
 
 // how many levels to search
 var MaxLevel int32
@@ -55,10 +55,10 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	if Count >= NumPrint {
 		CountMu.Unlock()
 		Once.Do(func() {
-			summaryString := fmt.Sprintf("%d matches found\n", Count)
-			fmt.Println(strings.Repeat("-", len(summaryString)))
+			summaryString := utilsW.Sprintf("%d matches found\n", Count)
+			utilsW.Println(strings.Repeat("-", len(summaryString)))
 			matches := int64(math.Min(float64(Count), float64(NumPrint)))
-			fmt.Printf("%v matches found\n", matches)
+			utilsW.Printf("%v matches found\n", matches)
 		})
 		os.Exit(0)
 		return
@@ -67,7 +67,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	subs, err := ioutil.ReadDir(rootDir)
 	if err != nil {
 		if Verbose {
-			fmt.Fprintln(os.Stderr, err)
+			utilsW.Fprintln(os.Stderr, err)
 		}
 		return
 	}

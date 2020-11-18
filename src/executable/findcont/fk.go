@@ -15,6 +15,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 var target string
@@ -33,7 +34,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 	file, err := os.Open(filename)
 	if err != nil {
 		if terminalW.Verbose {
-			fmt.Fprintln(os.Stderr, err)
+			utilsW.Fprintln(os.Stderr, err)
 		}
 		return
 	}
@@ -55,16 +56,19 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			filename, err = filepath.Abs(filename)
 			if err != nil {
 				if terminalW.Verbose {
-					fmt.Fprintln(os.Stderr, err)
+					utilsW.Fprintln(os.Stderr, err)
 				}
 				return
 			}
 			filename = filepath.ToSlash(filename)
 			dir := filepath.Dir(filename)
 			base := filepath.Base(filename)
-			fmt.Fprintf(color.Output, "%s \"%s%c%s\" [%d]:  %s\n\n", color.GreenString(">>"),
+
+			terminalW.PrintMu.Lock()
+			utilsW.Fprintf(color.Output, "%s \"%s%c%s\" [%d]:  %s\n\n", color.GreenString(">>"),
 				dir, filepath.Separator, color.YellowString(base), lineno,
 				colorTargetString(strings.TrimSpace(line), matchedStrings))
+			terminalW.PrintMu.Unlock()
 		}
 	}
 }
@@ -190,7 +194,7 @@ func main() {
 		*isReg = true
 		wordPattern := regexp.MustCompile("\\w+")
 		if !wordPattern.MatchString(target) {
-			fmt.Println("here", target)
+			// fmt.Println("here", target)
 			fmt.Println("You should pass in a word if set \"-word\" option")
 			fs.PrintDefaults()
 			os.Exit(1)
@@ -258,9 +262,9 @@ func main() {
 	wg.Wait()
 
 	terminalW.Once.Do(func() {
-		summaryString := fmt.Sprintf("%d matches found\n", terminalW.Count)
-		fmt.Println(strings.Repeat("-", len(summaryString)))
+		summaryString := utilsW.Sprintf("%d matches found\n", terminalW.Count)
+		utilsW.Println(strings.Repeat("-", len(summaryString)))
 		matches := int64(math.Min(float64(terminalW.Count), float64(terminalW.NumPrint)))
-		fmt.Printf("%v matches found\n", matches)
+		utilsW.Printf("%v matches found\n", matches)
 	})
 }
