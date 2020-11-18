@@ -15,6 +15,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 // target is the target file name
@@ -64,7 +65,7 @@ OUTER:
 		}
 		atomic.AddInt64(&count, 1)
 		match = filepath.Base(match)
-		fmt.Fprintf(color.Output, "%s %s\n", color.GreenString(">>"),
+		utilsW.Fprintf(color.Output, "%s %s\n", color.GreenString(">>"),
 			strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.RedString(match)))
 	}
 
