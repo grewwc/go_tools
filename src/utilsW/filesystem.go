@@ -89,5 +89,6 @@ func TrimFileExt(filename string) string {
 func IsTextFile(filename string) bool {
 	buf, _ := ioutil.ReadFile(filename)
 	t := http.DetectContentType(buf)
-	return strings.HasPrefix(t, "text/plain")
+	// fmt.Println("textfile", t)
+	return strings.HasPrefix(t, "text")
 }

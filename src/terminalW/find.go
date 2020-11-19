@@ -37,7 +37,6 @@ var Count int64
 var maxThreads = make(chan struct{}, 5000)
 var Verbose bool
 var CountMu sync.Mutex
-var PrintMu sync.Mutex
 
 // how many levels to search
 var MaxLevel int32
@@ -75,6 +74,10 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	for _, sub := range subs {
 		subName := path.Join(rootDir, sub.Name())
 		extName := path.Ext(subName)
+		if (!FileNamesToCheck.Empty() && !FileNamesToCheck.Contains(filepath.Base(subName))) ||
+			FileNamesNOTCheck.Contains(filepath.Base(subName)) {
+			continue
+		}
 		if sub.IsDir() {
 			wg.Add(1)
 			go Find(subName, task, wg, atomic.AddInt32(&level, 1))
@@ -83,16 +86,6 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 			continue
 		}
 
-		if !FileNamesToCheck.Empty() {
-			if FileNamesToCheck.Contains(filepath.Base(subName)) {
-				task(subName)
-			}
-			continue
-		}
-
-		if FileNamesNOTCheck.Contains(filepath.Base(subName)) {
-			continue
-		}
 		if !CheckExtension {
 			task(subName)
 		} else if Extensions.Contains(extName) {

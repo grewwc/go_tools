@@ -64,11 +64,9 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			dir := filepath.Dir(filename)
 			base := filepath.Base(filename)
 
-			terminalW.PrintMu.Lock()
 			utilsW.Fprintf(color.Output, "%s \"%s%c%s\" [%d]:  %s\n\n", color.GreenString(">>"),
 				dir, filepath.Separator, color.YellowString(base), lineno,
 				colorTargetString(strings.TrimSpace(line), matchedStrings))
-			terminalW.PrintMu.Unlock()
 		}
 	}
 }
@@ -152,8 +150,8 @@ func main() {
 	findWord := fs.Bool("word", false, "only match the concrete word, is a shortcut for "+
 		"-re")
 	all := fs.Bool("all", false, "shortcut for -n=-1")
-	files := fs.String("f", "", "check only these files") // this flag will override -t
-	notFiles := fs.String("nf", "", "don't check these files")
+	files := fs.String("f", "", "check only these files/directories") // this flag will override -t
+	notFiles := fs.String("nf", "", "don't check these files/directories")
 
 	fmt.Println()
 
@@ -256,6 +254,7 @@ func main() {
 	if *isReg && *isIgnoreCase {
 		target = "(?i)" + target
 	}
+
 	fmt.Println()
 	wg.Add(1)
 	go terminalW.Find(*rootDir, task, &wg, 0)
