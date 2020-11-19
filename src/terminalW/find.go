@@ -16,14 +16,8 @@ import (
 
 var Once sync.Once
 
-var DefaultExtensions = containerW.NewSet()
 var FileNamesToCheck = containerW.NewSet()
 var FileNamesNOTCheck = containerW.NewSet()
-
-func init() {
-	DefaultExtensions.AddAll(".py", ".cpp", ".js", ".txt", ".h", ".c", ".tex", ".html",
-		".css", ".java", ".go", ".cc", ".htm", ".ts", "")
-}
 
 var Extensions = containerW.NewSet()
 var CheckExtension bool

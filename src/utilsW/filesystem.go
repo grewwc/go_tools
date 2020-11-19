@@ -8,7 +8,16 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/grewwc/go_tools/src/containerW"
 )
+
+var DefaultExtensions = containerW.NewSet()
+
+func init() {
+	DefaultExtensions.AddAll(".py", ".cpp", ".js", ".txt", ".h", ".hpp", ".c", ".tex", ".html",
+		".css", ".java", ".go", ".cc", ".htm", ".ts", ".xml", ".php", ".sc", "")
+}
 
 func LsDir(fname string) []string {
 	infos, err := ioutil.ReadDir(fname)
@@ -86,9 +95,18 @@ func TrimFileExt(filename string) string {
 	return filename[:idx]
 }
 
-func IsTextFile(filename string) bool {
+func isTextFile(filename string) bool {
 	buf, _ := ioutil.ReadFile(filename)
 	t := http.DetectContentType(buf)
-	// fmt.Println("textfile", t)
 	return strings.HasPrefix(t, "text")
+}
+
+func IsTextFile(filename string) bool {
+	ext := filepath.Ext(filename)
+
+	if ext != "" && DefaultExtensions.Contains(ext) {
+		return true
+	}
+
+	return isTextFile(filename)
 }

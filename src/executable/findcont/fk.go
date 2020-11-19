@@ -15,12 +15,14 @@ import (
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
+
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 var target string
 var wg sync.WaitGroup
 var countMu sync.Mutex
+var r *regexp.Regexp = nil
 
 func colorTargetString(line string, matchedStrings []string) string {
 	var result string
@@ -83,39 +85,37 @@ func checkFileIgnoreCase(filename string) {
 		// undefined behavior for other languages
 		idx := 0
 		result := make([]string, 1)
-		targetLower := strings.ToLower(target)
 		count := 0
 		for {
-			idx = strings.Index(strings.ToLower(line[idx:]), targetLower)
+			idx = strings.Index(strings.ToLower(line[idx:]), target)
 			if idx == -1 {
 				return count != 0, result
 			}
 			count++
-			result = append(result, line[idx:idx+len(targetLower)])
-			idx += len(targetLower)
+			result = append(result, line[idx:idx+len(target)])
+			idx += len(target)
 		}
 	})
 }
 
 func checkFileStrict(filename string) {
 	checkFileFunc(filename, func(target, line string) (bool, []string) {
-		return strings.TrimSpace(target) == strings.TrimSpace(line), []string{target}
+		return target == strings.TrimSpace(line), []string{target}
 	})
 }
 
 func checkFileStrictIgnoreCase(filename string) {
 	checkFileFunc(filename, func(target, line string) (bool, []string) {
-		targetLower := strings.ToLower(strings.TrimSpace(target))
 		line = strings.TrimSpace(line)
 		result := make([]string, 1)
 		count := 0
 		for idx := range line {
-			idx = strings.Index(strings.ToLower(line), targetLower)
+			idx = strings.Index(strings.ToLower(line), target)
 			if idx == -1 {
 				return count != 0, result
 			}
 			count++
-			result = append(result, line[idx:idx+len(targetLower)])
+			result = append(result, line[idx:idx+len(target)])
 		}
 		// should not reach here forever
 		return false, nil
@@ -124,7 +124,6 @@ func checkFileStrictIgnoreCase(filename string) {
 
 func checkFileRe(filename string) {
 	checkFileFunc(filename, func(pattern, s string) (bool, []string) {
-		r := regexp.MustCompile(pattern)
 		result := r.FindAllString(s, -1)
 		if result == nil {
 			return false, nil
@@ -197,7 +196,8 @@ func main() {
 			fs.PrintDefaults()
 			os.Exit(1)
 		}
-		target = fmt.Sprintf("\\b%s\\b", target)
+		target = fmt.Sprintf("\b%s\b", target)
+		r = regexp.MustCompile(target)
 	}
 
 	if *files != "" {
@@ -225,23 +225,27 @@ func main() {
 		task = checkFileRe
 	} else if *isStrict {
 		if *isIgnoreCase {
+			target = strings.ToLower(strings.TrimSpace(target))
 			task = checkFileStrictIgnoreCase
 		} else {
+			target = strings.TrimSpace(target)
 			task = checkFileStrict
 		}
 	} else {
 		if *isIgnoreCase {
+			target = strings.ToLower(target)
 			task = checkFileIgnoreCase
 		} else {
 			task = checkFile
 		}
 	}
 
+	// fmt.Println("target", target)
 	if *ext != "" {
 		terminalW.Extensions = terminalW.FormatFileExtensions(*ext)
 		terminalW.CheckExtension = true
 	} else {
-		terminalW.Extensions = terminalW.DefaultExtensions.ShallowCopy()
+		terminalW.Extensions = utilsW.DefaultExtensions.ShallowCopy()
 		terminalW.CheckExtension = false
 	}
 	if *extExclude != "" {
@@ -253,6 +257,7 @@ func main() {
 
 	if *isReg && *isIgnoreCase {
 		target = "(?i)" + target
+		r = regexp.MustCompile(target)
 	}
 
 	fmt.Println()
