@@ -196,7 +196,7 @@ func main() {
 			fs.PrintDefaults()
 			os.Exit(1)
 		}
-		target = fmt.Sprintf("\b%s\b", target)
+		target = fmt.Sprintf("\\b%s\\b", target)
 		r = regexp.MustCompile(target)
 	}
 
