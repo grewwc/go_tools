@@ -108,5 +108,14 @@ func IsTextFile(filename string) bool {
 		return true
 	}
 
+	info, err := os.Lstat(filename)
+	if err != nil {
+		Println(err)
+		return false
+	}
+	firstBit := info.Mode().String()[0]
+	if firstBit != '-' {
+		return false
+	}
 	return isTextFile(filename)
 }

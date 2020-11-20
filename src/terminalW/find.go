@@ -76,7 +76,10 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 			wg.Add(1)
 			go Find(subName, task, wg, atomic.AddInt32(&level, 1))
 			atomic.AddInt32(&level, -1)
-		} else if !utilsW.IsTextFile(subName) {
+			continue
+		}
+
+		if !utilsW.IsTextFile(subName) {
 			continue
 		}
 
