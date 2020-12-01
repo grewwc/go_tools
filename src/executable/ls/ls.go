@@ -22,7 +22,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	w, _ := termbox.Size()
-	toPrint, err := stringsW.Wrap(files, w, 2)
+	toPrint, err := stringsW.Wrap(files, w, 2, "  ")
 	if err != nil {
 		log.Fatalln(err)
 	}
