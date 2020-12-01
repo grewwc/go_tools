@@ -6,11 +6,19 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
+	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
+
+var ignoreName = containerW.NewSet()
+
+func init() {
+	if utilsW.GetPlatform() != utilsW.WINDOWS {
+		ignoreName.AddAll("ls")
+	}
+}
 
 func main() {
 	subdirs := utilsW.LsDir(utilsW.GetDirOfTheFile())
@@ -25,6 +33,10 @@ func main() {
 			continue
 		}
 
+		if ignoreName.Contains(strings.TrimSpace(subdir)) {
+			continue
+		}
+
 		err := os.Chdir(filepath.Join(utilsW.GetDirOfTheFile(), subdir))
 		if err != nil {
 			log.Println(err)
@@ -33,7 +45,7 @@ func main() {
 		defer os.Chdir("../")
 		filename := utilsW.LsDir(".")[0]
 		executableFilename := filepath.Join(outputDir, utilsW.TrimFileExt(filename))
-		if strings.ToLower(runtime.GOOS) == "windows" {
+		if utilsW.GetPlatform() == utilsW.WINDOWS {
 			executableFilename += ".exe"
 		}
 		if utilsW.IsExist(executableFilename) && utilsW.IsNewer(executableFilename, filename) {

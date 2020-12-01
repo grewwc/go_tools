@@ -59,6 +59,7 @@ func GetDirOfTheFile() string {
 	return filepath.Dir(dir)
 }
 
+// IsNewer if filename1 newer than filename2
 func IsNewer(filename1, filename2 string) bool {
 	info1, err := os.Stat(filename1)
 	if err != nil {
