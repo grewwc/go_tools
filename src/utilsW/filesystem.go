@@ -120,3 +120,17 @@ func IsTextFile(filename string) bool {
 	}
 	return isTextFile(filename)
 }
+
+func GetDirSize(dirname string) (int64, error) {
+	var size int64
+	err := filepath.Walk(dirname, func(prefix string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
+}

@@ -1,30 +1,138 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 	"github.com/nsf/termbox-go"
+	"golang.org/x/sys/windows"
 )
 
-func main() {
-	var files string
-	for _, file := range utilsW.LsDir(".") {
-		files += file
-		if utilsW.IsDir(file) {
-			files += "/"
-		}
-		files += " "
-	}
+var w int
+var all *bool
+
+func init() {
+	stdout := windows.Handle(os.Stdout.Fd())
+	var originalMode uint32
+
+	windows.GetConsoleMode(stdout, &originalMode)
+	windows.SetConsoleMode(stdout, originalMode|windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+
 	if err := termbox.Init(); err != nil {
 		log.Fatalln(err)
 	}
-	w, _ := termbox.Size()
-	toPrint, err := stringsW.Wrap(files, w, 2, "  ")
+	w, _ = termbox.Size()
+	defer termbox.Close()
+}
+
+func formatFileStat(filename string) string {
+	stat, err := os.Stat(filename)
 	if err != nil {
-		log.Fatalln(err)
+		log.Printf("error getting stat of file: %q\n", filename)
+		os.Exit(1)
 	}
-	fmt.Println(toPrint)
+	modTime := stat.ModTime()
+	modTimeStr := fmt.Sprintf("    %04d/%02d/%02d  %02d:%02d", modTime.Year(), int(modTime.Month()), modTime.Day(), modTime.Hour(), modTime.Minute())
+	var sizeStr string
+	if utilsW.IsDir(filename) {
+		sizeStr = stringsW.FormatInt64(stat.Size())
+	} else {
+		dirSize, err := utilsW.GetDirSize(filename)
+		if err != nil {
+			log.Printf("error getting size of directory: %q\n", filename)
+			os.Exit(1)
+		}
+		sizeStr = stringsW.FormatInt64(dirSize)
+	}
+	if utilsW.IsDir(filename) {
+		filename = color.HiBlueString(filename + "/")
+	}
+
+	return fmt.Sprintf("%s\t%10s\t%s", modTimeStr, sizeStr, filename)
+}
+
+func main() {
+	var files string
+	fs := flag.NewFlagSet("parser", flag.ExitOnError)
+	l := fs.Bool("l", false, "show more information")
+	all = fs.Bool("a", false, "list hidden file")
+
+	parsedResults := terminalW.ParseArgsCmd("l", "a")
+	coloredStrings := containerW.NewSet()
+	rootDir := "."
+	var optionalStr string
+	var optional map[string]string
+	var args []string
+
+	if parsedResults == nil {
+		goto skip
+	}
+	optional, args = parsedResults.Optional, parsedResults.Positional
+	optionalStr = terminalW.MapToString(optional)
+	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optionalStr, ' '))
+
+	switch len(args) {
+	case 0:
+	case 1:
+		rootDir = args[0]
+	default:
+		os.Exit(1) // quit silently
+	}
+
+skip:
+
+	for _, file := range utilsW.LsDir(rootDir) {
+		file = filepath.Join(rootDir, file)
+		if !*all && filepath.Base(file)[0] == '.' {
+			continue
+		}
+		if *l {
+			line := formatFileStat(file)
+			fmt.Println(line)
+			continue
+		}
+		if utilsW.IsDir(file) {
+			file += "/"
+			coloredStrings.Add(file)
+		}
+		if strings.Contains(file, " ") {
+			file = fmt.Sprintf("\"%s\"", file)
+			coloredStrings.Add(file)
+			file = strings.ReplaceAll(file, " ", "\x00")
+		}
+		files += file
+		files += " "
+	}
+
+	if *l {
+		return
+	}
+	indent := 6
+	delimiter := "  "
+
+	toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
+
+	fmt.Printf("\n")
+	boldBlue := color.New(color.FgHiBlue, color.Bold)
+	for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
+		fmt.Printf("\n\n%s", strings.Repeat(" ", indent))
+		for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
+			word = strings.ReplaceAll(word, "\x00", " ")
+			if coloredStrings.Contains(word) {
+				boldBlue.Printf("%s%s", word, delimiter)
+			} else {
+				fmt.Printf("%s%s", word, delimiter)
+			}
+		}
+	}
+	fmt.Printf("\n\n")
 }

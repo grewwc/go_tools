@@ -21,9 +21,9 @@ func MapToString(m map[string]string) string {
 	var res bytes.Buffer
 	for k, v := range m {
 		if strings.Contains(strings.TrimSpace(v), " ") {
-			res.WriteString(fmt.Sprintf(" -%s \"%s\" ", k, v))
+			res.WriteString(fmt.Sprintf(" %s \"%s\" ", k, v))
 		} else {
-			res.WriteString(fmt.Sprintf(" -%s %s ", k, v))
+			res.WriteString(fmt.Sprintf(" %s %s ", k, v))
 		}
 	}
 	return res.String()

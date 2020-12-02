@@ -163,7 +163,7 @@ func main() {
 	}
 	optionalMap, args := parsedResults.Optional, parsedResults.Positional
 	optional := terminalW.MapToString(optionalMap)
-	// fmt.Println("optionalMap", optionalMap)
+	// fmt.Println("optionalMap", optionalMap, optional)
 	// fmt.Println("args", args)
 	// fmt.Println(optional, stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
