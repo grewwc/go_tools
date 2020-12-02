@@ -65,8 +65,10 @@ func main() {
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	l := fs.Bool("l", false, "show more information")
 	all = fs.Bool("a", false, "list hidden file")
+	lall := fs.Bool("la", false, "shortcut for -l -a")
+	alll := fs.Bool("al", false, "shortcut for -l -a")
 
-	parsedResults := terminalW.ParseArgsCmd("l", "a")
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "al", "la")
 	coloredStrings := containerW.NewSet()
 	rootDir := "."
 	var optionalStr string
@@ -77,9 +79,15 @@ func main() {
 		goto skip
 	}
 	optional, args = parsedResults.Optional, parsedResults.Positional
+	// fmt.Println("optional", optional)
+	// fmt.Println("positional", args)
 	optionalStr = terminalW.MapToString(optional)
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optionalStr, ' '))
 
+	if *lall || *alll {
+		*l = true
+		*all = true
+	}
 	switch len(args) {
 	case 0:
 	case 1:
@@ -89,7 +97,7 @@ func main() {
 	}
 
 skip:
-
+	fmt.Printf("\n")
 	for _, file := range utilsW.LsDir(rootDir) {
 		file = filepath.Join(rootDir, file)
 		if !*all && filepath.Base(file)[0] == '.' {
@@ -121,7 +129,6 @@ skip:
 
 	toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
 
-	fmt.Printf("\n")
 	boldBlue := color.New(color.FgHiBlue, color.Bold)
 	for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
 		fmt.Printf("\n\n%s", strings.Repeat(" ", indent))

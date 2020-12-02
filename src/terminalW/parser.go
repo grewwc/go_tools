@@ -4,24 +4,30 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
+	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
 )
-
-/*******************************************
-
-very similar to go default "flag" packge
-
-difference: optional arguments can be put after positional arguments
-
-don't support multiple value (e.g. -arg 1 2)
-
-********************************************/
 
 type ParsedResults struct {
 	Optional   map[string]string
 	Positional []string
+}
+
+type sortByLen []string
+
+func (slice sortByLen) Len() int {
+	return len(slice)
+}
+
+func (slice sortByLen) Less(i, j int) bool {
+	return len(slice[i]) > len(slice[j])
+}
+
+func (slice sortByLen) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
 }
 
 func classifyArguments(cmd string, endIdx int) ([]string, []string, []string) {
@@ -86,14 +92,24 @@ func classifyArguments(cmd string, endIdx int) ([]string, []string, []string) {
 	return positionals, keys, vals
 }
 
-// ParseArgsCmd is more powerful than golang default argparser
-func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
+func parseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	firstBoolArg := ""
+	sort.Sort(sortByLen(boolOptionals))
+
+	moved := containerW.NewTrie()
+
 	for _, boolOptional := range boolOptionals {
 		boolOptional = strings.ReplaceAll(boolOptional, "-", "")
+		if moved.StartsWith(boolOptional) {
+			continue
+		}
 		cmdNew := stringsW.Move2EndAll(cmd, fmt.Sprintf("\x00-%s", boolOptional))
 		if firstBoolArg == "" && cmdNew != cmd {
 			firstBoolArg = boolOptional
+		}
+
+		if cmdNew != cmd {
+			moved.Insert(boolOptional)
 		}
 		cmd = cmdNew
 	}
@@ -129,5 +145,5 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	}
 	cmd := strings.Join(os.Args[1:], "\x00")
 	cmd = "\x00" + cmd + "\x00"
-	return ParseArgs(cmd, boolOptionals...)
+	return parseArgs(cmd, boolOptionals...)
 }
