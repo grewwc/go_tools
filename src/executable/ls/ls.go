@@ -37,7 +37,7 @@ func formatFileStat(filename string) string {
 	modTime := stat.ModTime()
 	modTimeStr := fmt.Sprintf("    %04d/%02d/%02d  %02d:%02d", modTime.Year(), int(modTime.Month()), modTime.Day(), modTime.Hour(), modTime.Minute())
 	var sizeStr string
-	if utilsW.IsDir(filename) {
+	if !utilsW.IsDir(filename) {
 		sizeStr = stringsW.FormatInt64(stat.Size())
 	} else {
 		dirSize, err := utilsW.GetDirSize(filename)
