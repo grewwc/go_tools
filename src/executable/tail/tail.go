@@ -1,14 +1,16 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -58,17 +60,36 @@ func main() {
 			log.Println(err)
 			continue
 		}
+		f.Seek(-1, io.SeekEnd)
 		fmt.Println(color.HiGreenString("=======>\t%s\n", filename))
-		scanner := bufio.NewScanner(f)
+
 		count := 0
-		for scanner.Scan() && count < numOfLines {
-			line := scanner.Text()
-			count++
-			fmt.Printf("\t%s\n", line)
+		var byteBuf = make([]byte, 1, 1)
+		var buf = make([]byte, 0)
+		var resBuf = bytes.NewBuffer(buf)
+		lines := containerW.NewStack(numOfLines)
+
+		for count < numOfLines {
+			n, _ := f.Read(byteBuf)
+			if n < 1 {
+				goto END
+			}
+			b := byteBuf[0]
+			resBuf.WriteByte(b)
+			if b == '\n' {
+				count++
+				resStr := resBuf.String()
+				lines.Push(resStr)
+				resBuf.Reset()
+			}
+			f.Seek(-2, io.SeekCurrent)
 		}
 
+	END:
 		f.Close()
-
+		for !lines.Empty() {
+			fmt.Print(utilsW.ReverseString(lines.Pop().(string)))
+		}
 		fmt.Printf("\n\n")
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -143,7 +144,14 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	if len(os.Args) <= 1 {
 		return nil
 	}
+
 	cmd := strings.Join(os.Args[1:], "\x00")
 	cmd = "\x00" + cmd + "\x00"
+	// move -number to end
+	p := regexp.MustCompile("-(\\d+)")
+	for _, match := range p.FindAllStringSubmatch(cmd, -1) {
+		submatch := match[1]
+		boolOptionals = append(boolOptionals, submatch)
+	}
 	return parseArgs(cmd, boolOptionals...)
 }

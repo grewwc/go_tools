@@ -34,3 +34,7 @@ func (s *Stack) Empty() bool {
 func (s *Stack) Size() int {
 	return len(s.data)
 }
+
+func (s *Stack) Resize() {
+	s.data = s.data[:0]
+}

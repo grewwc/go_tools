@@ -16,7 +16,7 @@ var ignoreName = containerW.NewSet()
 
 func init() {
 	if utilsW.GetPlatform() != utilsW.WINDOWS {
-		ignoreName.AddAll("ls", "cat")
+		ignoreName.AddAll("ls", "cat", "head", "tail")
 	}
 }
 
