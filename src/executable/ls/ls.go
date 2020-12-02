@@ -14,19 +14,13 @@ import (
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 	"github.com/nsf/termbox-go"
-	"golang.org/x/sys/windows"
 )
 
 var w int
 var all *bool
 
 func init() {
-	stdout := windows.Handle(os.Stdout.Fd())
-	var originalMode uint32
-
-	windows.GetConsoleMode(stdout, &originalMode)
-	windows.SetConsoleMode(stdout, originalMode|windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING)
-
+	terminalW.EnableVirtualTerminal()
 	if err := termbox.Init(); err != nil {
 		log.Fatalln(err)
 	}

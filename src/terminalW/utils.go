@@ -3,10 +3,12 @@ package terminalW
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
+	"golang.org/x/sys/windows"
 )
 
 func AddQuote(slice []string) []string {
@@ -43,4 +45,13 @@ func FormatFileExtensions(extensions string) *containerW.Set {
 		}
 	}
 	return res
+}
+
+func EnableVirtualTerminal() {
+	stdout := windows.Handle(os.Stdout.Fd())
+	var originalMode uint32
+
+	windows.GetConsoleMode(stdout, &originalMode)
+	windows.SetConsoleMode(stdout, originalMode|windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+
 }
