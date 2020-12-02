@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"syscall"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/stringsW"
@@ -13,6 +15,15 @@ import (
 
 func init() {
 	terminalW.EnableVirtualTerminal()
+}
+
+func getCreateTime(filename string) (time.Time, error) {
+	finfo, err := os.Stat(filename)
+	if err != nil {
+		return time.Now(), err
+	}
+	data := finfo.Sys().(*syscall.Win32FileAttributeData)
+	return time.Unix(0, data.CreationTime.Nanoseconds()), nil
 }
 
 func modeStrToNum(mode string) string {
@@ -49,7 +60,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	cTime, err := utilsW.GetCreateTime(filename)
+	cTime, err := getCreateTime(filename)
 	if err != nil {
 		log.Fatalln(err)
 	}

@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
-	"time"
 
 	"github.com/grewwc/go_tools/src/containerW"
 )
@@ -135,13 +133,4 @@ func GetDirSize(dirname string) (int64, error) {
 		return err
 	})
 	return size, err
-}
-
-func GetCreateTime(filename string) (time.Time, error) {
-	finfo, err := os.Stat(filename)
-	if err != nil {
-		return time.Now(), err
-	}
-	data := finfo.Sys().(*syscall.Win32FileAttributeData)
-	return time.Unix(0, data.CreationTime.Nanoseconds()), nil
 }
