@@ -157,6 +157,6 @@ skip:
 		fmt.Println()
 	}
 	printErrors()
-	fmt.Printf("\n\n")
+	fmt.Printf("\n")
 
 }
