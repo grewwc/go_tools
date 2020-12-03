@@ -145,6 +145,7 @@ func main() {
 	rootDir := fs.String("d", ".", "root directory for searching")
 	isReg := fs.Bool("re", false, `turn on regular expression (use "\" instead of "\\") `)
 	isIgnoreCase := fs.Bool("ignore", false, "ignore upper/lower case")
+	isIgnoreCaseShortcut := fs.Bool("i", false, "ignore upper/lower case (shortcut for -ignore)")
 	numLevel := fs.Int("level", math.MaxInt32, `number of directory levels to search. current directory's level is 0`)
 	isStrict := fs.Bool("strict", false, "find exact the same matches (after triming space)")
 	extExclude := fs.String("nt", "", "check files which are not some types")
@@ -156,7 +157,7 @@ func main() {
 
 	fmt.Println()
 
-	parsedResults := terminalW.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word")
+	parsedResults := terminalW.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word", "i")
 	if parsedResults == nil {
 		fs.PrintDefaults()
 		return
@@ -223,6 +224,7 @@ func main() {
 		}
 	}
 
+	*isIgnoreCase = *isIgnoreCase || *isIgnoreCaseShortcut
 	if *isReg {
 		task = checkFileRe
 	} else if *isStrict {
