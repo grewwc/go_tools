@@ -13,7 +13,7 @@ import (
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
-	"github.com/nsf/termbox-go"
+	"golang.org/x/sys/windows"
 )
 
 var w int
@@ -21,11 +21,11 @@ var all *bool
 
 func init() {
 	terminalW.EnableVirtualTerminal()
-	if err := termbox.Init(); err != nil {
-		log.Fatalln(err)
-	}
-	w, _ = termbox.Size()
-	defer termbox.Close()
+	var info windows.ConsoleScreenBufferInfo
+	stdout := windows.Handle(os.Stdout.Fd())
+
+	windows.GetConsoleScreenBufferInfo(stdout, &info)
+	w = int(info.Size.X)
 }
 
 func formatFileStat(filename string) string {
@@ -72,7 +72,7 @@ func main() {
 	if parsedResults == nil {
 		goto skip
 	}
-	optional, args = parsedResults.Optional, parsedResults.Positional
+	optional, args = parsedResults.Optional, parsedResults.Positional.ToStringSlice()
 	// fmt.Println("optional", optional)
 	// fmt.Println("positional", args)
 	optionalStr = terminalW.MapToString(optional)
@@ -125,7 +125,7 @@ skip:
 
 	boldBlue := color.New(color.FgHiBlue, color.Bold)
 	for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
-		fmt.Printf("\n\n%s", strings.Repeat(" ", indent))
+		fmt.Printf("\n%s", strings.Repeat(" ", indent))
 		for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
 			word = strings.ReplaceAll(word, "\x00", " ")
 			if coloredStrings.Contains(word) {
@@ -134,6 +134,7 @@ skip:
 				fmt.Printf("%s%s", word, delimiter)
 			}
 		}
+		fmt.Println()
 	}
 	fmt.Printf("\n\n")
 }

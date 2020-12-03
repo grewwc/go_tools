@@ -95,7 +95,7 @@ func main() {
 		fs.PrintDefaults()
 		return
 	}
-	optionalMap, args := res.Optional, res.Positional
+	optionalMap, args := res.Optional, res.Positional.ToStringSlice()
 	optional := terminalW.MapToString(optionalMap)
 
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))

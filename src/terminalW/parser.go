@@ -2,10 +2,13 @@ package terminalW
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/grewwc/go_tools/src/containerW"
@@ -14,7 +17,67 @@ import (
 
 type ParsedResults struct {
 	Optional   map[string]string
-	Positional []string
+	Positional *containerW.Set
+}
+
+func (r ParsedResults) GetFlagVal(flagName string) (string, error) {
+	if flagName[0] != '-' {
+		flagName = "-" + flagName
+	}
+	if val, exists := r.Optional[flagName]; exists {
+		return val, nil
+	}
+	return "", errors.New("not exist")
+}
+
+func (r ParsedResults) GetFlags() *containerW.Set {
+	res := containerW.NewSet()
+	for k := range r.Optional {
+		res.Add(k)
+	}
+	return res
+}
+
+func (r ParsedResults) GetBooleanArgs() *containerW.Set {
+	res := containerW.NewSet()
+	for k, v := range r.Optional {
+		if v == "" {
+			res.Add(k)
+		}
+	}
+	return res
+}
+
+func (r ParsedResults) ContainsFlag(flagName string) bool {
+	if flagName[0] != '-' {
+		flagName = "-" + flagName
+	}
+	if _, exists := r.Optional[flagName]; exists {
+		return true
+	}
+	return false
+}
+
+// GetNumArgs return -1 to signal "there is NO num args (e.g.: -10)"
+// if exists, return the LARGEST value
+func (r ParsedResults) GetNumArgs() int {
+	res := -1
+	p := regexp.MustCompile("-(\\d+)")
+
+	for k := range r.Optional {
+		if !p.MatchString(k) {
+			continue
+		}
+		k = strings.TrimLeft(k, "-")
+		kInt, err := strconv.ParseInt(k, 10, 64)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if res < int(kInt) {
+			res = int(kInt)
+		}
+	}
+	return res
 }
 
 type sortByLen []string
@@ -31,7 +94,7 @@ func (slice sortByLen) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
-func classifyArguments(cmd string, endIdx int) ([]string, []string, []string) {
+func classifyArguments(cmd string, endIdx int) (*containerW.Set, []string, []string) {
 	const (
 		positionalMode = iota
 		optionalKeyMode
@@ -39,7 +102,7 @@ func classifyArguments(cmd string, endIdx int) ([]string, []string, []string) {
 		spaceMode
 	)
 	mode := spaceMode
-	var positionals []string
+	var positionals = containerW.NewSet()
 	var keys []string
 	var vals []string
 	var pBuf bytes.Buffer
@@ -63,7 +126,8 @@ func classifyArguments(cmd string, endIdx int) ([]string, []string, []string) {
 		case positionalMode:
 			if ch == '\x00' {
 				mode = spaceMode
-				positionals = append(positionals, pBuf.String())
+				// positionals = append(positionals, pBuf.String())
+				positionals.Add(pBuf.String())
 				pBuf.Reset()
 				continue
 			}

@@ -161,7 +161,7 @@ func main() {
 		fs.PrintDefaults()
 		return
 	}
-	optionalMap, args := parsedResults.Optional, parsedResults.Positional
+	optionalMap, args := parsedResults.Optional, parsedResults.Positional.ToStringSlice()
 	optional := terminalW.MapToString(optionalMap)
 	// fmt.Println("optionalMap", optionalMap, optional)
 	// fmt.Println("args", args)

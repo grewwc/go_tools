@@ -102,6 +102,23 @@ func (s *Set) Subtract(another Set) {
 	}
 }
 
+func (s Set) ToSlice() []interface{} {
+	res := make([]interface{}, 0, s.Size())
+	for k := range s.data {
+		res = append(res, k)
+	}
+	return res
+}
+
+// ToStringSlice is not type safe
+func (s Set) ToStringSlice() []string {
+	res := make([]string, 0, s.Size())
+	for k := range s.data {
+		res = append(res, k.(string))
+	}
+	return res
+}
+
 func NewSet() *Set {
 	s := Set{data: make(map[interface{}]bool, 8)}
 	return &s

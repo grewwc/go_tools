@@ -16,7 +16,8 @@ var ignoreName = containerW.NewSet()
 
 func init() {
 	if utilsW.GetPlatform() != utilsW.WINDOWS {
-		ignoreName.AddAll("ls", "cat", "head", "tail", "stat")
+		// add Folder name, NOT filename
+		ignoreName.AddAll("cat", "head", "ls", "rm", "stat", "tail", "touch")
 	}
 }
 

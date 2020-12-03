@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/terminalW"
@@ -24,10 +23,10 @@ func main() {
 		return
 	}
 
-	filenames := parsedResults.Positional
+	filenames := parsedResults.Positional.ToStringSlice()
 
 	if nStr, exists := parsedResults.Optional["-n"]; exists {
-		delete(parsedResults.Optional, "-n")
+		// delete(parsedResults.Optional, "-n")
 		if nStr == "" {
 			return
 		}
@@ -38,15 +37,9 @@ func main() {
 		numOfLines = int(n)
 	}
 
-	for k := range parsedResults.Optional {
-		k = strings.TrimLeft(k, "-")
-		kInt, err := strconv.ParseInt(k, 10, 64)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		if numOfLines > int(kInt) {
-			numOfLines = int(kInt)
-		}
+	n := parsedResults.GetNumArgs()
+	if n != -1 {
+		numOfLines = n
 	}
 
 	for _, filename := range filenames {
