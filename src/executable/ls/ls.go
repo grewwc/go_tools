@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +19,8 @@ import (
 var w int
 var all *bool
 
+var errMsgs = containerW.NewQueue()
+
 func init() {
 	windowsW.EnableVirtualTerminal()
 	var info windows.ConsoleScreenBufferInfo
@@ -32,8 +33,9 @@ func init() {
 func formatFileStat(filename string) string {
 	stat, err := os.Stat(filename)
 	if err != nil {
-		log.Printf("error getting stat of file: %q\n", filename)
-		os.Exit(1)
+		errMsgs.Enqueue(fmt.Sprintf("error getting stat of file: %q\n", filename))
+		return ""
+		// os.Exit(1)
 	}
 	modTime := stat.ModTime()
 	modTimeStr := fmt.Sprintf("    %04d/%02d/%02d  %02d:%02d", modTime.Year(), int(modTime.Month()), modTime.Day(), modTime.Hour(), modTime.Minute())
@@ -43,8 +45,10 @@ func formatFileStat(filename string) string {
 	} else {
 		dirSize, err := utilsW.GetDirSize(filename)
 		if err != nil {
-			log.Printf("error getting size of directory: %q\n", filename)
-			os.Exit(1)
+			errMsgs.Enqueue(fmt.Sprintf("error getting size of directory: %q\n", filename))
+			return ""
+			// log.Printf("error getting size of directory: %q\n", filename)
+			// os.Exit(1)
 		}
 		sizeStr = stringsW.FormatInt64(dirSize)
 	}
@@ -100,7 +104,9 @@ skip:
 		}
 		if *l {
 			line := formatFileStat(file)
-			fmt.Println(line)
+			if line != "" {
+				fmt.Println(line)
+			}
 			continue
 		}
 		if utilsW.IsDir(file) {
@@ -137,5 +143,13 @@ skip:
 		}
 		fmt.Println()
 	}
+	fmt.Printf("\n")
+	fmt.Println("Errors:")
+	count := 1
+	for !errMsgs.Empty() {
+		fmt.Printf("  %d: %s\n", count, color.RedString(errMsgs.Dequeue().(string)))
+		count++
+	}
 	fmt.Printf("\n\n")
+
 }
