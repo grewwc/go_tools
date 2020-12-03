@@ -59,6 +59,19 @@ func formatFileStat(filename string) string {
 	return fmt.Sprintf("%s\t%10s\t%s", modTimeStr, sizeStr, filename)
 }
 
+func printErrors() {
+	if errMsgs.Empty() {
+		return
+	}
+	fmt.Println()
+	fmt.Println("Errors:")
+	count := 1
+	for !errMsgs.Empty() {
+		fmt.Printf("  %d: %s\n", count, color.RedString(errMsgs.Dequeue().(string)))
+		count++
+	}
+}
+
 func main() {
 	var files string
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
@@ -123,7 +136,7 @@ skip:
 	}
 
 	if *l {
-		return
+
 	}
 	indent := 6
 	delimiter := "  "
@@ -143,13 +156,7 @@ skip:
 		}
 		fmt.Println()
 	}
-	fmt.Printf("\n")
-	fmt.Println("Errors:")
-	count := 1
-	for !errMsgs.Empty() {
-		fmt.Printf("  %d: %s\n", count, color.RedString(errMsgs.Dequeue().(string)))
-		count++
-	}
+	printErrors()
 	fmt.Printf("\n\n")
 
 }
