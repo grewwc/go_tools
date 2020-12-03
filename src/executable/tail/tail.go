@@ -12,10 +12,11 @@ import (
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/windowsW"
 )
 
 func init() {
-	terminalW.EnableVirtualTerminal()
+	windowsW.EnableVirtualTerminal()
 }
 
 func main() {

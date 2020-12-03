@@ -13,6 +13,7 @@ import (
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/windowsW"
 	"golang.org/x/sys/windows"
 )
 
@@ -20,7 +21,7 @@ var w int
 var all *bool
 
 func init() {
-	terminalW.EnableVirtualTerminal()
+	windowsW.EnableVirtualTerminal()
 	var info windows.ConsoleScreenBufferInfo
 	stdout := windows.Handle(os.Stdout.Fd())
 
