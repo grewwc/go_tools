@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/fatih/color"
@@ -24,7 +25,7 @@ func main() {
 		return
 	}
 
-	filenames := parsedResults.Positional.ToStringSlice()
+	args := parsedResults.Positional.ToStringSlice()
 
 	if nStr, exists := parsedResults.Optional["-n"]; exists {
 		// delete(parsedResults.Optional, "-n")
@@ -43,26 +44,33 @@ func main() {
 		numOfLines = n
 	}
 
-	for _, filename := range filenames {
-		if utilsW.IsDir(filename) {
-			continue
-		}
-		f, err := os.Open(filename)
+	for _, name := range args {
+		filenames, err := filepath.Glob(name)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-		fmt.Println(color.HiGreenString("=======>\t%s\n", filename))
-		scanner := bufio.NewScanner(f)
-		count := 0
-		for scanner.Scan() && count < numOfLines {
-			line := scanner.Text()
-			count++
-			fmt.Printf("\t%s\n", line)
+		for _, filename := range filenames {
+			if utilsW.IsDir(filename) {
+				continue
+			}
+			f, err := os.Open(filename)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			fmt.Println(color.HiGreenString("=======>\t%s\n", filename))
+			scanner := bufio.NewScanner(f)
+			count := 0
+			for scanner.Scan() && count < numOfLines {
+				line := scanner.Text()
+				count++
+				fmt.Printf("\t%s\n", line)
+			}
+
+			f.Close()
+
+			fmt.Printf("\n\n")
 		}
-
-		f.Close()
-
-		fmt.Printf("\n\n")
 	}
 }

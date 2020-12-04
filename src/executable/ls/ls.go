@@ -110,34 +110,37 @@ func main() {
 
 skip:
 	fmt.Printf("\n")
-	for _, file := range utilsW.LsDir(rootDir) {
-		file = filepath.Join(rootDir, file)
-		if !*all && filepath.Base(file)[0] == '.' {
-			continue
+	fileMap := utilsW.LsDirGlob(rootDir)
+	for d, fileSlice := range fileMap {
+		if len(fileMap) > 1 {
+			fmt.Printf("%s:\n", d)
 		}
-		if *l {
-			line := formatFileStat(file)
-			if line != "" {
-				fmt.Println(line)
+		for _, file := range fileSlice {
+			file = filepath.Join(rootDir, file)
+			if !*all && filepath.Base(file)[0] == '.' {
+				continue
 			}
-			continue
+			if *l {
+				line := formatFileStat(file)
+				if line != "" {
+					fmt.Println(line)
+				}
+				continue
+			}
+			if utilsW.IsDir(file) {
+				file += "/"
+				coloredStrings.Add(file)
+			}
+			if strings.Contains(file, " ") {
+				file = fmt.Sprintf("\"%s\"", file)
+				coloredStrings.Add(file)
+				file = strings.ReplaceAll(file, " ", "\x00")
+			}
+			files += file
+			files += " "
 		}
-		if utilsW.IsDir(file) {
-			file += "/"
-			coloredStrings.Add(file)
-		}
-		if strings.Contains(file, " ") {
-			file = fmt.Sprintf("\"%s\"", file)
-			coloredStrings.Add(file)
-			file = strings.ReplaceAll(file, " ", "\x00")
-		}
-		files += file
-		files += " "
 	}
 
-	if *l {
-
-	}
 	indent := 6
 	delimiter := "  "
 

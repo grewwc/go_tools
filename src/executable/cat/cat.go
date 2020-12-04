@@ -5,8 +5,10 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/utilsW"
 	"github.com/grewwc/go_tools/src/windowsW"
 )
 
@@ -20,16 +22,25 @@ func main() {
 		fmt.Println("pass files as arguments")
 		os.Exit(1)
 	}
-
-	for _, filename := range args {
-		fmt.Println(color.HiGreenString("======>\t%s\n", filename))
-		f, err := os.Open(filename)
+	for _, name := range args {
+		filenames, err := filepath.Glob(name)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-		io.Copy(os.Stdout, f)
-		f.Close()
-		fmt.Printf("\n\n")
+		for _, filename := range filenames {
+			if utilsW.IsDir(filename) {
+				continue
+			}
+			fmt.Println(color.HiGreenString("======>\t%s\n", filename))
+			f, err := os.Open(filename)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			io.Copy(os.Stdout, f)
+			f.Close()
+			fmt.Printf("\n\n")
+		}
 	}
 }

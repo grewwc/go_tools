@@ -19,7 +19,12 @@ func init() {
 		".css", ".java", ".go", ".cc", ".htm", ".ts", ".xml", ".php", ".sc", "")
 }
 
+// LsDir returns slices containing contents of a directory
+// if fname is a file, not a directory, return empty slice
 func LsDir(fname string) []string {
+	if !IsDir(fname) {
+		return []string{}
+	}
 	infos, err := ioutil.ReadDir(fname)
 	if err != nil {
 		log.Fatal(err)
@@ -27,6 +32,22 @@ func LsDir(fname string) []string {
 	res := make([]string, len(infos))
 	for i, info := range infos {
 		res[i] = info.Name()
+	}
+	return res
+}
+
+func LsDirGlob(fname string) map[string][]string {
+	names, err := filepath.Glob(fname)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	res := make(map[string][]string)
+	for _, name := range names {
+		if !IsDir(name) {
+			continue
+		}
+		res[name] = LsDir(name)
 	}
 	return res
 }
