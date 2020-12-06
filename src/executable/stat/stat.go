@@ -46,16 +46,7 @@ func modeStrToNum(mode string) string {
 	return fmt.Sprintf("0%d%d%d", ownerVal, groupVal, otherVal)
 }
 
-func main() {
-	args := os.Args[1:]
-	var filename string
-	switch len(args) {
-	case 1:
-		filename = args[0]
-	default:
-		fmt.Println("provide the filename argument")
-		return
-	}
+func processSingle(filename string) {
 	f, err := os.Stat(filename)
 	if err != nil {
 		log.Fatalln(err)
@@ -76,4 +67,20 @@ func main() {
 		color.HiGreenString(filename), stringsW.FormatInt64(size), modeNum, modeStr)
 	fmt.Printf("  Create: %v\n", cTime)
 	fmt.Printf("  Modify: %v\n", mTime)
+}
+
+func main() {
+	args := os.Args[1:]
+	for _, filename := range args {
+		files := utilsW.LsDirGlob(filename)
+		for d, fnames := range files {
+			if d == "./" {
+				for _, fname := range fnames {
+					processSingle(fname)
+				}
+			} else {
+				processSingle(d)
+			}
+		}
+	}
 }

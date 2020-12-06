@@ -6,6 +6,14 @@ import (
 )
 
 func Wrap(s string, width, indent int, delimiter string) string {
+	res := ""
+	for _, line := range SplitNoEmpty(s, "\n") {
+		res += wrapSingleLine(line, width, indent, delimiter) + "\n"
+	}
+	return res
+}
+
+func wrapSingleLine(s string, width, indent int, delimiter string) string {
 	words := SplitNoEmpty(s, " ")
 	lines := make([]string, 0, 8)
 	curLine := make([]string, 0, 8)

@@ -227,6 +227,7 @@ func main() {
 	*isIgnoreCase = *isIgnoreCase || *isIgnoreCaseShortcut
 	if *isReg {
 		task = checkFileRe
+		r = regexp.MustCompile(target)
 	} else if *isStrict {
 		if *isIgnoreCase {
 			target = strings.ToLower(strings.TrimSpace(target))

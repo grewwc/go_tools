@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/fatih/color"
@@ -17,6 +18,60 @@ import (
 
 func init() {
 	windowsW.EnableVirtualTerminal()
+}
+
+func processSingle(filename string, numOfLines int) {
+	if utilsW.IsDir(filename) {
+		return
+	}
+	f, err := os.Open(filename)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	cursor, err := f.Seek(-1, io.SeekEnd)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	fmt.Println(color.HiGreenString("=======>\t%s\n", filename))
+
+	count := 0
+	var byteBuf = make([]byte, 1, 1)
+	var buf = make([]byte, 0)
+	var resBuf = bytes.NewBuffer(buf)
+	lines := containerW.NewStack(numOfLines)
+	for count < numOfLines {
+		n, err := f.Read(byteBuf)
+		cursor += int64(n)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		if cursor < 0 {
+			goto END
+		}
+		// fmt.Println(cursor)
+
+		b := byteBuf[0]
+		resBuf.WriteByte(b)
+		if b == '\n' {
+			count++
+			resStr := resBuf.String()
+			lines.Push(resStr)
+			resBuf.Reset()
+		}
+
+		f.Seek(-2, io.SeekCurrent)
+		cursor -= 2
+	}
+
+END:
+	f.Close()
+	for !lines.Empty() {
+		fmt.Print(utilsW.ReverseString(lines.Pop().(string)))
+	}
+	fmt.Printf("\n\n")
 }
 
 func main() {
@@ -46,44 +101,12 @@ func main() {
 	}
 
 	for _, filename := range filenames {
-		if utilsW.IsDir(filename) {
-			continue
-		}
-		f, err := os.Open(filename)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		f.Seek(-1, io.SeekEnd)
-		fmt.Println(color.HiGreenString("=======>\t%s\n", filename))
-
-		count := 0
-		var byteBuf = make([]byte, 1, 1)
-		var buf = make([]byte, 0)
-		var resBuf = bytes.NewBuffer(buf)
-		lines := containerW.NewStack(numOfLines)
-
-		for count < numOfLines {
-			n, _ := f.Read(byteBuf)
-			if n < 1 {
-				goto END
+		fnameMap := utilsW.LsDirGlob(filename)
+		for d, fnames := range fnameMap {
+			for _, fname := range fnames {
+				fname = filepath.Join(d, fname)
+				processSingle(fname, numOfLines)
 			}
-			b := byteBuf[0]
-			resBuf.WriteByte(b)
-			if b == '\n' {
-				count++
-				resStr := resBuf.String()
-				lines.Push(resStr)
-				resBuf.Reset()
-			}
-			f.Seek(-2, io.SeekCurrent)
 		}
-
-	END:
-		f.Close()
-		for !lines.Empty() {
-			fmt.Print(utilsW.ReverseString(lines.Pop().(string)))
-		}
-		fmt.Printf("\n\n")
 	}
 }

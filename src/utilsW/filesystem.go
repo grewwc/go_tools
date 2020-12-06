@@ -45,9 +45,10 @@ func LsDirGlob(fname string) map[string][]string {
 	res := make(map[string][]string)
 	for _, name := range names {
 		if !IsDir(name) {
-			continue
+			res["./"] = append(res["./"], name)
+		} else {
+			res[name] = LsDir(name)
 		}
-		res[name] = LsDir(name)
 	}
 	return res
 }

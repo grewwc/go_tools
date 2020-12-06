@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
@@ -56,7 +57,7 @@ func formatFileStat(filename string) string {
 		filename = color.HiBlueString(filename + "/")
 	}
 
-	return fmt.Sprintf("%s\t%10s\t%s", modTimeStr, sizeStr, filename)
+	return fmt.Sprintf("%s\t%s\t%s", modTimeStr, sizeStr, filepath.ToSlash(filename))
 }
 
 func printErrors() {
@@ -72,6 +73,38 @@ func printErrors() {
 	}
 }
 
+func processSingleDir(rootDir string, fileSlice []string, long bool,
+	coloredStrings *containerW.Set) string {
+
+	files := ""
+	for _, file := range fileSlice {
+		file = filepath.Join(rootDir, file)
+		file = filepath.ToSlash(file)
+		if !*all && filepath.Base(file)[0] == '.' {
+			continue
+		}
+		if long {
+			line := formatFileStat(file)
+			if line != "" {
+				files += line + "\x01\n"
+			}
+			continue
+		}
+		if utilsW.IsDir(file) {
+			file += "/"
+			coloredStrings.Add(file)
+		}
+		if strings.Contains(file, " ") {
+			file = fmt.Sprintf("\"%s\"", file)
+			coloredStrings.Add(file)
+			file = strings.ReplaceAll(file, " ", "\x00")
+		}
+		files += file
+		files += " "
+	}
+	return files
+}
+
 func main() {
 	var files string
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
@@ -82,12 +115,15 @@ func main() {
 
 	parsedResults := terminalW.ParseArgsCmd("l", "a", "al", "la")
 	coloredStrings := containerW.NewSet()
-	rootDir := "."
+	indent := 6
+	delimiter := "  "
+	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)
 	var optionalStr string
 	var optional map[string]string
 	var args []string
 
 	if parsedResults == nil {
+		args = []string{"./"}
 		goto skip
 	}
 	optional, args = parsedResults.Optional, parsedResults.Positional.ToStringSlice()
@@ -100,66 +136,44 @@ func main() {
 		*l = true
 		*all = true
 	}
-	switch len(args) {
-	case 0:
-	case 1:
-		rootDir = args[0]
-	default:
-		os.Exit(1) // quit silently
-	}
 
 skip:
 	fmt.Printf("\n")
-	fileMap := utilsW.LsDirGlob(rootDir)
-	for d, fileSlice := range fileMap {
-		if len(fileMap) > 1 {
-			fmt.Printf("%s:\n", d)
-		}
-		for _, file := range fileSlice {
-			file = filepath.Join(rootDir, file)
-			if !*all && filepath.Base(file)[0] == '.' {
+	for _, rootDir := range args {
+		fileMap := utilsW.LsDirGlob(rootDir)
+		for d, fileSlice := range fileMap {
+			files = ""
+			if d != "./" && d[0] == '.' && !*all {
 				continue
 			}
-			if *l {
-				line := formatFileStat(file)
-				if line != "" {
-					fmt.Println(line)
+			if len(fileMap) > 1 {
+				fmt.Printf("%s:\n", color.HiBlueString(d))
+			}
+			files += processSingleDir(d, fileSlice, *l, coloredStrings)
+
+			toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
+
+			boldBlue := color.New(color.FgHiBlue, color.Bold)
+			for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
+				if strings.Contains(line, "\x01") {
+					line = strings.ReplaceAll(line, "\x01", "")
+					fmt.Fprintln(tw, line)
+				} else {
+					fmt.Printf("\n%s", strings.Repeat(" ", indent))
+					for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
+						word = strings.ReplaceAll(word, "\x00", " ")
+						if coloredStrings.Contains(word) {
+							boldBlue.Printf("%s%s", word, delimiter)
+						} else {
+							fmt.Printf("%s%s", word, delimiter)
+						}
+					}
+					fmt.Println()
 				}
-				continue
 			}
-			if utilsW.IsDir(file) {
-				file += "/"
-				coloredStrings.Add(file)
-			}
-			if strings.Contains(file, " ") {
-				file = fmt.Sprintf("\"%s\"", file)
-				coloredStrings.Add(file)
-				file = strings.ReplaceAll(file, " ", "\x00")
-			}
-			files += file
-			files += " "
+			tw.Flush()
+			fmt.Println()
 		}
-	}
-
-	indent := 6
-	delimiter := "  "
-
-	toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
-
-	boldBlue := color.New(color.FgHiBlue, color.Bold)
-	for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
-		fmt.Printf("\n%s", strings.Repeat(" ", indent))
-		for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
-			word = strings.ReplaceAll(word, "\x00", " ")
-			if coloredStrings.Contains(word) {
-				boldBlue.Printf("%s%s", word, delimiter)
-			} else {
-				fmt.Printf("%s%s", word, delimiter)
-			}
-		}
-		fmt.Println()
 	}
 	printErrors()
-	fmt.Printf("\n")
-
 }
