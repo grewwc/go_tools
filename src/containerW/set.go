@@ -59,8 +59,8 @@ func (s Set) Union(another Set) *Set {
 }
 
 func (s Set) IsSuperSet(another Set) bool {
-	for k := range s.data {
-		if !another.Contains(k) {
+	for k := range another.data {
+		if !s.Contains(k) {
 			return false
 		}
 	}
@@ -125,4 +125,12 @@ func (s Set) ToStringSlice() []string {
 func NewSet() *Set {
 	s := Set{data: make(map[interface{}]bool, 8)}
 	return &s
+}
+
+func FromString(str string) *Set {
+	res := NewSet()
+	for _, ch := range str {
+		res.Add(ch)
+	}
+	return res
 }

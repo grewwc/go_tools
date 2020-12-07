@@ -55,6 +55,13 @@ func (r ParsedResults) ContainsFlag(flagName string) bool {
 	if _, exists := r.Optional[flagName]; exists {
 		return true
 	}
+	for k := range r.Optional {
+		s1 := containerW.FromString(k)
+		s2 := containerW.FromString(flagName)
+		if s1.IsSuperSet(*s2) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -160,16 +167,29 @@ func classifyArguments(cmd string, endIdx int) (*containerW.Set, []string, []str
 func parseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	firstBoolArg := ""
 	sort.Sort(sortByLen(boolOptionals))
-
+	// fmt.Println("after sort", boolOptionals)
 	moved := containerW.NewTrie()
 
 	for _, boolOptional := range boolOptionals {
 		boolOptional = strings.ReplaceAll(boolOptional, "-", "")
+		// fmt.Println("here", boolOptional, cmd, "moved", moved)
 		if moved.StartsWith(boolOptional) {
 			// remove boolOptional in "cmd"
-			cmd = strings.ReplaceAll(cmd, fmt.Sprintf("\x00-%s", boolOptional), "")
+			// cmd = strings.ReplaceAll(cmd, fmt.Sprintf("\x00-%s", boolOptional), "")
 			continue
 		}
+
+		idx := strings.Index(cmd, boolOptional)
+		if idx == -1 {
+			continue
+		}
+		end := idx + len(boolOptional)
+		for end < len(cmd) && cmd[end] != '\x00' {
+			end++
+		}
+		boolOptional = cmd[idx:end]
+		// fmt.Println("here", boolOptional, cmd)
+
 		cmdNew := stringsW.Move2EndAll(cmd, fmt.Sprintf("\x00-%s", boolOptional))
 		if firstBoolArg == "" && cmdNew != cmd {
 			firstBoolArg = boolOptional
@@ -188,7 +208,7 @@ func parseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 		idx = len(cmd)
 	}
 	var res ParsedResults
-
+	// fmt.Println("final", cmd, idx)
 	allPositionals, keys, vals := classifyArguments(cmd, idx)
 	res.Positional = allPositionals
 
@@ -210,6 +230,9 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	if len(os.Args) <= 1 {
 		return nil
 	}
+	// fmt.Println("prev", boolOptionals)
+	boolOptionals = construct(boolOptionals...)
+	// fmt.Println("after", boolOptionals)
 
 	cmd := strings.Join(os.Args[1:], "\x00")
 	cmd = "\x00" + cmd + "\x00"
@@ -219,27 +242,53 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 		submatch := match[1]
 		boolOptionals = append(boolOptionals, submatch)
 	}
+
 	return parseArgs(cmd, boolOptionals...)
 }
 
-func construct(boolOptionals ...string) {
-	res := make(map[int]*containerW.Set)
+func construct(boolOptionals ...string) []string {
+	resMap := make(map[int]*containerW.Set)
 	c := containerW.NewSet()
 	for _, option := range boolOptionals {
 		c.Add(option)
 	}
-	res[1] = c
+	resMap[1] = c
 
 	i := 2
 	for i <= len(boolOptionals) {
-		res[i] = containerW.NewSet()
+		resMap[i] = containerW.NewSet()
 		j := 1
 		for j < i {
-			s1 := res[j]
-			s2 := res[i-j]
-			s := s1.Union(*s2)
-			res[i] = res[i].Union(*s)
+			s1 := resMap[j]
+			s2 := resMap[i-j]
+			s1Slice := s1.ToStringSlice()
+			s2Slice := s2.ToStringSlice()
+			for _, e1 := range s1Slice {
+				for _, e2 := range s2Slice {
+					e12 := e1 + e2
+					e21 := e2 + e1
+					// eSlice := strings.Split(e, "")
+					// sort.Strings(eSlice)
+					temp := containerW.NewSet()
+					for _, ch := range e12 {
+						temp.Add(string(ch))
+					}
+					for _, ch := range e21 {
+						temp.Add(string(ch))
+					}
+					e := strings.Join(temp.ToStringSlice(), "")
+					if len(e) == i {
+						resMap[i].Add(e)
+					}
+				}
+			}
+			j++
 		}
+		i++
 	}
-	fmt.Println(res)
+	var res []string
+	for _, v := range resMap {
+		res = append(res, v.ToStringSlice()...)
+	}
+	return res
 }

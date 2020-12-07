@@ -19,7 +19,7 @@ import (
 )
 
 var w int
-var all *bool
+var all bool
 
 var errMsgs = containerW.NewQueue()
 
@@ -86,7 +86,7 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, sortType in
 	for _, file := range fileSlice {
 		file = filepath.Join(rootDir, file)
 		file = filepath.ToSlash(file)
-		if !*all && filepath.Base(file)[0] == '.' {
+		if !all && filepath.Base(file)[0] == '.' {
 			continue
 		}
 		if long {
@@ -114,48 +114,49 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, sortType in
 func main() {
 	var files string
 	var sortType int = _lsW.Unsort
+	var l bool
+
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
-	l := fs.Bool("l", false, "show more information")
-	all = fs.Bool("a", false, "list hidden file")
-	lall := fs.Bool("la", false, "shortcut for -l -a")
-	alll := fs.Bool("al", false, "shortcut for -l -a")
+	fs.Bool("l", false, "show more information")
+	fs.Bool("a", false, "list hidden file")
+	fs.Bool("t", false, "sort files by last modified date")
+	fs.Bool("rt", false, "sort files by earlist modified date")
+	fs.Bool("h", false, "print help information")
 
-	t := fs.Bool("t", false, "sort files by last modified date")
-	tr := fs.Bool("tr", false, "sort files by eearlist modified date")
-	rt := fs.Bool("rt", false, "sort files by eearlist modified date")
-	lt := fs.Bool("lt", false, "-l -t")
-	tl := fs.Bool("tl", false, "-t -l")
-
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "al", "la", "t", "tr", "rt")
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "h")
+	// fmt.Println(parsedResults)
 	coloredStrings := containerW.NewSet()
 	indent := 6
 	delimiter := "  "
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)
-	var optionalStr string
-	var optional map[string]string
+
 	var args []string
 
 	if parsedResults == nil {
 		args = []string{"./"}
 		goto skip
 	}
-	optional, args = parsedResults.Optional, parsedResults.Positional.ToStringSlice()
-	// fmt.Println("optional", optional)
-	// fmt.Println("positional", args)
-	optionalStr = terminalW.MapToString(optional)
-	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optionalStr, ' '))
+	args = parsedResults.Positional.ToStringSlice()
 
-	if *tr || *rt {
-		sortType = _lsW.OlderFirst
-	}
-
-	if *t {
+	if parsedResults.ContainsFlag("t") {
 		sortType = _lsW.NewerFirst
 	}
 
-	if *lall || *alll {
-		*l = true
-		*all = true
+	if parsedResults.ContainsFlag("tr") || parsedResults.ContainsFlag("rt") {
+		sortType = _lsW.OlderFirst
+	}
+
+	if parsedResults.ContainsFlag("a") {
+		all = true
+	}
+
+	if parsedResults.ContainsFlag("l") {
+		l = true
+	}
+
+	if parsedResults.ContainsFlag("h") {
+		fs.PrintDefaults()
+		return
 	}
 
 skip:
@@ -167,13 +168,13 @@ skip:
 		fileMap := utilsW.LsDirGlob(rootDir)
 		for d, fileSlice := range fileMap {
 			files = ""
-			if d != "./" && d[0] == '.' && !*all {
+			if d != "./" && d[0] == '.' && !all {
 				continue
 			}
 			if len(fileMap) > 1 {
 				fmt.Printf("%s:\n", color.HiBlueString(d))
 			}
-			files += processSingleDir(d, fileSlice, *l, sortType, coloredStrings)
+			files += processSingleDir(d, fileSlice, l, sortType, coloredStrings)
 
 			toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
 
