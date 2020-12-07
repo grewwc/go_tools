@@ -52,6 +52,9 @@ func (s Set) Union(another Set) *Set {
 	for k := range s.data {
 		result.Add(k)
 	}
+	for k := range another.data {
+		result.Add(k)
+	}
 	return result
 }
 

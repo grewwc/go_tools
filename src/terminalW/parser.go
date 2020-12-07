@@ -166,6 +166,8 @@ func parseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	for _, boolOptional := range boolOptionals {
 		boolOptional = strings.ReplaceAll(boolOptional, "-", "")
 		if moved.StartsWith(boolOptional) {
+			// remove boolOptional in "cmd"
+			cmd = strings.ReplaceAll(cmd, fmt.Sprintf("\x00-%s", boolOptional), "")
 			continue
 		}
 		cmdNew := stringsW.Move2EndAll(cmd, fmt.Sprintf("\x00-%s", boolOptional))
@@ -218,4 +220,26 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 		boolOptionals = append(boolOptionals, submatch)
 	}
 	return parseArgs(cmd, boolOptionals...)
+}
+
+func construct(boolOptionals ...string) {
+	res := make(map[int]*containerW.Set)
+	c := containerW.NewSet()
+	for _, option := range boolOptionals {
+		c.Add(option)
+	}
+	res[1] = c
+
+	i := 2
+	for i <= len(boolOptionals) {
+		res[i] = containerW.NewSet()
+		j := 1
+		for j < i {
+			s1 := res[j]
+			s2 := res[i-j]
+			s := s1.Union(*s2)
+			res[i] = res[i].Union(*s)
+		}
+	}
+	fmt.Println(res)
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
+	_lsW "github.com/grewwc/go_tools/src/executable/ls/utils"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
@@ -73,9 +74,14 @@ func printErrors() {
 	}
 }
 
-func processSingleDir(rootDir string, fileSlice []string, long bool,
+func processSingleDir(rootDir string, fileSlice []string, long bool, sortType int,
 	coloredStrings *containerW.Set) string {
-
+	// if sortType != _lsW.Unsort
+	// sort the fileSlice
+	if sortType != _lsW.Unsort {
+		fileSlice = _lsW.SortByModifiedDate(fileSlice, sortType)
+	}
+	// fmt.Println("here", fileSlice, sortType)
 	files := ""
 	for _, file := range fileSlice {
 		file = filepath.Join(rootDir, file)
@@ -107,13 +113,20 @@ func processSingleDir(rootDir string, fileSlice []string, long bool,
 
 func main() {
 	var files string
+	var sortType int = _lsW.Unsort
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	l := fs.Bool("l", false, "show more information")
 	all = fs.Bool("a", false, "list hidden file")
 	lall := fs.Bool("la", false, "shortcut for -l -a")
 	alll := fs.Bool("al", false, "shortcut for -l -a")
 
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "al", "la")
+	t := fs.Bool("t", false, "sort files by last modified date")
+	tr := fs.Bool("tr", false, "sort files by eearlist modified date")
+	rt := fs.Bool("rt", false, "sort files by eearlist modified date")
+	lt := fs.Bool("lt", false, "-l -t")
+	tl := fs.Bool("tl", false, "-t -l")
+
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "al", "la", "t", "tr", "rt")
 	coloredStrings := containerW.NewSet()
 	indent := 6
 	delimiter := "  "
@@ -132,6 +145,14 @@ func main() {
 	optionalStr = terminalW.MapToString(optional)
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optionalStr, ' '))
 
+	if *tr || *rt {
+		sortType = _lsW.OlderFirst
+	}
+
+	if *t {
+		sortType = _lsW.NewerFirst
+	}
+
 	if *lall || *alll {
 		*l = true
 		*all = true
@@ -139,6 +160,9 @@ func main() {
 
 skip:
 	fmt.Printf("\n")
+	if len(args) == 0 {
+		args = []string{"./"}
+	}
 	for _, rootDir := range args {
 		fileMap := utilsW.LsDirGlob(rootDir)
 		for d, fileSlice := range fileMap {
@@ -149,7 +173,7 @@ skip:
 			if len(fileMap) > 1 {
 				fmt.Printf("%s:\n", color.HiBlueString(d))
 			}
-			files += processSingleDir(d, fileSlice, *l, coloredStrings)
+			files += processSingleDir(d, fileSlice, *l, sortType, coloredStrings)
 
 			toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
 

@@ -69,7 +69,6 @@ func main() {
 			}
 
 			f.Close()
-
 			fmt.Printf("\n\n")
 		}
 	}
