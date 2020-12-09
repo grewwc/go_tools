@@ -179,17 +179,6 @@ func parseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 			continue
 		}
 
-		idx := strings.Index(cmd, boolOptional)
-		if idx == -1 {
-			continue
-		}
-		end := idx + len(boolOptional)
-		for end < len(cmd) && cmd[end] != '\x00' {
-			end++
-		}
-		boolOptional = cmd[idx:end]
-		// fmt.Println("here", boolOptional, cmd)
-
 		cmdNew := stringsW.Move2EndAll(cmd, fmt.Sprintf("\x00-%s", boolOptional))
 		if firstBoolArg == "" && cmdNew != cmd {
 			firstBoolArg = boolOptional
@@ -236,6 +225,27 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 
 	cmd := strings.Join(os.Args[1:], "\x00")
 	cmd = "\x00" + cmd + "\x00"
+	// move -number to end
+	p := regexp.MustCompile("-(\\d+)")
+	for _, match := range p.FindAllStringSubmatch(cmd, -1) {
+		submatch := match[1]
+		boolOptionals = append(boolOptionals, submatch)
+	}
+
+	return parseArgs(cmd, boolOptionals...)
+}
+
+// ParseArgs takes command line as argument, not from terminal directly
+// cmd contains the Programs itself
+func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
+	cmdSlice := stringsW.SplitNoEmptyKeepQuote(cmd, ' ')
+	if len(cmdSlice) <= 1 {
+		return nil
+	}
+	boolOptionals = construct(boolOptionals...)
+	cmd = strings.Join(cmdSlice[1:], "\x00")
+	cmd = "\x00" + cmd + "\x00"
+
 	// move -number to end
 	p := regexp.MustCompile("-(\\d+)")
 	for _, match := range p.FindAllStringSubmatch(cmd, -1) {

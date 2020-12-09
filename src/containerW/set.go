@@ -1,9 +1,23 @@
 package containerW
 
-import "fmt"
+import (
+	"fmt"
+)
+
+type static struct {
+}
+
+func (s static) FromString(str string) *Set {
+	res := NewSet()
+	for _, ch := range str {
+		res.Add(ch)
+	}
+	return res
+}
 
 type Set struct {
 	data map[interface{}]bool
+	From static
 }
 
 func (s *Set) Add(item interface{}) {
@@ -120,6 +134,10 @@ func (s Set) ToStringSlice() []string {
 		res = append(res, k.(string))
 	}
 	return res
+}
+
+func (s Set) Equals(another Set) bool {
+	return s.IsSubSet(another) && s.IsSubSet(another)
 }
 
 func NewSet() *Set {
