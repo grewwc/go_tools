@@ -48,6 +48,8 @@ func (r ParsedResults) GetBooleanArgs() *containerW.Set {
 	return res
 }
 
+// ContainsFlag checks if an optional flag is set
+// "main.exe -force" ==> [ContainsFlag("-f") == true, ContainsFlag("-force") == true]
 func (r ParsedResults) ContainsFlag(flagName string) bool {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName

@@ -9,10 +9,12 @@ import (
 	"strings"
 
 	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 var ignoreName = containerW.NewSet()
+var forceRebuildName = containerW.NewSet()
 
 func init() {
 	if utilsW.GetPlatform() != utilsW.WINDOWS {
@@ -22,6 +24,16 @@ func init() {
 }
 
 func main() {
+	parsedArgs := terminalW.ParseArgsCmd("f", "force")
+	var force bool
+	if parsedArgs != nil {
+		force = parsedArgs.ContainsFlag("f")
+		for fname := range parsedArgs.Positional.Iterate() {
+			fnameStr := fname.(string)
+			forceRebuildName.Add(fnameStr + ".go")
+		}
+	}
+
 	subdirs := utilsW.LsDir(utilsW.GetDirOfTheFile())
 	outputDir := filepath.Join(utilsW.GetDirOfTheFile(), "../", "../", "bin/")
 	if !utilsW.IsExist(outputDir) {
@@ -49,7 +61,8 @@ func main() {
 		if utilsW.GetPlatform() == utilsW.WINDOWS {
 			executableFilename += ".exe"
 		}
-		if utilsW.IsExist(executableFilename) && utilsW.IsNewer(executableFilename, filename) {
+		if !force && !forceRebuildName.Contains(filename) &&
+			utilsW.IsExist(executableFilename) && utilsW.IsNewer(executableFilename, filename) {
 			continue
 		}
 

@@ -4,20 +4,8 @@ import (
 	"fmt"
 )
 
-type static struct {
-}
-
-func (s static) FromString(str string) *Set {
-	res := NewSet()
-	for _, ch := range str {
-		res.Add(ch)
-	}
-	return res
-}
-
 type Set struct {
 	data map[interface{}]bool
-	From static
 }
 
 func (s *Set) Add(item interface{}) {
@@ -35,6 +23,17 @@ func (s *Set) Contains(item interface{}) bool {
 		return true
 	}
 	return false
+}
+
+func (s Set) Iterate() <-chan interface{} {
+	c := make(chan interface{})
+	go func() {
+		defer close(c)
+		for k := range s.data {
+			c <- k
+		}
+	}()
+	return c
 }
 
 func (s *Set) Delete(item interface{}) bool {
