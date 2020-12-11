@@ -16,7 +16,7 @@ func install() {
 	flag.Bool("f", false, "force rebuild (shortcut form)")
 	flag.Bool("force", false, "force rebuilds")
 	parsed := terminalW.ParseArgsCmd("h", "-f", "force")
-	if parsed.ContainsFlag("h") {
+	if parsed != nil && parsed.ContainsFlag("h") {
 		flag.PrintDefaults()
 		return
 	}
