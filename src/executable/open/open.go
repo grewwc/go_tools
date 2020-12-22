@@ -25,12 +25,11 @@ func main() {
 	case utilsW.WINDOWS:
 		cmdStr = fmt.Sprintf("cmd /C start %s", dir)
 	case utilsW.MAC:
-		cmdStr = fmt.Sprintf("open %s", dir)
+		cmdStr = fmt.Sprintf("/usr/bin/open %s", dir)
 	case utilsW.LINUX:
 		cmdStr = fmt.Sprintf("xdg-open %s", dir)
 	}
 	cmdSlice := stringsW.SplitNoEmpty(cmdStr, " ")
-
 	cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
 
 	if err := cmd.Run(); err != nil {

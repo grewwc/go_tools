@@ -151,7 +151,7 @@ func main() {
 	extExclude := fs.String("nt", "", "check files which are not some types")
 	findWord := fs.Bool("word", false, "only match the concrete word, is a shortcut for -re")
 	all := fs.Bool("all", false, "shortcut for -n=-1")
-	*all = *all || *fs.Bool("a", false, "shortcut for -all")          // shortcut for -all
+	a := fs.Bool("a", false, "shortcut for -all")
 	files := fs.String("f", "", "check only these files/directories") // this flag will override -t
 	notFiles := fs.String("nf", "", "don't check these files/directories")
 
@@ -168,7 +168,7 @@ func main() {
 	// fmt.Println("args", args)
 	// fmt.Println(optional, stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
-
+	*all = *all || *a
 	*rootDir = filepath.ToSlash(strings.ReplaceAll(*rootDir, `\\`, `\`))
 	if *num < 0 || *all {
 		*num = math.MaxInt64
