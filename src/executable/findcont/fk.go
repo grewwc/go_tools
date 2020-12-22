@@ -162,8 +162,14 @@ func main() {
 		fs.PrintDefaults()
 		return
 	}
+
 	optionalMap, args := parsedResults.Optional, parsedResults.Positional.ToStringSlice()
 	optional := terminalW.MapToString(optionalMap)
+	if parsedResults.GetNumArgs() != -1 {
+		*num = int64(parsedResults.GetNumArgs())
+		r := regexp.MustCompile("-\\d+")
+		optional = r.ReplaceAllString(optional, "")
+	}
 	// fmt.Println("optionalMap", optionalMap, optional)
 	// fmt.Println("args", args)
 	// fmt.Println(optional, stringsW.SplitNoEmptyKeepQuote(optional, ' '))
@@ -173,6 +179,7 @@ func main() {
 	if *num < 0 || *all {
 		*num = math.MaxInt64
 	}
+
 	terminalW.NumPrint = *num
 	terminalW.Verbose = *verboseFlag
 	terminalW.MaxLevel = int32(*numLevel)
