@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math"
 	"os"
 	"path"
@@ -115,8 +116,15 @@ func main() {
 		return
 	}
 	fmt.Println()
-	wg.Add(1)
-	go findFile(*rootDir)
+	allRootDirs, err := filepath.Glob(*rootDir)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	for _, dir := range allRootDirs {
+		wg.Add(1)
+		go findFile(dir)
+	}
 	wg.Wait()
 	summaryString := fmt.Sprintf("%d matches found\n", count)
 	fmt.Println(strings.Repeat("-", len(summaryString)))
