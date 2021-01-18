@@ -157,3 +157,25 @@ func GetDirSize(dirname string) (int64, error) {
 	})
 	return size, err
 }
+
+// Abs ignore error
+// return "" as representing error
+func Abs(path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	if strings.HasPrefix(path, "~/") {
+		userDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Println(err)
+			return ""
+		}
+		path = strings.ReplaceAll(path, "~", userDir)
+	}
+	path, err := filepath.Abs(path)
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	return path
+}

@@ -27,6 +27,7 @@ func main() {
 	if err != nil || exclude == "" {
 		exclude, _ = parsedResults.GetFlagVal("exclude")
 	}
+	exclude = utilsW.Abs(exclude)
 
 	excludes, err := filepath.Glob(exclude)
 	if err != nil {
@@ -37,11 +38,7 @@ func main() {
 	verbose := parsedResults.ContainsFlag("v")
 	excludeSet := containerW.NewSet()
 	for _, ex := range excludes {
-		ex, err := filepath.Abs(ex)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+
 		filepath.Walk(ex, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				return nil
@@ -61,7 +58,7 @@ func main() {
 	if len(args) > 2 {
 		srcNames = args[1:]
 	} else {
-		srcName = args[1]
+		srcName = utilsW.Abs(args[1])
 	}
 
 	if srcName != "" {
@@ -78,10 +75,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			path, err = filepath.Abs(path)
-			if err != nil {
-				return err
-			}
+			path = utilsW.Abs(path)
 			if !excludeSet.Contains(path) {
 				allFiles = append(allFiles, path)
 				if verbose {
@@ -93,7 +87,13 @@ func main() {
 			return nil
 		})
 	}
+	if len(allFiles) == 0 {
+		fmt.Printf("%q don't contain any files\n", srcName)
+		return
+	}
+
 	if err = utilsW.TarGz(outName, allFiles); err != nil {
 		log.Fatalln(err)
 	}
+	fmt.Println()
 }

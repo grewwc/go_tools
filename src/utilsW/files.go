@@ -12,8 +12,12 @@ func TarGz(outName string, srcNames []string) error {
 	if err != nil {
 		return err
 	}
+	defer out.Close()
 	gw := gzip.NewWriter(out)
 	tw := tar.NewWriter(gw)
+
+	defer gw.Close()
+	defer tw.Close()
 
 	for _, filename := range srcNames {
 		info, err := os.Stat(filename)

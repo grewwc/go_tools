@@ -16,8 +16,9 @@ import (
 )
 
 type ParsedResults struct {
-	Optional   map[string]string
-	Positional *containerW.Set
+	Optional map[string]string
+	// Positional *containerW.Set
+	Positional *containerW.OrderedSet
 }
 
 func (r ParsedResults) GetFlagVal(flagName string) (string, error) {
@@ -30,16 +31,16 @@ func (r ParsedResults) GetFlagVal(flagName string) (string, error) {
 	return "", errors.New("not exist")
 }
 
-func (r ParsedResults) GetFlags() *containerW.Set {
-	res := containerW.NewSet()
+func (r ParsedResults) GetFlags() *containerW.OrderedSet {
+	res := containerW.NewOrderedSet()
 	for k := range r.Optional {
 		res.Add(k)
 	}
 	return res
 }
 
-func (r ParsedResults) GetBooleanArgs() *containerW.Set {
-	res := containerW.NewSet()
+func (r ParsedResults) GetBooleanArgs() *containerW.OrderedSet {
+	res := containerW.NewOrderedSet()
 	for k, v := range r.Optional {
 		if v == "" {
 			res.Add(k)
@@ -103,7 +104,7 @@ func (slice sortByLen) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
-func classifyArguments(cmd string, endIdx int) (*containerW.Set, []string, []string) {
+func classifyArguments(cmd string, endIdx int) (*containerW.OrderedSet, []string, []string) {
 	const (
 		positionalMode = iota
 		optionalKeyMode
@@ -111,7 +112,7 @@ func classifyArguments(cmd string, endIdx int) (*containerW.Set, []string, []str
 		spaceMode
 	)
 	mode := spaceMode
-	var positionals = containerW.NewSet()
+	var positionals = containerW.NewOrderedSet()
 	var keys []string
 	var vals []string
 	var pBuf bytes.Buffer
@@ -259,8 +260,8 @@ func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 }
 
 func construct(boolOptionals ...string) []string {
-	resMap := make(map[int]*containerW.Set)
-	c := containerW.NewSet()
+	resMap := make(map[int]*containerW.OrderedSet)
+	c := containerW.NewOrderedSet()
 	for _, option := range boolOptionals {
 		c.Add(option)
 	}
@@ -268,7 +269,7 @@ func construct(boolOptionals ...string) []string {
 
 	i := 2
 	for i <= len(boolOptionals) {
-		resMap[i] = containerW.NewSet()
+		resMap[i] = containerW.NewOrderedSet()
 		j := 1
 		for j < i {
 			s1 := resMap[j]
@@ -281,7 +282,7 @@ func construct(boolOptionals ...string) []string {
 					e21 := e2 + e1
 					// eSlice := strings.Split(e, "")
 					// sort.Strings(eSlice)
-					temp := containerW.NewSet()
+					temp := containerW.NewOrderedSet()
 					for _, ch := range e12 {
 						temp.Add(string(ch))
 					}
