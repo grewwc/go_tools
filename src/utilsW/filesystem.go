@@ -15,8 +15,9 @@ import (
 var DefaultExtensions = containerW.NewSet()
 
 func init() {
-	DefaultExtensions.AddAll(".py", ".cpp", ".js", ".txt", ".h", ".hpp", ".c", ".tex", ".html",
-		".css", ".java", ".go", ".cc", ".htm", ".ts", ".xml", ".php", ".sc", "")
+	DefaultExtensions.AddAll(".py", ".cpp", ".js", ".txt", ".h", ".hpp", ".c",
+		".tex", ".html", ".css", ".java", ".go", ".cc", ".htm", ".ts", ".xml",
+		".php", ".sc", "")
 }
 
 // LsDir returns slices containing contents of a directory
