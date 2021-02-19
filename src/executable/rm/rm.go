@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -23,6 +24,10 @@ func removeSingle(filename string, parsedResults terminalW.ParsedResults) {
 }
 func main() {
 	parsedResults := terminalW.ParseArgsCmd("rf")
+	if parsedResults == nil {
+		fmt.Println("usage: rm -rf ")
+		return
+	}
 	args := parsedResults.Positional.ToStringSlice()
 	for _, filename := range args {
 		for d, filenames := range utilsW.LsDirGlob(filename) {

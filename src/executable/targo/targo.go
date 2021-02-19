@@ -1,8 +1,12 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,22 +16,97 @@ import (
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
+func processTarGzFile(fname string, prefix string) {
+	fmt.Printf("untar %q to %q\n", fname, prefix)
+	// first open the file
+	f, err := os.Open(fname)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer f.Close()
+
+	// open as gzip
+	gf, err := gzip.NewReader(f)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer gf.Close()
+
+	// open as tar
+	tf := tar.NewReader(gf)
+
+	for {
+		header, err := tf.Next()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			os.MkdirAll(filepath.Join(prefix, header.Name), os.ModeDir)
+		case tar.TypeReg:
+			buf := make([]byte, int(header.Size))
+			_, err = tf.Read(buf)
+			if err != io.EOF && err != nil {
+				log.Println(err)
+				os.Exit(1)
+			}
+			ioutil.WriteFile(filepath.Join(prefix, header.Name), buf, 0755)
+		}
+	}
+}
+
+func clean(fname string) {
+	if utilsW.IsExist(fname) {
+		fmt.Printf("error occurred, clean %q\n", fname)
+		os.RemoveAll(fname)
+	}
+}
+
 func main() {
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.String("ex", "", "exclude file/directory")
 	fs.String("exclude", "", "exclude file/directory")
 	fs.Bool("v", false, "verbose")
+	fs.Bool("u", false, "untar")
 
-	parsedResults := terminalW.ParseArgsCmd("v")
+	parsedResults := terminalW.ParseArgsCmd("v", "u")
 	if parsedResults == nil {
 		fs.PrintDefaults()
 		return
 	}
+
+	// extract tar files
+	if parsedResults.ContainsFlag("u") {
+		fmt.Println("e.g: untar src.tar.gz dest_directory")
+
+		args := parsedResults.Positional.ToStringSlice()
+		if len(args) != 2 {
+			fmt.Println("need 2 arguments as hinted above")
+			os.Exit(1)
+		}
+		src := args[0]
+		prefix := args[1]
+
+		processTarGzFile(src, prefix)
+		os.Exit(0)
+	}
+	// create tar files
 	exclude, err := parsedResults.GetFlagVal("ex")
 	if err != nil || exclude == "" {
 		exclude, _ = parsedResults.GetFlagVal("exclude")
 	}
-	exclude = utilsW.Abs(exclude)
+	if exclude != "" {
+		exclude = utilsW.Abs(exclude)
+	}
 
 	excludes, err := filepath.Glob(exclude)
 	if err != nil {
@@ -37,8 +116,8 @@ func main() {
 
 	verbose := parsedResults.ContainsFlag("v")
 	excludeSet := containerW.NewSet()
-	for _, ex := range excludes {
 
+	for _, ex := range excludes {
 		filepath.Walk(ex, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				return nil
@@ -58,7 +137,7 @@ func main() {
 	if len(args) > 2 {
 		srcNames = args[1:]
 	} else {
-		srcName = utilsW.Abs(args[1])
+		srcName = args[1]
 	}
 
 	if srcName != "" {
@@ -66,6 +145,7 @@ func main() {
 	}
 
 	if err != nil {
+		clean(outName)
 		log.Fatalln(err)
 	}
 
@@ -75,7 +155,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			path = utilsW.Abs(path)
+			// abspath := utilsW.Abs(path)
 			if !excludeSet.Contains(path) {
 				allFiles = append(allFiles, path)
 				if verbose {
@@ -87,12 +167,14 @@ func main() {
 			return nil
 		})
 	}
+
 	if len(allFiles) == 0 {
 		fmt.Printf("%q don't contain any files\n", srcName)
+		clean(outName)
 		return
 	}
-
 	if err = utilsW.TarGz(outName, allFiles); err != nil {
+		clean(outName)
 		log.Fatalln(err)
 	}
 	fmt.Println()

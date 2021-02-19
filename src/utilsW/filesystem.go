@@ -22,6 +22,7 @@ func init() {
 
 // LsDir returns slices containing contents of a directory
 // if fname is a file, not a directory, return empty slice
+// return: relative path
 func LsDir(fname string) []string {
 	if !IsDir(fname) {
 		return []string{}
