@@ -149,7 +149,7 @@ func main() {
 		sortType = _lsW.NewerFirst
 	}
 
-	if parsedResults.ContainsFlag("tr") || parsedResults.ContainsFlag("rt") {
+	if parsedResults.ContainsFlag("tr") {
 		sortType = _lsW.OlderFirst
 	}
 
