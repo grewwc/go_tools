@@ -16,8 +16,10 @@ func NewOrderedSet() *OrderedSet {
 }
 
 func (s *OrderedSet) Add(v interface{}) {
-	e := s.l.PushBack(v)
-	s.m[v] = e
+	if _, exist := s.m[v]; !exist {
+		e := s.l.PushBack(v)
+		s.m[v] = e
+	}
 }
 
 func (s *OrderedSet) AddAll(vs ...interface{}) {

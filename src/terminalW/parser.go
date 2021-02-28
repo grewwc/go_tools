@@ -245,7 +245,9 @@ func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	if len(cmdSlice) <= 1 {
 		return nil
 	}
+	// fmt.Println("prev", boolOptionals)
 	boolOptionals = construct(boolOptionals...)
+	// fmt.Println("after", boolOptionals)
 	cmd = strings.Join(cmdSlice[1:], "\x00")
 	cmd = "\x00" + cmd + "\x00"
 
@@ -274,31 +276,18 @@ func construct(boolOptionals ...string) []string {
 		for j < i {
 			s1 := resMap[j]
 			s2 := resMap[i-j]
-			s1Slice := s1.ToStringSlice()
-			s2Slice := s2.ToStringSlice()
-			for _, e1 := range s1Slice {
-				for _, e2 := range s2Slice {
-					e12 := e1 + e2
-					e21 := e2 + e1
-					// eSlice := strings.Split(e, "")
-					// sort.Strings(eSlice)
-					temp := containerW.NewOrderedSet()
-					for _, ch := range e12 {
-						temp.Add(string(ch))
-					}
-					for _, ch := range e21 {
-						temp.Add(string(ch))
-					}
-					e := strings.Join(temp.ToStringSlice(), "")
-					if len(e) == i {
-						resMap[i].Add(e)
-					}
+			for e1 := range s1.Iterate() {
+				for e2 := range s2.Iterate() {
+					e12 := e1.(string) + e2.(string)
+					e21 := e2.(string) + e1.(string)
+					resMap[i].AddAll(e12, e21)
 				}
 			}
 			j++
 		}
 		i++
 	}
+	// fmt.Println("here", resMap)
 	var res []string
 	for _, v := range resMap {
 		res = append(res, v.ToStringSlice()...)

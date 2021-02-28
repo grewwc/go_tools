@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -115,6 +116,7 @@ func main() {
 	var files string
 	var sortType int = _lsW.Unsort
 	var l bool
+	var numFileToPrint int = math.MaxInt32
 
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.Bool("l", false, "show more information")
@@ -134,9 +136,14 @@ func main() {
 
 	if parsedResults == nil {
 		args = []string{"./"}
-		goto skip
+		goto skipTo
 	}
 	args = parsedResults.Positional.ToStringSlice()
+
+	numFileToPrint = parsedResults.GetNumArgs()
+	if numFileToPrint == -1 {
+		numFileToPrint = math.MaxInt32
+	}
 
 	if parsedResults.ContainsFlag("t") {
 		sortType = _lsW.NewerFirst
@@ -159,13 +166,14 @@ func main() {
 		return
 	}
 
-skip:
+skipTo:
 	fmt.Printf("\n")
 	if len(args) == 0 {
 		args = []string{"./"}
 	}
 	for _, rootDir := range args {
 		fileMap := utilsW.LsDirGlob(rootDir)
+
 		for d, fileSlice := range fileMap {
 			files = ""
 			if d != "./" && d[0] == '.' && !all {
@@ -174,15 +182,22 @@ skip:
 			if len(fileMap) > 1 {
 				fmt.Printf("%s:\n", color.HiBlueString(d))
 			}
+
 			files += processSingleDir(d, fileSlice, l, sortType, coloredStrings)
 
 			toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
 
 			boldBlue := color.New(color.FgHiBlue, color.Bold)
+			cnt := 0
+
 			for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
 				if strings.Contains(line, "\x01") {
 					line = strings.ReplaceAll(line, "\x01", "")
 					fmt.Fprintln(tw, line)
+					cnt++
+					if cnt >= numFileToPrint {
+						goto outerLoop
+					}
 				} else {
 					fmt.Printf("\n%s", strings.Repeat(" ", indent))
 					for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
@@ -192,10 +207,15 @@ skip:
 						} else {
 							fmt.Printf("%s%s", word, delimiter)
 						}
+						cnt++
+						if cnt >= numFileToPrint {
+							goto outerLoop
+						}
 					}
 					fmt.Println()
 				}
 			}
+		outerLoop:
 			tw.Flush()
 			fmt.Println()
 		}
