@@ -10,7 +10,7 @@ import (
 )
 
 func removeSingle(filename string, parsedResults terminalW.ParsedResults) {
-	if parsedResults.ContainsFlag("-rf") {
+	if parsedResults.ContainsFlagStrict("-rf") {
 		err := os.RemoveAll(filename)
 		if err != nil {
 			log.Println(err)

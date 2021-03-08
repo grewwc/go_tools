@@ -41,7 +41,7 @@ func formatFileStat(filename string, realSize bool) string {
 		// os.Exit(1)
 	}
 	modTime := stat.ModTime()
-	modTimeStr := fmt.Sprintf("    %04d/%02d/%02d  %02d:%02d", modTime.Year(), int(modTime.Month()), modTime.Day(), modTime.Hour(), modTime.Minute())
+	modTimeStr := fmt.Sprintf("   %04d/%02d/%02d  %02d:%02d", modTime.Year(), int(modTime.Month()), modTime.Day(), modTime.Hour(), modTime.Minute())
 	var sizeStr string
 	if !utilsW.IsDir(filename) {
 		sizeStr = stringsW.FormatInt64(stat.Size())
@@ -115,6 +115,7 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			coloredStrings.Add(file)
 			file = strings.ReplaceAll(file, " ", "\x00")
 		}
+		file = stringsW.StripPrefix(file, rootDir+"/")
 		files += file
 		files += " "
 	}
@@ -172,7 +173,7 @@ func main() {
 		l = true
 	}
 
-	if parsedResults.ContainsFlag("h") {
+	if parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
@@ -221,8 +222,6 @@ skipTo:
 					fmt.Printf("\n%s", strings.Repeat(" ", indent))
 					for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
 						word = strings.ReplaceAll(word, "\x00", " ")
-						// strip the parent directory prefix
-						word = stringsW.StripPrefix(word, d+"/")
 						if coloredStrings.Contains(word) {
 							boldCyan.Printf("%s%s", word, delimiter)
 						} else {

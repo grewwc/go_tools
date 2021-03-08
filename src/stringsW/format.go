@@ -81,8 +81,8 @@ func FormatInt64(val int64) string {
 		val /= _1P
 	}
 	if suffix != "" {
-		return fmt.Sprintf("%v.%v%s", val, decimal, suffix)
+		return fmt.Sprintf("%d.%d%s", val, decimal, suffix)
 	} else {
-		return fmt.Sprintf("%v", val)
+		return fmt.Sprintf("%d", val)
 	}
 }

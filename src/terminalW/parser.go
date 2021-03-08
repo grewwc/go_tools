@@ -58,13 +58,26 @@ func (r ParsedResults) ContainsFlag(flagName string) bool {
 	if _, exists := r.Optional[flagName]; exists {
 		return true
 	}
+
 	for k := range r.Optional {
 		s1 := containerW.FromString(k)
-		s2 := containerW.FromString(flagName)
-		if s1.IsSuperSet(*s2) {
+		if s1.Contains(flagName) {
 			return true
 		}
 	}
+	return false
+}
+
+// ContainsFlagStrict checks if an optional flag is set
+// "main.exe -force" ==> [ContainsFlag("-f") == false, ContainsFlag("-force") == true]
+func (r ParsedResults) ContainsFlagStrict(flagName string) bool {
+	if flagName[0] != '-' {
+		flagName = "-" + flagName
+	}
+	if _, exists := r.Optional[flagName]; exists {
+		return true
+	}
+
 	return false
 }
 

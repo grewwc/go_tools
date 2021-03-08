@@ -77,9 +77,10 @@ func main() {
 	fs.String("exclude", "", "exclude file/directory")
 	fs.Bool("v", false, "verbose")
 	fs.Bool("u", false, "untar")
+	fs.Bool("h", false, "print help info")
 
 	parsedResults := terminalW.ParseArgsCmd("v", "u")
-	if parsedResults == nil {
+	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
