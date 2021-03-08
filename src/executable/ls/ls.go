@@ -108,11 +108,11 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 		}
 		if utilsW.IsDir(file) {
 			file += "/"
-			coloredStrings.Add(file)
+			coloredStrings.Add(stringsW.StripPrefix(file, rootDir+"/"))
 		}
 		if strings.Contains(file, " ") {
 			file = fmt.Sprintf("\"%s\"", file)
-			coloredStrings.Add(file)
+			coloredStrings.Add(stringsW.StripPrefix(file, rootDir+"/"))
 			file = strings.ReplaceAll(file, " ", "\x00")
 		}
 		file = stringsW.StripPrefix(file, rootDir+"/")
