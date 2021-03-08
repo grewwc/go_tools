@@ -150,7 +150,7 @@ func main() {
 	fs.Bool("rt", false, "sort files by earlist modified date")
 	fs.Bool("h", false, "print help information")
 	fs.Bool("du", false, "if set, calculate size of all subdirs/subfiles")
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "rt", "du")
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du")
 	// parsedResults := terminalW.ParseArgsCmd()
 
 	// fmt.Println(parsedResults)
@@ -174,11 +174,11 @@ func main() {
 	}
 
 	if parsedResults.ContainsFlag("t") {
-		sortType = _lsW.NewerFirst
-	}
-
-	if parsedResults.ContainsFlag("tr") {
-		sortType = _lsW.OlderFirst
+		if !parsedResults.ContainsFlag("r") {
+			sortType = _lsW.NewerFirst
+		} else {
+			sortType = _lsW.OlderFirst
+		}
 	}
 
 	if parsedResults.ContainsFlag("a") {
@@ -204,12 +204,14 @@ skipTo:
 		args = []string{"./"}
 	}
 
+	// fmt.Println(args)
 	for _, rootDir := range args {
 		if len(args) > 1 {
 			fmt.Printf("%s:\n", color.HiCyanString(rootDir))
 		}
 
 		fileMap := utilsW.LsDirGlob(rootDir)
+
 		// fmt.Println("filemap: ", fileMap)
 		for d, fileSlice := range fileMap {
 			files = ""

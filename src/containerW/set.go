@@ -36,6 +36,15 @@ func (s Set) Iterate() <-chan interface{} {
 	return c
 }
 
+func (s Set) MutualExclude(another Set) bool {
+	for k := range s.data {
+		if another.Contains(k) {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Set) Delete(item interface{}) bool {
 	if s.Contains(item) {
 		delete(s.data, item)
@@ -147,7 +156,7 @@ func NewSet() *Set {
 func FromString(str string) *Set {
 	res := NewSet()
 	for _, ch := range str {
-		res.Add(ch)
+		res.Add(string(ch))
 	}
 	return res
 }

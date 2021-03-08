@@ -52,16 +52,24 @@ func (r ParsedResults) GetBooleanArgs() *containerW.OrderedSet {
 // ContainsFlag checks if an optional flag is set
 // "main.exe -force" ==> [ContainsFlag("-f") == true, ContainsFlag("-force") == true]
 func (r ParsedResults) ContainsFlag(flagName string) bool {
+	flagName = stringsW.StripPrefix(flagName, "-")
+	if len(flagName) > 1 {
+		return r.ContainsFlagStrict(flagName)
+	}
+
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
 	if _, exists := r.Optional[flagName]; exists {
 		return true
 	}
+	// fmt.Println(r.Optional)
 
+	flagName = stringsW.StripPrefix(flagName, "-")
+	s2 := containerW.FromString(flagName)
 	for k := range r.Optional {
 		s1 := containerW.FromString(k)
-		if s1.Contains(flagName) {
+		if !s2.MutualExclude(*s1) {
 			return true
 		}
 	}
@@ -298,8 +306,19 @@ func constructBoolOptional(boolOptionals ...string) []string {
 	if l < 1 {
 		return []string{}
 	}
-	res := containerW.NewSet()
 
+	noneSingleChar := make([]string, 0)
+	singleChar := make([]string, 0)
+
+	for _, option := range boolOptionals {
+		if len(option) > 1 {
+			noneSingleChar = append(noneSingleChar, option)
+		} else {
+			singleChar = append(singleChar, option)
+		}
+	}
+	res := containerW.NewSet()
+	l = len(singleChar)
 	m := make(map[int][][]int)
 	m[1] = make([][]int, l)
 	for i := 0; i < l; i++ {
@@ -328,8 +347,8 @@ func constructBoolOptional(boolOptionals ...string) []string {
 					}
 					s12 := append(ss1, ss2...)
 					s21 := append(ss2, ss1...)
-					str12 := constructString(boolOptionals, s12)
-					str21 := constructString(boolOptionals, s21)
+					str12 := constructString(singleChar, s12)
+					str21 := constructString(singleChar, s21)
 					if !res.Contains(str12) {
 						m[curLen] = append(m[curLen], s12)
 						res.Add(str12)
@@ -343,13 +362,9 @@ func constructBoolOptional(boolOptionals ...string) []string {
 		}
 	}
 	// fmt.Println(m)
-
-	for _, v := range m {
-		for j := 0; j < len(v); j++ {
-			res.Add(constructString(boolOptionals, v[j]))
-		}
+	for _, option := range singleChar {
+		res.Add(option)
 	}
-
 	// fmt.Println(res)
 	return res.ToStringSlice()
 }

@@ -50,6 +50,7 @@ func LsDirGlob(fname string) map[string][]string {
 			res["./"] = append(res["./"], name)
 		} else {
 			res[name] = LsDir(name)
+			// fmt.Println("here", name, res)
 		}
 	}
 	return res
