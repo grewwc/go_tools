@@ -34,7 +34,7 @@ func init() {
 }
 
 func formatFileStat(filename string, realSize bool) string {
-	stat, err := os.Stat(filename)
+	stat, err := os.Lstat(filename)
 	if err != nil {
 		errMsgs.Enqueue(fmt.Sprintf("error getting stat of file: %q\n", filename))
 		return ""
