@@ -236,7 +236,7 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 		return nil
 	}
 	// fmt.Println("prev", boolOptionals)
-	boolOptionals = construct(boolOptionals...)
+	boolOptionals = constructBoolOptional(boolOptionals...)
 	// fmt.Println("after", boolOptionals)
 
 	cmd := strings.Join(os.Args[1:], "\x00")
@@ -259,7 +259,7 @@ func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 		return nil
 	}
 	// fmt.Println("prev", boolOptionals)
-	boolOptionals = construct(boolOptionals...)
+	boolOptionals = constructBoolOptional(boolOptionals...)
 	// fmt.Println("after", boolOptionals)
 	cmd = strings.Join(cmdSlice[1:], "\x00")
 	cmd = "\x00" + cmd + "\x00"
@@ -274,36 +274,82 @@ func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	return parseArgs(cmd, boolOptionals...)
 }
 
-func construct(boolOptionals ...string) []string {
-	resMap := make(map[int]*containerW.OrderedSet)
-	c := containerW.NewOrderedSet()
-	for _, option := range boolOptionals {
-		c.Add(option)
-	}
-	resMap[1] = c
-
-	i := 2
-	for i <= len(boolOptionals) {
-		resMap[i] = containerW.NewOrderedSet()
-		j := 1
-		for j < i {
-			s1 := resMap[j]
-			s2 := resMap[i-j]
-			for e1 := range s1.Iterate() {
-				for e2 := range s2.Iterate() {
-					e12 := e1.(string) + e2.(string)
-					e21 := e2.(string) + e1.(string)
-					resMap[i].AddAll(e12, e21)
-				}
+func hasCommon(l1, l2 []int) bool {
+	for _, v1 := range l1 {
+		for _, v2 := range l2 {
+			if v1 == v2 {
+				return true
 			}
-			j++
 		}
-		i++
 	}
-	// fmt.Println("here", resMap)
-	var res []string
-	for _, v := range resMap {
-		res = append(res, v.ToStringSlice()...)
+	return false
+}
+
+func constructString(boolOptionals []string, indices []int) string {
+	res := ""
+	for _, idx := range indices {
+		res += boolOptionals[idx]
 	}
 	return res
+}
+
+func constructBoolOptional(boolOptionals ...string) []string {
+	l := len(boolOptionals)
+	if l < 1 {
+		return []string{}
+	}
+	res := containerW.NewSet()
+
+	m := make(map[int][][]int)
+	m[1] = make([][]int, l)
+	for i := 0; i < l; i++ {
+		m[1][i] = []int{i}
+	}
+
+	for curLen := 2; curLen <= l; curLen++ {
+		// count the total size
+		cnt := 0
+		for i := 1; i < curLen; i++ {
+			cnt += len(m[i])
+		}
+		m[curLen] = make([][]int, 0, cnt*(cnt-1))
+
+		for l1 := 1; l1 < curLen; l1++ {
+			l2 := curLen - l1
+			if l2 < l1 {
+				break
+			}
+			s1 := m[l1]
+			s2 := m[l2]
+			for i, ss1 := range s1 {
+				for j, ss2 := range s2 {
+					if i == j || hasCommon(ss1, ss2) {
+						continue
+					}
+					s12 := append(ss1, ss2...)
+					s21 := append(ss2, ss1...)
+					str12 := constructString(boolOptionals, s12)
+					str21 := constructString(boolOptionals, s21)
+					if !res.Contains(str12) {
+						m[curLen] = append(m[curLen], s12)
+						res.Add(str12)
+					}
+					if !res.Contains(str21) {
+						m[curLen] = append(m[curLen], s21)
+						res.Add(str21)
+					}
+				}
+			}
+		}
+	}
+	// fmt.Println(m)
+
+	for _, v := range m {
+		for j := 0; j < len(v); j++ {
+			res.Add(constructString(boolOptionals, v[j]))
+		}
+	}
+
+	// fmt.Println(res)
+	return res.ToStringSlice()
 }

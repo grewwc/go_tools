@@ -99,7 +99,10 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 		}
 		if long {
 			line := formatFileStat(file, du)
-			line = strings.Replace(line, rootDir+"/", "", 1)
+			if rootDir[len(rootDir)-1] != '/' {
+				rootDir += "/"
+			}
+			line = strings.Replace(line, rootDir, "", 1)
 			// fmt.Println("long", file, line)
 			if line != "" {
 				files += line + "\x01\n"
@@ -108,14 +111,24 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 		}
 		if utilsW.IsDir(file) {
 			file += "/"
-			coloredStrings.Add(stringsW.StripPrefix(file, rootDir+"/"))
+			if rootDir[len(rootDir)-1] != '/' {
+				rootDir += "/"
+			}
+			coloredStrings.Add(stringsW.StripPrefix(file, rootDir))
 		}
 		if strings.Contains(file, " ") {
+			if rootDir[len(rootDir)-1] != '/' {
+				rootDir += "/"
+			}
+			file = stringsW.StripPrefix(file, rootDir)
 			file = fmt.Sprintf("\"%s\"", file)
-			coloredStrings.Add(stringsW.StripPrefix(file, rootDir+"/"))
+			coloredStrings.Add(file)
 			file = strings.ReplaceAll(file, " ", "\x00")
 		}
-		file = stringsW.StripPrefix(file, rootDir+"/")
+		if rootDir[len(rootDir)-1] != '/' {
+			rootDir += "/"
+		}
+		file = stringsW.StripPrefix(file, rootDir)
 		files += file
 		files += " "
 	}
@@ -123,6 +136,7 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 }
 
 func main() {
+
 	var files string
 	var sortType int = _lsW.Unsort
 	var l bool
@@ -136,8 +150,9 @@ func main() {
 	fs.Bool("rt", false, "sort files by earlist modified date")
 	fs.Bool("h", false, "print help information")
 	fs.Bool("du", false, "if set, calculate size of all subdirs/subfiles")
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "rt", "du")
+	// parsedResults := terminalW.ParseArgsCmd()
 
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "h", "du")
 	// fmt.Println(parsedResults)
 	coloredStrings := containerW.NewSet()
 	indent := 6
@@ -153,6 +168,7 @@ func main() {
 	args = parsedResults.Positional.ToStringSlice()
 
 	numFileToPrint = parsedResults.GetNumArgs()
+
 	if numFileToPrint == -1 {
 		numFileToPrint = math.MaxInt32
 	}
@@ -187,6 +203,7 @@ skipTo:
 	if len(args) == 0 {
 		args = []string{"./"}
 	}
+
 	for _, rootDir := range args {
 		if len(args) > 1 {
 			fmt.Printf("%s:\n", color.HiCyanString(rootDir))
@@ -196,16 +213,16 @@ skipTo:
 		// fmt.Println("filemap: ", fileMap)
 		for d, fileSlice := range fileMap {
 			files = ""
-			if d != "./" && d[0] == '.' && !all {
+			if !strings.HasPrefix(d, "./") &&
+				!strings.HasPrefix(d, "../") &&
+				d[0] == '.' && !all {
 				continue
 			}
 			if len(fileMap) > 1 {
 				fmt.Printf("%s:\n", color.HiCyanString(d))
 			}
-
 			files += processSingleDir(d, fileSlice, l, du, sortType, coloredStrings)
 			toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
-
 			boldCyan := color.New(color.FgHiCyan, color.Bold)
 			cnt := 0
 

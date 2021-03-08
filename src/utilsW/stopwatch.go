@@ -83,5 +83,6 @@ func (s StopWatch) Days() float64 {
 }
 
 func (s StopWatch) String() string {
-	return fmt.Sprintf("%v mills", s.Mills())
+	s.Stop()
+	return fmt.Sprintf("%v", float64(s.stop-s.start))
 }

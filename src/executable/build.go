@@ -27,7 +27,7 @@ func main() {
 	parsedArgs := terminalW.ParseArgsCmd("f", "force")
 	var force bool
 	if parsedArgs != nil {
-		force = parsedArgs.ContainsFlag("f")
+		force = parsedArgs.ContainsFlag("f") || parsedArgs.ContainsFlag("force")
 		for fname := range parsedArgs.Positional.Iterate() {
 			fnameStr := fname.(string)
 			forceRebuildName.Add(fnameStr + ".go")

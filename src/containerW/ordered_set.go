@@ -77,6 +77,15 @@ func (s OrderedSet) Intersect(another OrderedSet) *OrderedSet {
 	return result
 }
 
+func (s OrderedSet) MutualExclude(another OrderedSet) bool {
+	for k := range s.m {
+		if another.Contains(k) {
+			return false
+		}
+	}
+	return true
+}
+
 func (s OrderedSet) Union(another OrderedSet) *OrderedSet {
 	result := NewOrderedSet()
 	for k := range s.m {
@@ -157,10 +166,17 @@ func (s OrderedSet) ToSlice() []interface{} {
 
 // ToStringSlice is not type safe
 func (s OrderedSet) ToStringSlice() []string {
-	res := make([]string, 0, s.Size())
-	for v := range s.Iterate() {
-		res = append(res, v.(string))
+	l := s.Size()
+	res := make([]string, 0, l)
+	cur := s.l.Front()
+	for i := 0; i < l; i++ {
+		res = append(res, cur.Value.(string))
+		cur = cur.Next()
 	}
+	// for v := range s.Iterate() {
+	// 	res = append(res, v.(string))
+	// }
+
 	return res
 }
 
