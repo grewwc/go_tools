@@ -187,6 +187,10 @@ skipTo:
 		args = []string{"./"}
 	}
 	for _, rootDir := range args {
+		if len(args) > 1 {
+			fmt.Printf("%s:\n", color.HiCyanString(rootDir))
+		}
+
 		fileMap := utilsW.LsDirGlob(rootDir)
 		// fmt.Println("filemap: ", fileMap)
 		for d, fileSlice := range fileMap {
