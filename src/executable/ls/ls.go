@@ -33,7 +33,7 @@ func init() {
 	w = int(info.Size.X)
 }
 
-func formatFileStat(filename string) string {
+func formatFileStat(filename string, realSize bool) string {
 	stat, err := os.Stat(filename)
 	if err != nil {
 		errMsgs.Enqueue(fmt.Sprintf("error getting stat of file: %q\n", filename))
@@ -46,7 +46,13 @@ func formatFileStat(filename string) string {
 	if !utilsW.IsDir(filename) {
 		sizeStr = stringsW.FormatInt64(stat.Size())
 	} else {
-		dirSize, err := utilsW.GetDirSize(filename)
+		var dirSize int64
+		var err error
+		if realSize {
+			dirSize, err = utilsW.GetDirSize(filename)
+		} else {
+			dirSize = stat.Size()
+		}
 		if err != nil {
 			errMsgs.Enqueue(fmt.Sprintf("error getting size of directory: %q\n", filename))
 			return ""
@@ -56,7 +62,7 @@ func formatFileStat(filename string) string {
 		sizeStr = stringsW.FormatInt64(dirSize)
 	}
 	if utilsW.IsDir(filename) {
-		filename = color.HiBlueString(filename + "/")
+		filename = color.HiCyanString(filename + "/")
 	}
 
 	return fmt.Sprintf("%s\t%s\t%s", modTimeStr, sizeStr, filepath.ToSlash(filename))
@@ -75,7 +81,7 @@ func printErrors() {
 	}
 }
 
-func processSingleDir(rootDir string, fileSlice []string, long bool, sortType int,
+func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, sortType int,
 	coloredStrings *containerW.Set) string {
 	// if sortType != _lsW.Unsort
 	// sort the fileSlice
@@ -91,7 +97,8 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, sortType in
 			continue
 		}
 		if long {
-			line := formatFileStat(file)
+			line := formatFileStat(file, du)
+			// fmt.Println("long", file, line)
 			if line != "" {
 				files += line + "\x01\n"
 			}
@@ -117,15 +124,17 @@ func main() {
 	var sortType int = _lsW.Unsort
 	var l bool
 	var numFileToPrint int = math.MaxInt32
+	var du bool
 
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
-	fs.Bool("l", false, "show more information")
+	fs.Bool("l", false, "show more detailed information")
 	fs.Bool("a", false, "list hidden file")
 	fs.Bool("t", false, "sort files by last modified date")
 	fs.Bool("rt", false, "sort files by earlist modified date")
 	fs.Bool("h", false, "print help information")
+	fs.Bool("du", false, "if set, calculate size of all subdirs/subfiles")
 
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "h")
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "h", "du")
 	// fmt.Println(parsedResults)
 	coloredStrings := containerW.NewSet()
 	indent := 6
@@ -166,6 +175,10 @@ func main() {
 		return
 	}
 
+	if parsedResults.ContainsFlag("du") {
+		du = true
+	}
+
 skipTo:
 	fmt.Printf("\n")
 	if len(args) == 0 {
@@ -173,18 +186,17 @@ skipTo:
 	}
 	for _, rootDir := range args {
 		fileMap := utilsW.LsDirGlob(rootDir)
-
+		// fmt.Println("filemap: ", fileMap)
 		for d, fileSlice := range fileMap {
 			files = ""
 			if d != "./" && d[0] == '.' && !all {
 				continue
 			}
 			if len(fileMap) > 1 {
-				fmt.Printf("%s:\n", color.HiBlueString(d))
+				fmt.Printf("%s:\n", color.HiCyanString(d))
 			}
 
-			files += processSingleDir(d, fileSlice, l, sortType, coloredStrings)
-
+			files += processSingleDir(d, fileSlice, l, du, sortType, coloredStrings)
 			toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
 
 			boldCyan := color.New(color.FgHiCyan, color.Bold)
