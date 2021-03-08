@@ -83,6 +83,7 @@ func printErrors() {
 
 func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, sortType int,
 	coloredStrings *containerW.Set) string {
+
 	// if sortType != _lsW.Unsort
 	// sort the fileSlice
 	if sortType != _lsW.Unsort {
@@ -98,6 +99,7 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 		}
 		if long {
 			line := formatFileStat(file, du)
+			line = strings.Replace(line, rootDir+"/", "", 1)
 			// fmt.Println("long", file, line)
 			if line != "" {
 				files += line + "\x01\n"
@@ -203,9 +205,10 @@ skipTo:
 			cnt := 0
 
 			for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
-				if strings.Contains(line, "\x01") {
+				if strings.Contains(line, "\x01") { // \x01 means ls -l
 					line = strings.ReplaceAll(line, "\x01", "")
 					fmt.Fprintln(tw, line)
+
 					cnt++
 					if cnt >= numFileToPrint {
 						goto outerLoop
@@ -214,6 +217,8 @@ skipTo:
 					fmt.Printf("\n%s", strings.Repeat(" ", indent))
 					for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
 						word = strings.ReplaceAll(word, "\x00", " ")
+						// strip the parent directory prefix
+						word = stringsW.StripPrefix(word, d+"/")
 						if coloredStrings.Contains(word) {
 							boldCyan.Printf("%s%s", word, delimiter)
 						} else {

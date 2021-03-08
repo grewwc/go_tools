@@ -18,3 +18,13 @@ func FindAll(str, substr string) []int {
 	}
 	return result
 }
+
+func StripPrefix(s, prefix string) string {
+	for idx, ch := range prefix {
+		chStr := string(ch)
+		if chStr != s[idx:idx+len(chStr)] {
+			return s
+		}
+	}
+	return s[len(prefix):]
+}
