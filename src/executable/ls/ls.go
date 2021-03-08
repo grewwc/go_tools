@@ -187,7 +187,7 @@ skipTo:
 
 			toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
 
-			boldBlue := color.New(color.FgHiBlue, color.Bold)
+			boldCyan := color.New(color.FgHiCyan, color.Bold)
 			cnt := 0
 
 			for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
@@ -203,7 +203,7 @@ skipTo:
 					for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
 						word = strings.ReplaceAll(word, "\x00", " ")
 						if coloredStrings.Contains(word) {
-							boldBlue.Printf("%s%s", word, delimiter)
+							boldCyan.Printf("%s%s", word, delimiter)
 						} else {
 							fmt.Printf("%s%s", word, delimiter)
 						}
