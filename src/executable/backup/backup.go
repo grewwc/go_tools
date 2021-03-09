@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/grewwc/go_tools/src/containerW"
@@ -23,7 +24,9 @@ type bgTask struct {
 }
 
 var backupFileTypes = containerW.NewSet(
-	".go", ".py", ".cpp", ".tex", ".txt", ".bib", ".java", ".c", ".js", ".ts", ".html", ".css",
+	".go", ".py", ".cpp", ".tex", ".txt", ".htm",
+	".bib", ".java", ".c", ".js", ".ts", ".html", ".css",
+	".csv", ".xls", ".xlsx", ".out", ".jpg", ".jpeg", ".png",
 )
 
 var ignores = containerW.NewSet(
@@ -103,7 +106,7 @@ func task(fromRootDir, toRootDir string) {
 		for _, sub := range utilsW.LsDir(cur) {
 			absPath := filepath.Join(cur, sub)
 			absPath = filepath.ToSlash(absPath)
-			ext := filepath.Ext(absPath)
+			ext := strings.ToLower(filepath.Ext(absPath))
 			if utilsW.IsDir(absPath) {
 				if !ignores.Contains(sub) {
 					q.Enqueue(absPath)
@@ -148,8 +151,7 @@ func main() {
 		interval = time.Second * time.Duration(n)
 		goto skipTo
 	}
-
-	if parsedResults.ContainsFlag("H") {
+	if parsedResults.ContainsFlagStrict("H") {
 		val, _ := parsedResults.GetFlagVal("H")
 		n, err := strconv.Atoi(val)
 		if err != nil {
@@ -158,7 +160,7 @@ func main() {
 		interval = time.Hour * time.Duration(n)
 	}
 
-	if parsedResults.ContainsFlag("m") {
+	if parsedResults.ContainsFlagStrict("m") {
 		val, _ := parsedResults.GetFlagVal("m")
 		n, err := strconv.Atoi(val)
 		if err != nil {
@@ -167,7 +169,7 @@ func main() {
 		interval = time.Minute * time.Duration(n)
 	}
 
-	if parsedResults.ContainsFlag("s") {
+	if parsedResults.ContainsFlagStrict("s") {
 		val, _ := parsedResults.GetFlagVal("s")
 		n, err := strconv.Atoi(val)
 		if err != nil {
