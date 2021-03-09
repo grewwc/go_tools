@@ -124,7 +124,7 @@ func task(fromRootDir, toRootDir string) {
 
 func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
-	interval := time.Second
+	interval := time.Minute
 
 	fs.Int("s", 30, "interval in seconds")
 	fs.Int("m", 10, "interval in minutes")
