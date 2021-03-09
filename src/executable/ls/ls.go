@@ -222,7 +222,11 @@ skipTo:
 				fmt.Printf("%s:\n", color.HiCyanString(d))
 			}
 			files += processSingleDir(d, fileSlice, l, du, sortType, coloredStrings)
-			toPrint := stringsW.Wrap(files, w-indent*2, indent, delimiter)
+			// fmt.Println("file: ===>", files)
+			var toPrint string = files
+			if !l {
+				toPrint = stringsW.Wrap(files, w-indent*2, indent, delimiter)
+			}
 			boldCyan := color.New(color.FgHiCyan, color.Bold)
 			cnt := 0
 
