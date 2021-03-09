@@ -34,7 +34,7 @@ func LsDir(fname string) []string {
 	}
 	res := make([]string, len(infos))
 	for i, info := range infos {
-		res[i] = info.Name()
+		res[i] = filepath.ToSlash(info.Name())
 	}
 	return res
 }
@@ -47,6 +47,7 @@ func LsDirGlob(fname string) map[string][]string {
 	}
 	res := make(map[string][]string)
 	for _, name := range names {
+		name = filepath.ToSlash(name)
 		if !IsDir(name) {
 			res["./"] = append(res["./"], name)
 		} else {

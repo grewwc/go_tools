@@ -122,7 +122,7 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			}
 			file = stringsW.StripPrefix(file, rootDir)
 			file = fmt.Sprintf("\"%s\"", file)
-			coloredStrings.Add(file)
+			// coloredStrings.Add(file)
 			file = strings.ReplaceAll(file, " ", "\x00")
 		}
 		if rootDir[len(rootDir)-1] != '/' {
@@ -209,9 +209,7 @@ skipTo:
 		if len(args) > 1 {
 			fmt.Printf("%s:\n", color.HiCyanString(rootDir))
 		}
-
 		fileMap := utilsW.LsDirGlob(rootDir)
-
 		// fmt.Println("filemap: ", fileMap)
 		for d, fileSlice := range fileMap {
 			files = ""
