@@ -15,9 +15,9 @@ func TarGz(outName string, srcNames []string) error {
 		return err
 	}
 	defer out.Close()
+
 	gw := gzip.NewWriter(out)
 	tw := tar.NewWriter(gw)
-
 	defer gw.Close()
 	defer tw.Close()
 

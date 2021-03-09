@@ -1,6 +1,7 @@
 package utilsW
 
 import (
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -91,6 +92,9 @@ func IsNewer(filename1, filename2 string) bool {
 		log.Fatalln(err)
 	}
 	info2, err := os.Stat(filename2)
+	if os.IsNotExist(err) {
+		return true
+	}
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -180,4 +184,19 @@ func Abs(path string) string {
 		return ""
 	}
 	return path
+}
+
+func CopyFile(src, dest string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	return err
 }

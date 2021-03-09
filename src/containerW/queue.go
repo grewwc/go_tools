@@ -6,8 +6,12 @@ type Queue struct {
 	data *list.List
 }
 
-func NewQueue() *Queue {
-	return &Queue{list.New()}
+func NewQueue(items ...interface{}) *Queue {
+	res := &Queue{list.New()}
+	for _, item := range items {
+		res.Enqueue(item)
+	}
+	return res
 }
 
 func (q *Queue) Enqueue(item interface{}) {

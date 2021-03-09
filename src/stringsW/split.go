@@ -40,8 +40,15 @@ func SplitNoEmptyKeepQuote(str string, sep byte) []string {
 			word.Reset()
 		}
 	}
-	if word.Len() != 0{
-		res = append(res, word.String()) 
+	if word.Len() != 0 {
+		res = append(res, word.String())
 	}
 	return res
+}
+
+func GetLastItem(slice []string) string {
+	if len(slice) < 1 {
+		return ""
+	}
+	return slice[len(slice)-1]
 }

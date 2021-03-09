@@ -10,9 +10,11 @@ type OrderedSet struct {
 	l *list.List
 }
 
-func NewOrderedSet() *OrderedSet {
+func NewOrderedSet(items ...interface{}) *OrderedSet {
 	l := list.New()
-	return &OrderedSet{make(map[interface{}]*list.Element), l}
+	res := &OrderedSet{make(map[interface{}]*list.Element), l}
+	res.AddAll(items...)
+	return res
 }
 
 func (s *OrderedSet) Add(v interface{}) {

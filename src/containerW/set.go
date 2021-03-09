@@ -148,8 +148,9 @@ func (s Set) Equals(another Set) bool {
 	return s.IsSubSet(another) && s.IsSubSet(another)
 }
 
-func NewSet() *Set {
+func NewSet(items ...interface{}) *Set {
 	s := Set{data: make(map[interface{}]bool, 8)}
+	s.AddAll(items...)
 	return &s
 }
 
