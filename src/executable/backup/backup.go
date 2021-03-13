@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,6 +17,10 @@ import (
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
+const (
+	backupTypeFile = ".backup-type"
+)
+
 type bgTask struct {
 	running  bool
 	task     func()
@@ -27,6 +32,7 @@ var backupFileTypes = containerW.NewSet(
 	".go", ".py", ".cpp", ".tex", ".txt", ".htm",
 	".bib", ".java", ".c", ".js", ".ts", ".html", ".css",
 	".csv", ".xls", ".xlsx", ".out", ".jpg", ".jpeg", ".png",
+	".bib",
 )
 
 var ignores = containerW.NewSet(
@@ -122,6 +128,33 @@ func task(fromRootDir, toRootDir string) {
 	}
 }
 
+func init() {
+	homeDir := os.Getenv("HOME")
+	if homeDir == "" {
+		log.Println("cannot get $HOME")
+		return
+	}
+	fname := filepath.Join(homeDir, backupTypeFile)
+
+	func() {
+		b, err := ioutil.ReadFile(fname)
+		if err != nil {
+			log.Println(err)
+		}
+		content := string(b)
+		for _, line := range strings.Split(content, "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			if line[0] != '.' {
+				line = "." + line
+			}
+			backupFileTypes.Add(line)
+		}
+	}()
+}
+
 func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	interval := time.Minute
@@ -135,6 +168,7 @@ func main() {
 	parsedResults := terminalW.ParseArgsCmd()
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
+		fmt.Printf("You can define more types in %q\n", "$HOME/.backup-type")
 		return
 	}
 

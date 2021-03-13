@@ -21,6 +21,7 @@ import (
 
 var w int
 var all bool
+var ignores = containerW.NewSet()
 
 var errMsgs = containerW.NewQueue()
 
@@ -92,6 +93,10 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 	// fmt.Println("here", fileSlice, sortType)
 	files := ""
 	for _, file := range fileSlice {
+		ext := filepath.Ext(file)
+		if ignores.Contains(ext) {
+			continue
+		}
 		file = filepath.Join(rootDir, file)
 		file = filepath.ToSlash(file)
 		if !all && filepath.Base(file)[0] == '.' {
@@ -142,6 +147,7 @@ func main() {
 	var l bool
 	var numFileToPrint int = math.MaxInt32
 	var du bool
+	var moreIgnores string
 
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.Bool("l", false, "show more detailed information")
@@ -150,6 +156,7 @@ func main() {
 	fs.Bool("rt", false, "sort files by earlist modified date")
 	fs.Bool("h", false, "print help information")
 	fs.Bool("du", false, "if set, calculate size of all subdirs/subfiles")
+	fs.String("nt", "", "types/extensions that will not be listed. e.g.: -nt \"py png, jpg\"")
 	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du")
 	// parsedResults := terminalW.ParseArgsCmd()
 
@@ -171,6 +178,15 @@ func main() {
 
 	if numFileToPrint == -1 {
 		numFileToPrint = math.MaxInt32
+	}
+
+	moreIgnores, _ = parsedResults.GetFlagVal("nt")
+	moreIgnores = strings.ReplaceAll(moreIgnores, ",", " ")
+	for _, moreIgnore := range stringsW.SplitNoEmpty(moreIgnores, " ") {
+		if moreIgnore[0] != '.' {
+			moreIgnore = "." + moreIgnore
+		}
+		ignores.Add(moreIgnore)
 	}
 
 	if parsedResults.ContainsFlag("t") {
