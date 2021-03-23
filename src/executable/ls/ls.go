@@ -122,13 +122,19 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			coloredStrings.Add(stringsW.StripPrefix(file, rootDir))
 		}
 		if strings.Contains(file, " ") {
+
 			if rootDir[len(rootDir)-1] != '/' {
 				rootDir += "/"
 			}
 			file = stringsW.StripPrefix(file, rootDir)
-			file = fmt.Sprintf("\"%s\"", file)
-			// coloredStrings.Add(file)
-			file = strings.ReplaceAll(file, " ", "\x00")
+			fileWithQuote := fmt.Sprintf("\"%s\"", file)
+			if utilsW.IsDir(file) {
+				coloredStrings.Add(fileWithQuote)
+			}
+
+			// later on, string will be seperated by space, we
+			// have to replace space with \x00
+			file = strings.ReplaceAll(fileWithQuote, " ", "\x00")
 		}
 		if rootDir[len(rootDir)-1] != '/' {
 			rootDir += "/"
@@ -241,7 +247,7 @@ skipTo:
 			// fmt.Println("file: ===>", files)
 			var toPrint string = files
 			if !l {
-				toPrint = stringsW.Wrap(files, w-indent*2, indent, delimiter)
+				toPrint = stringsW.Wrap(files, w-indent+2, indent, delimiter)
 			}
 			boldCyan := color.New(color.FgHiCyan, color.Bold)
 			cnt := 0
