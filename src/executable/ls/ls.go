@@ -247,7 +247,7 @@ skipTo:
 			// fmt.Println("file: ===>", files)
 			var toPrint string = files
 			if !l {
-				toPrint = stringsW.Wrap(files, w-indent+2, indent, delimiter)
+				toPrint = stringsW.Wrap(files, w-indent*2, indent, delimiter)
 			}
 			boldCyan := color.New(color.FgHiCyan, color.Bold)
 			cnt := 0

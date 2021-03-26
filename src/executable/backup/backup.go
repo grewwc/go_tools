@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
@@ -87,6 +88,7 @@ func copyTo(from, to string) {
 	if !utilsW.IsNewer(from, to) {
 		return
 	}
+	to = filepath.ToSlash(to)
 	fromDir := filepath.Dir(from)
 	toDir := filepath.Dir(to)
 	if !utilsW.IsExist(fromDir) {
@@ -98,6 +100,7 @@ func copyTo(from, to string) {
 	if err := utilsW.CopyFile(from, to); err != nil {
 		log.Println(err)
 	}
+	fmt.Printf("%s -> %s\n", color.GreenString(from), color.GreenString(to))
 }
 
 func task(fromRootDir, toRootDir string) {
@@ -106,6 +109,7 @@ func task(fromRootDir, toRootDir string) {
 	if !utilsW.IsDir(toRootDir) {
 		log.Fatalf("%q is not a valid path\n", toRootDir)
 	}
+	fmt.Printf("copy from: %s to: %s\n", color.YellowString(fromRootDir), color.YellowString(toRootDir))
 	q := containerW.NewQueue(fromRootDir)
 	for !q.Empty() {
 		cur := q.Dequeue().(string)
@@ -164,8 +168,9 @@ func main() {
 	fs.Int("H", 1, "interval in hours")
 	fs.String("from", "./", "source folder")
 	fs.String("to", "", "dest folder")
+	fs.Bool("watch", false, "keep watching folder changes")
 
-	parsedResults := terminalW.ParseArgsCmd()
+	parsedResults := terminalW.ParseArgsCmd("watch")
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		fmt.Printf("You can define more types in %q\n", "$HOME/.backup-type")
@@ -179,6 +184,11 @@ func main() {
 	to, err := parsedResults.GetFlagVal("to")
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	if !parsedResults.GetBooleanArgs().Contains("watch") {
+		task(from, to)
+		return
 	}
 
 	if n := parsedResults.GetNumArgs(); n != -1 {
@@ -217,4 +227,5 @@ skipTo:
 		task(from, to)
 	}, interval)
 	t.start()
+
 }
