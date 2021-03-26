@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -21,6 +23,8 @@ import (
 const (
 	backupTypeFile = ".backup-type"
 )
+
+var remote bool
 
 type bgTask struct {
 	running  bool
@@ -85,8 +89,40 @@ func (t bgTask) stop() {
 	t.done <- struct{}{}
 }
 
+// isNewer return True if local is newer than remote
+func isNewer(local, remote string) bool {
+	cmd := exec.Command("ssh", "wwc129@147.8.146.85", "stat", "-c", "%Y", remote)
+
+	// fmt.Println(cmd.Args)
+	var out bytes.Buffer
+	var e bytes.Buffer
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = &out
+	cmd.Stderr = &e
+	if err := cmd.Run(); err != nil {
+		return true
+	}
+	if e.Len() != 0 {
+		return true
+	}
+	remoteDateSec, err := strconv.Atoi(strings.TrimSpace(out.String()))
+	if err != nil {
+		return true
+	}
+	// fmt.Println(remoteDateSec)
+
+	info, err := os.Stat(local)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	localModTime := info.ModTime().UnixNano() / 1e9
+	return int(localModTime) > remoteDateSec
+}
+
+// copyTo should handle remote scp
 func copyTo(from, to string) {
-	if !utilsW.IsNewer(from, to) {
+	if !remote && !utilsW.IsNewer(from, to) {
 		return
 	}
 	to = filepath.ToSlash(to)
@@ -95,13 +131,26 @@ func copyTo(from, to string) {
 	if !utilsW.IsExist(fromDir) {
 		os.MkdirAll(fromDir, 0777)
 	}
-	if !utilsW.IsExist(toDir) {
+	if !remote && !utilsW.IsExist(toDir) {
 		os.MkdirAll(toDir, 0777)
 	}
-	if err := utilsW.CopyFile(from, to); err != nil {
-		log.Println(err)
+	if !remote {
+		if err := utilsW.CopyFile(from, to); err != nil {
+			log.Println(err)
+		}
+	} else {
+		if isNewer(from, to) {
+			// cmd := exec.Command("scp", "main.go", "wwc129@147.8.146.85:~/")
+			// out, err := cmd.CombinedOutput()
+			// if err != nil {
+			// 	log.Println(err)
+			// }
+			// print(string(out))
+			fmt.Println(from)
+			fmt.Println(to)
+		}
 	}
-	now := time.Now().Format("2006/02/01 15:04:05")
+	now := time.Now().Format("2006/01/02 15:04:05")
 	fmt.Printf("  %s: %s => %s\n", color.HiWhiteString(now),
 		color.GreenString(from), color.GreenString(to))
 }
@@ -109,7 +158,7 @@ func copyTo(from, to string) {
 func task(fromRootDir, toRootDir string) {
 	fromRootDir = filepath.ToSlash(fromRootDir)
 	toRootDir = filepath.ToSlash(toRootDir)
-	if !utilsW.IsDir(toRootDir) {
+	if !remote && !utilsW.IsDir(toRootDir) {
 		log.Fatalf("%q is not a valid path\n", toRootDir)
 	}
 	q := containerW.NewQueue(fromRootDir)
@@ -171,8 +220,9 @@ func main() {
 	fs.String("from", "./", "source folder")
 	fs.String("to", "", "dest folder")
 	fs.Bool("watch", false, "keep watching folder changes")
+	fs.Bool("remote", false, "scp to remote")
 
-	parsedResults := terminalW.ParseArgsCmd("watch")
+	parsedResults := terminalW.ParseArgsCmd("watch", "remote")
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		fmt.Printf("You can define more types in %q\n", "$HOME/.backup-type")
@@ -189,6 +239,8 @@ func main() {
 	}
 
 	fmt.Printf("copy from: %s to: %s\n", color.YellowString(from), color.YellowString(to))
+
+	remote = parsedResults.GetBooleanArgs().Contains("remote")
 
 	if !parsedResults.GetBooleanArgs().Contains("watch") {
 		task(from, to)
