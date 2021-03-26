@@ -19,7 +19,7 @@ var forceRebuildName = containerW.NewSet()
 func init() {
 	if utilsW.GetPlatform() != utilsW.WINDOWS {
 		// add Folder name, NOT filename
-		ignoreName.AddAll("cat", "head", "rm", "stat", "tail", "touch")
+		ignoreName.AddAll("cat", "head", "ls", "rm", "stat", "tail", "touch")
 	}
 }
 

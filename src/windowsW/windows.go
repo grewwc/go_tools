@@ -12,5 +12,4 @@ func EnableVirtualTerminal() {
 
 	windows.GetConsoleMode(stdout, &originalMode)
 	windows.SetConsoleMode(stdout, originalMode|windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING)
-
 }
