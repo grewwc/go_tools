@@ -56,6 +56,7 @@ func (t bgTask) start() {
 		return
 	}
 	t.running = true
+	t.task()
 	go func() {
 		defer close(t.done)
 		for {
@@ -100,7 +101,9 @@ func copyTo(from, to string) {
 	if err := utilsW.CopyFile(from, to); err != nil {
 		log.Println(err)
 	}
-	fmt.Printf("%s -> %s\n", color.GreenString(from), color.GreenString(to))
+	now := time.Now().Format("2006/02/01 15:04:05")
+	fmt.Printf("  %s: %s => %s\n", color.HiWhiteString(now),
+		color.GreenString(from), color.GreenString(to))
 }
 
 func task(fromRootDir, toRootDir string) {
@@ -109,7 +112,6 @@ func task(fromRootDir, toRootDir string) {
 	if !utilsW.IsDir(toRootDir) {
 		log.Fatalf("%q is not a valid path\n", toRootDir)
 	}
-	fmt.Printf("copy from: %s to: %s\n", color.YellowString(fromRootDir), color.YellowString(toRootDir))
 	q := containerW.NewQueue(fromRootDir)
 	for !q.Empty() {
 		cur := q.Dequeue().(string)
@@ -185,6 +187,8 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	fmt.Printf("copy from: %s to: %s\n", color.YellowString(from), color.YellowString(to))
 
 	if !parsedResults.GetBooleanArgs().Contains("watch") {
 		task(from, to)

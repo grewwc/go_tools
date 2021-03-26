@@ -43,6 +43,11 @@ func (r ParsedResults) GetBooleanArgs() *containerW.OrderedSet {
 	res := containerW.NewOrderedSet()
 	for k, v := range r.Optional {
 		if v == "" {
+			if k[0] == '-' {
+				res.Add(strings.TrimPrefix(k, "-"))
+			} else {
+				res.Add("-" + k)
+			}
 			res.Add(k)
 		}
 	}
