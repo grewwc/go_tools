@@ -90,6 +90,7 @@ func main() {
 		fmt.Println("e.g: untar src.tar.gz dest_directory")
 
 		args := parsedResults.Positional.ToStringSlice()
+		// fmt.Println(args)
 		if len(args) != 2 {
 			fmt.Println("need 2 arguments as hinted above")
 			os.Exit(1)

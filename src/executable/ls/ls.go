@@ -262,7 +262,7 @@ skipTo:
 						goto outerLoop
 					}
 				} else {
-					fmt.Printf("\n%s", strings.Repeat(" ", indent))
+					fmt.Printf("%s", strings.Repeat(" ", indent))
 					for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
 						word = strings.ReplaceAll(word, "\x00", " ")
 						if coloredStrings.Contains(word) {

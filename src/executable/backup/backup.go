@@ -139,16 +139,7 @@ func copyTo(from, to string) {
 			log.Println(err)
 		}
 	} else {
-		if isNewer(from, to) {
-			// cmd := exec.Command("scp", "main.go", "wwc129@147.8.146.85:~/")
-			// out, err := cmd.CombinedOutput()
-			// if err != nil {
-			// 	log.Println(err)
-			// }
-			// print(string(out))
-			fmt.Println(from)
-			fmt.Println(to)
-		}
+		fmt.Println("not supported")
 	}
 	now := time.Now().Format("2006/01/02 15:04:05")
 	fmt.Printf("  %s: %s => %s\n", color.HiWhiteString(now),
