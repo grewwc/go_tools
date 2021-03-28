@@ -67,7 +67,7 @@ func processTarGzFile(fname string, prefix string) {
 func clean(fname string) {
 	if utilsW.IsExist(fname) {
 		fmt.Printf("error occurred, clean %q\n", fname)
-		os.RemoveAll(fname)
+		os.Remove(fname)
 	}
 }
 
@@ -82,6 +82,7 @@ func main() {
 	parsedResults := terminalW.ParseArgsCmd("v", "u")
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
+		fmt.Println("targo thesis.tar.gz thesis_folder")
 		return
 	}
 
