@@ -1,7 +1,9 @@
 package _lsW
 
 import (
+	"path/filepath"
 	"sort"
+	"strconv"
 
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -9,12 +11,38 @@ import (
 const (
 	NewerFirst = iota
 	OlderFirst
+	NumberSmallerFirst
 	Unsort
 )
 
+func getNum(s string) int {
+	var chars []rune
+	for _, char := range s {
+		if (char >= '0') && (char <= '9') {
+			chars = append(chars, char)
+		}
+	}
+	if len(chars) > 0 {
+		res, _ := strconv.Atoi(string(chars))
+		return res
+	}
+	return -1
+}
+
 type sortByModifiedDate struct {
+	rootDir    string
 	files      []string
 	newerFirst bool
+}
+
+func NewSortByModifiedDate(rootDir string, files []string, newerFirst bool) *sortByModifiedDate {
+	res := sortByModifiedDate{rootDir: rootDir, newerFirst: newerFirst}
+	absFileSlice := make([]string, len(files))
+	for i, f := range files {
+		absFileSlice[i] = filepath.Join(rootDir, f)
+	}
+	res.files = absFileSlice
+	return &res
 }
 
 func (this sortByModifiedDate) Len() int {
@@ -32,7 +60,23 @@ func (this sortByModifiedDate) Less(i, j int) bool {
 	return utilsW.IsNewer(this.files[j], this.files[i])
 }
 
-func SortByModifiedDate(fileSlice []string, sortType int) []string {
+type sortByStringNum struct {
+	files []string
+}
+
+func (this sortByStringNum) Len() int {
+	return len(this.files)
+}
+
+func (this sortByStringNum) Swap(i, j int) {
+	this.files[i], this.files[j] = this.files[j], this.files[i]
+}
+
+func (this sortByStringNum) Less(i, j int) bool {
+	return getNum(this.files[i]) < getNum(this.files[j])
+}
+
+func SortByModifiedDate(rootDir string, fileSlice []string, sortType int) []string {
 	var newerFirst bool
 	switch sortType {
 	case NewerFirst:
@@ -42,7 +86,13 @@ func SortByModifiedDate(fileSlice []string, sortType int) []string {
 	default:
 		newerFirst = false
 	}
-	s := sortByModifiedDate{files: fileSlice, newerFirst: newerFirst}
+	s := NewSortByModifiedDate(rootDir, fileSlice, newerFirst)
+	sort.Sort(s)
+	return s.files
+}
+
+func SortByStringNum(fileSlice []string) []string {
+	s := sortByStringNum{files: fileSlice}
 	sort.Sort(s)
 	return s.files
 }

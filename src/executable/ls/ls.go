@@ -87,11 +87,17 @@ func printErrors() {
 func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, sortType int,
 	coloredStrings *containerW.Set) string {
 	fileCnt = 0
+
 	// if sortType != _lsW.Unsort
 	// sort the fileSlice
 	if sortType != _lsW.Unsort {
-		fileSlice = _lsW.SortByModifiedDate(fileSlice, sortType)
+		if sortType != _lsW.NumberSmallerFirst {
+			fileSlice = _lsW.SortByModifiedDate(rootDir, fileSlice, sortType)
+		} else {
+			fileSlice = _lsW.SortByStringNum(fileSlice)
+		}
 	}
+
 	// fmt.Println("here", fileSlice, sortType)
 	files := ""
 	for _, file := range fileSlice {
@@ -177,8 +183,9 @@ func main() {
 	fs.String("ne", "", "types/extensions that will not be listed. e.g.: -ne \"py png, jpg\"")
 	fs.String("e", "", "types/extensions that will be listed")
 	fs.Bool("c", false, "only count the total number of files")
+	fs.Bool("N", false, "sort files by number in file")
 
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "h")
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N")
 
 	// fmt.Println(parsedResults)
 	coloredStrings := containerW.NewSet()
@@ -223,11 +230,16 @@ func main() {
 	}
 
 	if parsedResults.ContainsFlag("t") {
+		// fmt.Println("here", parsedResults)
 		if !parsedResults.ContainsFlag("r") {
 			sortType = _lsW.NewerFirst
 		} else {
 			sortType = _lsW.OlderFirst
 		}
+	}
+
+	if parsedResults.ContainsFlag("N") {
+		sortType = _lsW.NumberSmallerFirst
 	}
 
 	if parsedResults.ContainsFlag("a") {
@@ -253,7 +265,7 @@ skipTo:
 		args = []string{"./"}
 	}
 
-	// fmt.Println(args)
+	// fmt.Println("args", args)
 	for _, rootDir := range args {
 		if len(args) > 1 {
 			fmt.Printf("%s:\n", color.HiCyanString(rootDir))
@@ -270,6 +282,7 @@ skipTo:
 			if len(fileMap) > 1 {
 				fmt.Printf("%s:\t", color.HiCyanString(d))
 			}
+			// fmt.Println("begin")
 			files += processSingleDir(d, fileSlice, l, du, sortType, coloredStrings)
 			if onlyCount {
 				fmt.Printf("%d\n", fileCnt)
