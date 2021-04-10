@@ -22,8 +22,10 @@ import (
 var w int
 var all bool
 var ignores = containerW.NewSet()
+var wanted = containerW.NewSet()
 
 var errMsgs = containerW.NewQueue()
+var fileCnt int64
 
 func init() {
 	windowsW.EnableVirtualTerminal()
@@ -84,7 +86,7 @@ func printErrors() {
 
 func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, sortType int,
 	coloredStrings *containerW.Set) string {
-
+	fileCnt = 0
 	// if sortType != _lsW.Unsort
 	// sort the fileSlice
 	if sortType != _lsW.Unsort {
@@ -94,9 +96,16 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 	files := ""
 	for _, file := range fileSlice {
 		ext := filepath.Ext(file)
+		// remove ignored files
 		if ignores.Contains(ext) {
 			continue
 		}
+
+		// only process wanted file types if "wanted" are set from terminal
+		if wanted.Size() != 0 && !wanted.Contains(ext) {
+			continue
+		}
+
 		file = filepath.Join(rootDir, file)
 		file = filepath.ToSlash(file)
 		if !all && filepath.Base(file)[0] == '.' {
@@ -112,6 +121,7 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			if line != "" {
 				files += line + "\x01\n"
 			}
+			fileCnt++
 			continue
 		}
 		if utilsW.IsDir(file) {
@@ -122,7 +132,6 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			coloredStrings.Add(stringsW.StripPrefix(file, rootDir))
 		}
 		if strings.Contains(file, " ") {
-
 			if rootDir[len(rootDir)-1] != '/' {
 				rootDir += "/"
 			}
@@ -142,6 +151,7 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 		file = stringsW.StripPrefix(file, rootDir)
 		files += file
 		files += " "
+		fileCnt++
 	}
 	return files
 }
@@ -154,6 +164,8 @@ func main() {
 	var numFileToPrint int = math.MaxInt32
 	var du bool
 	var moreIgnores string
+	var moreWanted string
+	var onlyCount bool
 
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.Bool("l", false, "show more detailed information")
@@ -162,9 +174,11 @@ func main() {
 	fs.Bool("rt", false, "sort files by earlist modified date")
 	fs.Bool("h", false, "print help information")
 	fs.Bool("du", false, "if set, calculate size of all subdirs/subfiles")
-	fs.String("nt", "", "types/extensions that will not be listed. e.g.: -nt \"py png, jpg\"")
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du")
-	// parsedResults := terminalW.ParseArgsCmd()
+	fs.String("ne", "", "types/extensions that will not be listed. e.g.: -ne \"py png, jpg\"")
+	fs.String("e", "", "types/extensions that will be listed")
+	fs.Bool("c", false, "only count the total number of files")
+
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "h")
 
 	// fmt.Println(parsedResults)
 	coloredStrings := containerW.NewSet()
@@ -186,13 +200,26 @@ func main() {
 		numFileToPrint = math.MaxInt32
 	}
 
-	moreIgnores, _ = parsedResults.GetFlagVal("nt")
+	if parsedResults.ContainsFlagStrict("c") {
+		onlyCount = true
+	}
+
+	moreIgnores, _ = parsedResults.GetFlagVal("ne")
 	moreIgnores = strings.ReplaceAll(moreIgnores, ",", " ")
 	for _, moreIgnore := range stringsW.SplitNoEmpty(moreIgnores, " ") {
 		if moreIgnore[0] != '.' {
 			moreIgnore = "." + moreIgnore
 		}
 		ignores.Add(moreIgnore)
+	}
+
+	moreWanted, _ = parsedResults.GetFlagVal("e")
+	moreWanted = strings.ReplaceAll(moreWanted, ",", " ")
+	for _, e := range stringsW.SplitNoEmpty(moreWanted, " ") {
+		if e[0] != '.' {
+			e = "." + e
+		}
+		wanted.Add(e)
 	}
 
 	if parsedResults.ContainsFlag("t") {
@@ -241,9 +268,15 @@ skipTo:
 				continue
 			}
 			if len(fileMap) > 1 {
-				fmt.Printf("%s:\n", color.HiCyanString(d))
+				fmt.Printf("%s:\t", color.HiCyanString(d))
 			}
 			files += processSingleDir(d, fileSlice, l, du, sortType, coloredStrings)
+			if onlyCount {
+				fmt.Printf("%d\n", fileCnt)
+				fmt.Println()
+				continue
+			}
+			fmt.Println()
 			// fmt.Println("file: ===>", files)
 			var toPrint string = files
 			if !l {

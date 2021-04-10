@@ -49,7 +49,10 @@ func LsDirGlob(fname string) map[string][]string {
 	for _, name := range names {
 		name = filepath.ToSlash(name)
 		if !IsDir(name) {
-			res["./"] = append(res["./"], name)
+			// fmt.Println("here", name)
+			// res["./"] = append(res["./"], name)
+			dirName := filepath.Dir(name) + "/"
+			res[dirName] = append(res[dirName], filepath.Base(name))
 		} else {
 			res[name] = LsDir(name)
 			// fmt.Println("here", name, res)

@@ -65,6 +65,7 @@ func processTarGzFile(fname string, prefix string) {
 }
 
 func clean(fname string) {
+	fmt.Printf("cleaning %s\n", fname)
 	if utilsW.IsExist(fname) {
 		fmt.Printf("error occurred, clean %q\n", fname)
 		os.Remove(fname)
@@ -78,8 +79,9 @@ func main() {
 	fs.Bool("v", false, "verbose")
 	fs.Bool("u", false, "untar")
 	fs.Bool("h", false, "print help info")
+	fs.Bool("clean", false, "if clean the zipped file if error occurs")
 
-	parsedResults := terminalW.ParseArgsCmd("v", "u")
+	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean")
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		fmt.Println("targo thesis.tar.gz thesis_folder")
@@ -117,7 +119,7 @@ func main() {
 		return
 	}
 
-	verbose := parsedResults.ContainsFlag("v")
+	verbose := parsedResults.ContainsFlagStrict("v")
 	excludeSet := containerW.NewSet()
 
 	for _, ex := range excludes {
@@ -148,7 +150,9 @@ func main() {
 	}
 
 	if err != nil {
-		clean(outName)
+		if parsedResults.ContainsFlagStrict("clean") {
+			clean(outName)
+		}
 		log.Fatalln(err)
 	}
 
@@ -173,11 +177,15 @@ func main() {
 
 	if len(allFiles) == 0 {
 		fmt.Printf("%q don't contain any files\n", srcName)
-		clean(outName)
+		if parsedResults.ContainsFlagStrict("clean") {
+			clean(outName)
+		}
 		return
 	}
 	if err = utilsW.TarGz(outName, allFiles); err != nil {
-		clean(outName)
+		if parsedResults.ContainsFlagStrict("clean") {
+			clean(outName)
+		}
 		log.Fatalln(err)
 	}
 	fmt.Println()
