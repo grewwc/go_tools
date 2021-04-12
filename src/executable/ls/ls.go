@@ -271,11 +271,11 @@ func main() {
 		du = true
 	}
 
-	if parsedResults.ContainsFlagStrict("d") {
+	if parsedResults.ContainsFlag("d") && !parsedResults.ContainsFlag("du") {
 		onlyDir = true
 	}
 
-	if parsedResults.ContainsFlagStrict("f") {
+	if parsedResults.ContainsFlag("f") {
 		onlyFile = true
 	}
 
