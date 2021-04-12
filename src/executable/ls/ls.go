@@ -21,6 +21,8 @@ import (
 
 var w int
 var all bool
+var onlyDir, onlyFile bool
+
 var ignores = containerW.NewSet()
 var wanted = containerW.NewSet()
 
@@ -117,6 +119,14 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 		if !all && filepath.Base(file)[0] == '.' {
 			continue
 		}
+		if onlyDir && !utilsW.IsDir(file) {
+			continue
+		}
+
+		if onlyFile && !utilsW.IsRegular(file) {
+			continue
+		}
+
 		if long {
 			line := formatFileStat(file, du)
 			if rootDir[len(rootDir)-1] != '/' {
@@ -184,8 +194,10 @@ func main() {
 	fs.String("e", "", "types/extensions that will be listed")
 	fs.Bool("c", false, "only count the total number of files")
 	fs.Bool("N", false, "sort files by number in file")
+	fs.Bool("d", false, "only list directories")
+	fs.Bool("f", false, "only list normal files")
 
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N")
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h")
 
 	// fmt.Println(parsedResults)
 	coloredStrings := containerW.NewSet()
@@ -259,8 +271,16 @@ func main() {
 		du = true
 	}
 
+	if parsedResults.ContainsFlagStrict("d") {
+		onlyDir = true
+	}
+
+	if parsedResults.ContainsFlagStrict("f") {
+		onlyFile = true
+	}
+
 skipTo:
-	fmt.Printf("\n")
+	// fmt.Printf("\n")
 	if len(args) == 0 {
 		args = []string{"./"}
 	}
@@ -286,10 +306,9 @@ skipTo:
 			files += processSingleDir(d, fileSlice, l, du, sortType, coloredStrings)
 			if onlyCount {
 				fmt.Printf("%d\n", fileCnt)
-				fmt.Println()
 				continue
 			}
-			fmt.Println()
+			// fmt.Println()
 			// fmt.Println("file: ===>", files)
 			var toPrint string = files
 			if !l {
@@ -326,7 +345,7 @@ skipTo:
 			}
 		outerLoop:
 			tw.Flush()
-			fmt.Println()
+			// fmt.Println()
 		}
 	}
 	printErrors()
