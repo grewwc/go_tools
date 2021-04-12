@@ -308,7 +308,7 @@ skipTo:
 				fmt.Printf("%d\n", fileCnt)
 				continue
 			}
-			// fmt.Println()
+			fmt.Println()
 			// fmt.Println("file: ===>", files)
 			var toPrint string = files
 			if !l {
