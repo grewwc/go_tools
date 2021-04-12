@@ -320,10 +320,12 @@ skipTo:
 			for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
 				if strings.Contains(line, "\x01") { // \x01 means ls -l
 					line = strings.ReplaceAll(line, "\x01", "")
+					// fmt.Println("here", line)
 					fmt.Fprintln(tw, line)
 
 					cnt++
 					if cnt >= numFileToPrint {
+						// fmt.Println()
 						goto outerLoop
 					}
 				} else {
@@ -337,6 +339,7 @@ skipTo:
 						}
 						cnt++
 						if cnt >= numFileToPrint {
+							fmt.Println()
 							goto outerLoop
 						}
 					}
