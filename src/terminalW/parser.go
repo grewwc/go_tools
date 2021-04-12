@@ -312,18 +312,8 @@ func constructBoolOptional(boolOptionals ...string) []string {
 		return []string{}
 	}
 
-	noneSingleChar := make([]string, 0)
-	singleChar := make([]string, 0)
-
-	for _, option := range boolOptionals {
-		if len(option) > 1 {
-			noneSingleChar = append(noneSingleChar, option)
-		} else {
-			singleChar = append(singleChar, option)
-		}
-	}
 	res := containerW.NewSet()
-	l = len(singleChar)
+	l = len(boolOptionals)
 	m := make(map[int][][]int)
 	m[1] = make([][]int, l)
 	for i := 0; i < l; i++ {
@@ -352,8 +342,8 @@ func constructBoolOptional(boolOptionals ...string) []string {
 					}
 					s12 := append(ss1, ss2...)
 					s21 := append(ss2, ss1...)
-					str12 := constructString(singleChar, s12)
-					str21 := constructString(singleChar, s21)
+					str12 := constructString(boolOptionals, s12)
+					str21 := constructString(boolOptionals, s21)
 					if !res.Contains(str12) {
 						m[curLen] = append(m[curLen], s12)
 						res.Add(str12)
@@ -367,7 +357,7 @@ func constructBoolOptional(boolOptionals ...string) []string {
 		}
 	}
 	// fmt.Println(m)
-	for _, option := range singleChar {
+	for _, option := range boolOptionals {
 		res.Add(option)
 	}
 	// fmt.Println(res)
