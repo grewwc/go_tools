@@ -179,6 +179,7 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 }
 
 func preprocessRegexpStr(target string) string {
+	target = "^" + target + "$"
 	target = strings.ReplaceAll(target, ".", "\\.")
 	target = strings.ReplaceAll(target, "*", ".*")
 	target = strings.ReplaceAll(target, "?", ".")
