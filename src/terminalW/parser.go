@@ -135,6 +135,7 @@ func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
 }
 
 func classifyArguments(cmd string, boolOptionals ...string) (*containerW.OrderedSet, []string, []string, []string) {
+	// fmt.Println("here", strings.ReplaceAll(cmd, "\x00", "|"))
 	const (
 		positionalMode = iota
 		optionalKeyMode
@@ -142,7 +143,6 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 		spaceMode
 		boolOptionalMode
 
-		NotImportantMode
 		StartMode
 	)
 	prev := StartMode
@@ -166,14 +166,14 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 				mode = optionalKeyMode
 				kBuf.WriteRune(ch)
 			} else {
-				if prev == boolOptionalMode || prev == StartMode {
+				if prev == boolOptionalMode || prev == StartMode || prev == positionalMode || prev == optionalValMode {
 					mode = positionalMode
 					pBuf.WriteRune(ch)
 				} else {
 					mode = optionalValMode
 					vBuf.WriteRune(ch)
 				}
-				prev = NotImportantMode
+				prev = spaceMode
 			}
 
 		case positionalMode:
@@ -181,6 +181,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 				mode = spaceMode
 				positionals.Add(pBuf.String())
 				pBuf.Reset()
+				prev = positionalMode
 				continue
 			}
 			pBuf.WriteRune(ch)
@@ -193,7 +194,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 					prev = boolOptionalMode
 					boolKeys = append(boolKeys, kStr)
 				} else {
-					prev = NotImportantMode
+					prev = optionalKeyMode
 					keys = append(keys, kStr)
 				}
 				mode = spaceMode
@@ -207,11 +208,13 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 				mode = spaceMode
 				vals = append(vals, vBuf.String())
 				vBuf.Reset()
+				prev = optionalValMode
 				continue
 			}
 			vBuf.WriteRune(ch)
 		}
 	}
+	// fmt.Println(positionals.ToStringSlice(), boolKeys, keys, vals)
 	return positionals, boolKeys, keys, vals
 }
 

@@ -136,7 +136,7 @@ func (s *OrderedSet) String() string {
 		front = front.Next()
 	}
 
-	return fmt.Sprintf("%v\n", res)
+	return fmt.Sprintf("%v", res)
 }
 
 func (s OrderedSet) ShallowCopy() *OrderedSet {
