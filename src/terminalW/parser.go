@@ -3,6 +3,7 @@ package terminalW
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"regexp"
@@ -242,9 +243,12 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	if len(os.Args) <= 1 {
 		return nil
 	}
-
-	cmd := strings.Join(os.Args, " ")
-
+	args := make([]string, len(os.Args))
+	for i, arg := range os.Args {
+		args[i] = fmt.Sprintf("%q", arg)
+	}
+	cmd := strings.Join(args, " ")
+	// fmt.Println("here", cmd)
 	return ParseArgs(cmd, boolOptionals...)
 }
 

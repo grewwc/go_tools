@@ -158,7 +158,7 @@ func main() {
 	fmt.Println()
 
 	parsedResults := terminalW.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word", "i", "a")
-	fmt.Println("here", parsedResults)
+	// fmt.Println("here", parsedResults)
 	if parsedResults == nil {
 		fs.PrintDefaults()
 		return
