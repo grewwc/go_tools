@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 
@@ -22,6 +23,7 @@ import (
 var w int
 var all bool
 var onlyDir, onlyFile bool
+var pattern *regexp.Regexp
 
 var ignores = containerW.NewSet()
 var wanted = containerW.NewSet()
@@ -127,6 +129,10 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			continue
 		}
 
+		if pattern != nil && !pattern.MatchString(filepath.Base(file)) {
+			continue
+		}
+
 		if long {
 			line := formatFileStat(file, du)
 			if rootDir[len(rootDir)-1] != '/' {
@@ -172,6 +178,13 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 	return files
 }
 
+func preprocessRegexpStr(target string) string {
+	target = strings.ReplaceAll(target, ".", "\\.")
+	target = strings.ReplaceAll(target, "*", ".*")
+	target = strings.ReplaceAll(target, "?", ".")
+	return target
+}
+
 func main() {
 
 	var files string
@@ -182,6 +195,7 @@ func main() {
 	var moreIgnores string
 	var moreWanted string
 	var onlyCount bool
+	var patternStr string
 
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.Bool("l", false, "show more detailed information")
@@ -196,6 +210,7 @@ func main() {
 	fs.Bool("N", false, "sort files by number in file")
 	fs.Bool("d", false, "only list directories")
 	fs.Bool("f", false, "only list normal files")
+	fs.String("re", "", "use regular expression to parse files to be listed")
 
 	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h")
 
@@ -239,6 +254,12 @@ func main() {
 			e = "." + e
 		}
 		wanted.Add(e)
+	}
+
+	patternStr, _ = parsedResults.GetFlagVal("re")
+	if patternStr != "" {
+		patternStr = preprocessRegexpStr(patternStr)
+		pattern = regexp.MustCompile(patternStr)
 	}
 
 	if parsedResults.ContainsFlag("t") {
