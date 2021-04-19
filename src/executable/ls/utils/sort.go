@@ -86,9 +86,15 @@ func SortByModifiedDate(rootDir string, fileSlice []string, sortType int) []stri
 	default:
 		newerFirst = false
 	}
+	// construct absolute path because need to use os.stat to check file modified time
 	s := NewSortByModifiedDate(rootDir, fileSlice, newerFirst)
 	sort.Sort(s)
-	return s.files
+	// need to return relative paths
+	res := make([]string, len(s.files))
+	for i, file := range s.files {
+		res[i] = filepath.Base(file)
+	}
+	return res
 }
 
 func SortByStringNum(fileSlice []string) []string {
