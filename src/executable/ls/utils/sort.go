@@ -12,6 +12,7 @@ const (
 	NewerFirst = iota
 	OlderFirst
 	NumberSmallerFirst
+	NumberLargestFirst
 	Unsort
 )
 
@@ -61,7 +62,8 @@ func (this sortByModifiedDate) Less(i, j int) bool {
 }
 
 type sortByStringNum struct {
-	files []string
+	files        []string
+	smallerFirst bool
 }
 
 func (this sortByStringNum) Len() int {
@@ -73,7 +75,10 @@ func (this sortByStringNum) Swap(i, j int) {
 }
 
 func (this sortByStringNum) Less(i, j int) bool {
-	return getNum(this.files[i]) < getNum(this.files[j])
+	if this.smallerFirst {
+		return getNum(this.files[i]) < getNum(this.files[j])
+	}
+	return getNum(this.files[i]) > getNum(this.files[j])
 }
 
 func SortByModifiedDate(rootDir string, fileSlice []string, sortType int) []string {
@@ -97,8 +102,14 @@ func SortByModifiedDate(rootDir string, fileSlice []string, sortType int) []stri
 	return res
 }
 
-func SortByStringNum(fileSlice []string) []string {
-	s := sortByStringNum{files: fileSlice}
+func SortByStringNum(fileSlice []string, sortType int) []string {
+	var smallerFirst bool
+	if sortType == NumberSmallerFirst {
+		smallerFirst = true
+	} else {
+		smallerFirst = false
+	}
+	s := sortByStringNum{files: fileSlice, smallerFirst: smallerFirst}
 	sort.Sort(s)
 	return s.files
 }

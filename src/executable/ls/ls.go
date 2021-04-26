@@ -95,10 +95,10 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 	// if sortType != _lsW.Unsort
 	// sort the fileSlice
 	if sortType != _lsW.Unsort {
-		if sortType != _lsW.NumberSmallerFirst {
+		if sortType == _lsW.NewerFirst || sortType == _lsW.OlderFirst {
 			fileSlice = _lsW.SortByModifiedDate(rootDir, fileSlice, sortType)
 		} else {
-			fileSlice = _lsW.SortByStringNum(fileSlice)
+			fileSlice = _lsW.SortByStringNum(fileSlice, sortType)
 		}
 	}
 
@@ -273,7 +273,11 @@ func main() {
 	}
 
 	if parsedResults.ContainsFlag("N") {
-		sortType = _lsW.NumberSmallerFirst
+		if !parsedResults.ContainsFlag("r") {
+			sortType = _lsW.NumberSmallerFirst
+		} else {
+			sortType = _lsW.NumberLargestFirst
+		}
 	}
 
 	if parsedResults.ContainsFlag("a") {
