@@ -35,6 +35,7 @@ func main() {
 	}
 
 	subdirs := utilsW.LsDir(utilsW.GetDirOfTheFile())
+	// fmt.Println(forceRebuildName.ToSlice(), subdirs)
 	outputDir := filepath.Join(utilsW.GetDirOfTheFile(), "../", "../", "bin/")
 	if !utilsW.IsExist(outputDir) {
 		os.MkdirAll(outputDir, os.ModePerm)
@@ -61,8 +62,9 @@ func main() {
 		if utilsW.GetPlatform() == utilsW.WINDOWS {
 			executableFilename += ".exe"
 		}
-		if !force && !forceRebuildName.Contains(filename) &&
-			utilsW.IsExist(executableFilename) && utilsW.IsNewer(executableFilename, filename) {
+		// fmt.Println("what", filename, forceRebuildName)
+		if (!force && !forceRebuildName.Contains(filename)) &&
+			(utilsW.IsExist(executableFilename) && utilsW.IsNewer(executableFilename, filename)) {
 			continue
 		}
 
