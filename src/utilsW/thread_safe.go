@@ -8,6 +8,7 @@ import (
 
 var mu sync.Mutex
 
+// Fprintf is thread safe
 func Fprintf(w io.Writer, format string, a ...interface{}) (int, error) {
 	mu.Lock()
 	defer mu.Unlock()
