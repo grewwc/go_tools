@@ -24,8 +24,6 @@ import (
 var target string
 var wg sync.WaitGroup
 
-var numPrint int64
-
 var verbose bool
 var ignores string
 var count int64
@@ -34,10 +32,21 @@ var numThreads = make(chan struct{}, 50)
 
 var mu = sync.Mutex{}
 
-func findFile(rootDir string) {
+func expandTilda() string {
+	return os.Getenv("HOME")
+}
+
+func findFile(rootDir string, numPrint int64, allIgnores []string) {
 	numThreads <- struct{}{}
 	defer func() { <-numThreads }()
 	defer wg.Done()
+
+	mu.Lock()
+	if atomic.LoadInt64(&count) >= numPrint {
+		mu.Unlock()
+		return
+	}
+	mu.Unlock()
 
 	matches, err := terminalW.Glob(target, rootDir)
 	if err != nil {
@@ -48,12 +57,7 @@ func findFile(rootDir string) {
 	}
 OUTER:
 	for _, match := range matches {
-		mu.Lock()
-		if atomic.LoadInt64(&count) >= numPrint {
-			mu.Unlock()
-			return
-		}
-		mu.Unlock()
+
 		abs, err := filepath.Abs(match)
 		if err != nil {
 			if verbose {
@@ -62,15 +66,15 @@ OUTER:
 			continue
 		}
 
-		allIgnores := stringsW.SplitNoEmptyKeepQuote(ignores, ' ')
 		for _, toIgnore := range allIgnores {
 			if strings.Contains(abs, toIgnore) {
 				continue OUTER
 			}
 		}
+
 		atomic.AddInt64(&count, 1)
 		match = filepath.Base(match)
-		utilsW.Fprintf(color.Output, "%s %s\n", color.GreenString(">>"),
+		utilsW.Fprintf(color.Output, "%s %s\n", color.YellowString(">>"),
 			strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.GreenString(match)))
 	}
 
@@ -86,48 +90,50 @@ OUTER:
 	for _, sub := range subs {
 		if sub.IsDir() {
 			wg.Add(1)
-			go findFile(path.Join(rootDir, sub.Name()))
+			go findFile(path.Join(rootDir, sub.Name()), numPrint, allIgnores)
 		}
 	}
 }
 
 func main() {
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
-	fs.Int64Var(&numPrint, "n", 10, "number of found results to print")
+	numPrint := fs.Int64("n", 10, "number of found results to print")
 	verboseFlag := fs.Bool("v", false, "if print error")
 	rootDir := fs.String("d", ".", "root directory for searching")
-	fs.StringVar(&ignores, "i", "", "ignores some file pattern")
+	ignores := fs.String("i", "", "ignores some file pattern (don't support regular expression) ")
 
 	results := terminalW.ParseArgsCmd("v")
+
+	if results == nil {
+		fs.PrintDefaults()
+		return
+	}
+
 	if results.ContainsFlagStrict("v") {
 		*verboseFlag = true
 	}
 
 	*rootDir = results.GetFlagValueDefault("d", ".")
-	ignores = results.GetFlagValueDefault("i", "")
-	numPrint, err := strconv.ParseInt(results.GetFlagValueDefault("n", "10"), 10, 64)
+	if *rootDir == "~" {
+		*rootDir = expandTilda()
+		if *rootDir == "" {
+			log.Fatalln("HOME is not set")
+		}
+	}
+	*ignores = results.GetFlagValueDefault("i", "")
+
+	numPrintVal, err := strconv.ParseInt(results.GetFlagValueDefault("n", "10"), 10, 64)
+	*numPrint = numPrintVal
+
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	res := terminalW.ParseArgsCmd(strings.Join(terminalW.AddQuote(os.Args[1:]), " "))
+	*ignores = strings.ReplaceAll(*ignores, ",", " ")
+	allIgnores := stringsW.SplitNoEmptyKeepQuote(*ignores, ' ')
 
-	if res == nil {
-		fs.PrintDefaults()
-		return
-	}
-	optionalMap, args := res.Optional, res.Positional.ToStringSlice()
-	optional := terminalW.MapToString(optionalMap)
-
-	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
-
-	if res == nil {
-		fs.PrintDefaults()
-		return
-	}
-
-	ignores = strings.ReplaceAll(ignores, ",", " ")
 	verbose = *verboseFlag
+	args := results.Positional.ToStringSlice()
 	switch len(args) {
 	case 1:
 		target = args[0]
@@ -144,10 +150,11 @@ func main() {
 	}
 	for _, dir := range allRootDirs {
 		wg.Add(1)
-		go findFile(dir)
+		go findFile(dir, *numPrint, allIgnores)
 	}
 	wg.Wait()
+
 	summaryString := fmt.Sprintf("%d matches found\n", count)
 	fmt.Println(strings.Repeat("-", len(summaryString)))
-	fmt.Printf("%v matches found\n", math.Min(float64(count), float64(numPrint)))
+	fmt.Printf("%v matches found\n", math.Min(float64(count), float64(*numPrint)))
 }
