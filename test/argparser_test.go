@@ -22,7 +22,7 @@ func TestParser(t *testing.T) {
 	mustContain(t, res, "f")
 
 	// test positional args
-	aim := containerW.NewSet()
+	aim := containerW.NewOrderedSet()
 	aim.AddAll("program dir", "night")
 	if !aim.Equals(*res.Positional) {
 		t.Log(res.Positional)
