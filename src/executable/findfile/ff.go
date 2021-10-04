@@ -136,7 +136,7 @@ func main() {
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
 	allIgnores := stringsW.SplitNoEmptyKeepQuote(ignores, ' ')
-	fmt.Println("allIgnores", allIgnores, results)
+	// fmt.Println("allIgnores", allIgnores, results)
 	verbose = verboseFlag
 	args := results.Positional.ToStringSlice()
 	switch len(args) {
