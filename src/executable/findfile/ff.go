@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math"
 	"os"
 	"path"
@@ -29,14 +28,9 @@ var verbose bool
 var ignores string
 var count int64
 
-var numThreads = make(chan struct{}, 5000)
+var numThreads = make(chan struct{}, 50)
 
-func checkError(err error) {
-	if verbose && err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-}
+var mu = sync.Mutex{}
 
 func findFile(rootDir string) {
 	numThreads <- struct{}{}
@@ -44,16 +38,24 @@ func findFile(rootDir string) {
 	defer wg.Done()
 
 	matches, err := terminalW.Glob(target, rootDir)
-	checkError(err)
+	if err != nil {
+		if verbose {
+			utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+		}
+		return
+	}
 OUTER:
 	for _, match := range matches {
+		mu.Lock()
 		if atomic.LoadInt64(&count) >= numPrint {
+			mu.Unlock()
 			return
 		}
+		mu.Unlock()
 		abs, err := filepath.Abs(match)
 		if err != nil {
 			if verbose {
-				fmt.Fprintln(os.Stderr, err)
+				utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
 			}
 			continue
 		}
@@ -67,12 +69,17 @@ OUTER:
 		atomic.AddInt64(&count, 1)
 		match = filepath.Base(match)
 		utilsW.Fprintf(color.Output, "%s %s\n", color.GreenString(">>"),
-			strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.RedString(match)))
+			strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.GreenString(match)))
 	}
 
 	// check sub directories
 	subs, err := ioutil.ReadDir(rootDir)
-	checkError(err)
+	if err != nil {
+		if verbose {
+			utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+		}
+		return
+	}
 
 	for _, sub := range subs {
 		if sub.IsDir() {
@@ -116,9 +123,10 @@ func main() {
 		return
 	}
 	fmt.Println()
+	// fmt.Println("rootDir", *rootDir)
 	allRootDirs, err := filepath.Glob(*rootDir)
 	if err != nil {
-		log.Println(err)
+		utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
 		return
 	}
 	for _, dir := range allRootDirs {
