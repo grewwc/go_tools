@@ -30,6 +30,16 @@ func (r ParsedResults) GetFlagVal(flagName string) (string, error) {
 	return "", errors.New("not exist")
 }
 
+func (r ParsedResults) GetFlagValueDefault(flagName string, defaultVal string) string {
+	if flagName[0] != '-' {
+		flagName = "-" + flagName
+	}
+	if val, exists := r.Optional[flagName]; exists {
+		return val
+	}
+	return defaultVal
+}
+
 func (r ParsedResults) GetFlags() *containerW.OrderedSet {
 	res := containerW.NewOrderedSet()
 	for k := range r.Optional {

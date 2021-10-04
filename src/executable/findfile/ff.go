@@ -4,10 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -90,12 +92,23 @@ OUTER:
 }
 
 func main() {
-
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.Int64Var(&numPrint, "n", 10, "number of found results to print")
 	verboseFlag := fs.Bool("v", false, "if print error")
 	rootDir := fs.String("d", ".", "root directory for searching")
 	fs.StringVar(&ignores, "i", "", "ignores some file pattern")
+
+	results := terminalW.ParseArgsCmd("v")
+	if results.ContainsFlagStrict("v") {
+		*verboseFlag = true
+	}
+
+	*rootDir = results.GetFlagValueDefault("d", ".")
+	ignores = results.GetFlagValueDefault("i", "")
+	numPrint, err := strconv.ParseInt(results.GetFlagValueDefault("n", "10"), 10, 64)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	res := terminalW.ParseArgsCmd(strings.Join(terminalW.AddQuote(os.Args[1:]), " "))
 
