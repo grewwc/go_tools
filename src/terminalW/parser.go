@@ -14,6 +14,10 @@ import (
 	"github.com/grewwc/go_tools/src/stringsW"
 )
 
+const (
+	sep = '\x00'
+)
+
 type ParsedResults struct {
 	Optional map[string]string
 	// Positional *containerW.Set
@@ -264,7 +268,6 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 
 	re := regexp.MustCompile("\\d+")
 	numArgs := re.FindString(cmd)
-	// fmt.Println("cmd", cmd, "numArgs", numArgs)
 	cmd = strings.ReplaceAll(cmd, fmt.Sprintf("%q", numArgs), "")
 	boolOptionals = append(boolOptionals, numArgs)
 	return ParseArgs(cmd, boolOptionals...)
@@ -273,7 +276,8 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 // ParseArgs takes command line as argument, not from terminal directly
 // cmd contains the Programs itself
 func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
-	cmd = stringsW.ReplaceAllKeepQuote(cmd, '=', ' ')
+	cmd = stringsW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
+
 	cmdSlice := stringsW.SplitNoEmptyKeepQuote(cmd, ' ')
 	if len(cmdSlice) <= 1 {
 		return nil

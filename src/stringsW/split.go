@@ -46,7 +46,7 @@ func SplitNoEmptyKeepQuote(str string, sep byte) []string {
 	return res
 }
 
-func ReplaceAllKeepQuote(s string, old, new rune) string {
+func ReplaceAllInQuoteUnchange(s string, old, new rune) string {
 	inQuote := false
 	var res bytes.Buffer
 	for _, ch := range s {
@@ -60,6 +60,28 @@ func ReplaceAllKeepQuote(s string, old, new rune) string {
 				res.WriteRune(old)
 			} else {
 				res.WriteRune(new)
+			}
+		} else {
+			res.WriteRune(ch)
+		}
+	}
+	return res.String()
+}
+
+func ReplaceAllOutQuoteUnchange(s string, old, new rune) string {
+	inQuote := false
+	var res bytes.Buffer
+	for _, ch := range s {
+		if ch == '"' {
+			inQuote = !inQuote
+			res.WriteRune(ch)
+			continue
+		}
+		if ch == old {
+			if inQuote {
+				res.WriteRune(new)
+			} else {
+				res.WriteRune(old)
 			}
 		} else {
 			res.WriteRune(ch)

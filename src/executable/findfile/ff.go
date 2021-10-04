@@ -66,8 +66,9 @@ OUTER:
 		}
 
 		for _, toIgnore := range allIgnores {
-			if strings.Contains(abs, toIgnore) {
-				// fmt.Println("here", toIgnore, abs)
+			// fmt.Println("matching ", toIgnore, abs)
+			if match, _ := filepath.Match(toIgnore, filepath.ToSlash(abs)); match {
+				// fmt.Println("here")
 				continue OUTER
 			}
 		}
@@ -105,7 +106,7 @@ func main() {
 	fs.Int64("n", 10, "number of found results to print, -10 for short")
 	fs.Bool("v", false, "if print error")
 	fs.String("d", ".", "root directory for searching")
-	fs.String("i", "", "ignores some file pattern (don't support regular expression) ")
+	fs.String("i", "", "ignores some file pattern (support glob expression) ")
 
 	results := terminalW.ParseArgsCmd("v")
 
