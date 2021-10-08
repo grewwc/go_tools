@@ -59,6 +59,7 @@ func main() {
 	groupId, artifactId := utils.GetCoordByNormString(t)
 
 	p := utils.NewProject("example")
+	
 	p.AddParent(groupId)
 	p.AddDependencyByID(groupId.String(), artifactId.String(), "")
 	fmt.Println(p.ToXML())

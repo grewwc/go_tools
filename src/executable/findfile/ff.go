@@ -114,6 +114,8 @@ func main() {
 		fs.PrintDefaults()
 		return
 	}
+	// fmt.Println(os.Args)
+	// fmt.Println(results)
 
 	verboseFlag := results.ContainsFlagStrict("v")
 

@@ -266,10 +266,14 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	cmd := strings.Join(args, " ")
 	// fmt.Println("here", cmd)
 
-	re := regexp.MustCompile("\\d+")
+	re := regexp.MustCompile("\\-\\d+")
 	numArgs := re.FindString(cmd)
-	cmd = strings.ReplaceAll(cmd, fmt.Sprintf("%q", numArgs), "")
-	boolOptionals = append(boolOptionals, numArgs)
+	if len(numArgs) > 0 {
+		numArgs = numArgs[1:]
+		cmd = strings.ReplaceAll(cmd, fmt.Sprintf("%q", numArgs), "")
+		boolOptionals = append(boolOptionals, numArgs)
+	}
+
 	return ParseArgs(cmd, boolOptionals...)
 }
 

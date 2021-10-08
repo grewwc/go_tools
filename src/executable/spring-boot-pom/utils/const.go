@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/containerW"
 )
 
 type GroupIDType int
@@ -20,8 +21,12 @@ func (a ArtifactIDType) String() string {
 }
 
 const (
-	Springboot = iota
+	Springboot = iota + 1
 	SpringbootStarterWeb
+)
+
+var (
+	hasParent containerW.Set
 )
 
 // data should be added here
@@ -50,6 +55,8 @@ var (
 
 // reverse string
 func init() {
+	hasParent = *containerW.NewSet()
+	hasParent.Add("")
 	groupIDMapReversed = make(map[string]GroupIDType)
 	artifactIDMapReversed = make(map[string]ArtifactIDType)
 	for k, v := range groupIDMap {
