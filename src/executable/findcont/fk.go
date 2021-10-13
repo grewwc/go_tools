@@ -172,7 +172,7 @@ func main() {
 		optional = r.ReplaceAllString(optional, "")
 	}
 
-	fmt.Println(parsedResults)
+	// fmt.Println(parsedResults)
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 	*all = *all || *a
 	*rootDir = filepath.ToSlash(strings.ReplaceAll(*rootDir, `\\`, `\`))

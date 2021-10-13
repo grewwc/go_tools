@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/utilsW"
@@ -27,8 +26,8 @@ var NumPrint int64 = 5
 
 var Count int64
 
-// maximum 5000 threads
-var maxThreads = make(chan struct{}, 5000)
+// maximum 20 threads
+var maxThreads = make(chan struct{}, 20)
 var Verbose bool
 var CountMu sync.Mutex
 
@@ -39,7 +38,7 @@ var MaxLevel int32
 // acts like a framework
 func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	defer wg.Done()
-	if atomic.LoadInt32(&level) > MaxLevel {
+	if level > MaxLevel {
 		return
 	}
 	maxThreads <- struct{}{}
@@ -74,8 +73,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 		}
 		if sub.IsDir() {
 			wg.Add(1)
-			go Find(subName, task, wg, atomic.AddInt32(&level, 1))
-			atomic.AddInt32(&level, -1)
+			go Find(subName, task, wg, level+1)
 			continue
 		}
 
