@@ -107,8 +107,8 @@ func main() {
 	fs.Bool("v", false, "if print error")
 	fs.String("d", ".", "root directory for searching")
 	fs.String("i", "", "ignores some file pattern (support glob expression) ")
-
-	results := terminalW.ParseArgsCmd("v")
+	fs.Bool("a", false, "list all matches (has the highest priority)")
+	results := terminalW.ParseArgsCmd("v", "a")
 
 	if results == nil {
 		fs.PrintDefaults()
@@ -135,6 +135,10 @@ func main() {
 		if err != nil {
 			log.Fatalln(err)
 		}
+	}
+
+	if results.ContainsFlagStrict("a") {
+		numPrint = math.MaxInt64
 	}
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
