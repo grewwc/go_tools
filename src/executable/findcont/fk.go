@@ -171,9 +171,8 @@ func main() {
 		r := regexp.MustCompile("-\\d+")
 		optional = r.ReplaceAllString(optional, "")
 	}
-	// fmt.Println("optionalMap", optionalMap, optional)
-	// fmt.Println("args", args)
-	// fmt.Println(optional, stringsW.SplitNoEmptyKeepQuote(optional, ' '))
+
+	fmt.Println(parsedResults)
 	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
 	*all = *all || *a
 	*rootDir = filepath.ToSlash(strings.ReplaceAll(*rootDir, `\\`, `\`))
