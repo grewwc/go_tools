@@ -19,8 +19,8 @@ import (
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
-// target is the target file name
-var target string
+// targets is the targets file name
+var targets []string
 var wg sync.WaitGroup
 
 var verbose bool
@@ -47,12 +47,15 @@ func findFile(rootDir string, numPrint int64, allIgnores []string) {
 	}
 	mu.Unlock()
 
-	matches, err := terminalW.Glob(target, rootDir)
-	if err != nil {
-		if verbose {
-			utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+	var matches []string
+	for _, target := range targets {
+		m, err := terminalW.Glob(target, rootDir)
+		if err != nil {
+			if verbose {
+				utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+			}
 		}
-		return
+		matches = append(matches, m...)
 	}
 OUTER:
 	for _, match := range matches {
@@ -145,14 +148,14 @@ func main() {
 	allIgnores := stringsW.SplitNoEmptyKeepQuote(ignores, ' ')
 	// fmt.Println("allIgnores", allIgnores, results)
 	verbose = verboseFlag
-	args := results.Positional.ToStringSlice()
-	switch len(args) {
-	case 1:
-		target = args[0]
-	default:
-		fs.PrintDefaults()
-		return
-	}
+	targets = results.Positional.ToStringSlice()
+	// switch len(args) {
+	// case 1:
+	// 	target = args[0]
+	// default:
+	// 	fs.PrintDefaults()
+	// 	return
+	// }
 
 	fmt.Println()
 	// fmt.Println("rootDir", *rootDir)
