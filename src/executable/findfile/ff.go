@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -70,8 +71,8 @@ OUTER:
 
 		for _, toIgnore := range allIgnores {
 			// fmt.Println("matching ", toIgnore, abs)
-			if match, _ := filepath.Match(toIgnore, filepath.ToSlash(abs)); match {
-				// fmt.Println("here")
+			if match, _ := regexp.MatchString(toIgnore, filepath.ToSlash(abs)); match {
+				// fmt.Println("here", toIgnore)
 				continue OUTER
 			}
 		}
@@ -146,16 +147,15 @@ func main() {
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
 	allIgnores := stringsW.SplitNoEmptyKeepQuote(ignores, ' ')
+	for i := range allIgnores {
+		temp := strings.ReplaceAll(allIgnores[i], `.`, `\.`)
+		temp = strings.ReplaceAll(temp, `?`, `.`)
+		temp = strings.ReplaceAll(temp, `*`, `.*`)
+		allIgnores[i] = temp
+	}
 	// fmt.Println("allIgnores", allIgnores, results)
 	verbose = verboseFlag
 	targets = results.Positional.ToStringSlice()
-	// switch len(args) {
-	// case 1:
-	// 	target = args[0]
-	// default:
-	// 	fs.PrintDefaults()
-	// 	return
-	// }
 
 	fmt.Println()
 	// fmt.Println("rootDir", *rootDir)
