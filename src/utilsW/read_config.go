@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
 )
 
@@ -21,13 +22,13 @@ func init() {
 	fname = filepath.Join(fname, ".configW")
 }
 
-func GetAllConfig() (m map[string]string) {
+func GetAllConfig() (m *containerW.OrderedMap) {
 	f, err := os.Open(fname)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer f.Close()
-	m = make(map[string]string)
+	m = containerW.NewOrderedMap()
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -39,7 +40,7 @@ func GetAllConfig() (m map[string]string) {
 		key, val := res[0], res[1]
 		key = strings.TrimSpace(key)
 		val = strings.TrimSpace(val)
-		m[key] = val
+		m.Put(key, val)
 	}
 	return
 }

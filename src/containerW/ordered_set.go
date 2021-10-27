@@ -17,6 +17,7 @@ func NewOrderedSet(items ...interface{}) *OrderedSet {
 	return res
 }
 
+// Add 如果已经存在，则忽略
 func (s *OrderedSet) Add(v interface{}) {
 	if _, exist := s.m[v]; !exist {
 		e := s.l.PushBack(v)
