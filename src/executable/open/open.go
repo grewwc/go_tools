@@ -23,11 +23,11 @@ func main() {
 	}
 	switch utilsW.GetPlatform() {
 	case utilsW.WINDOWS:
-		cmdStr = fmt.Sprintf("cmd /C start %s", dir)
+		cmdStr = fmt.Sprintf("cmd /C start %q", dir)
 	case utilsW.MAC:
-		cmdStr = fmt.Sprintf("/usr/bin/open %s", dir)
+		cmdStr = fmt.Sprintf("/usr/bin/open %q", dir)
 	case utilsW.LINUX:
-		cmdStr = fmt.Sprintf("xdg-open %s", dir)
+		cmdStr = fmt.Sprintf("xdg-open %q", dir)
 	}
 	cmdSlice := stringsW.SplitNoEmpty(cmdStr, " ")
 	cmd := exec.Command(cmdSlice[0], cmdSlice[1:]...)
