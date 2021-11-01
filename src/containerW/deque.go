@@ -53,3 +53,21 @@ func (dq *Deque) Empty() bool {
 func (dq *Deque) Size() int {
 	return dq.data.Len()
 }
+
+func (dq *Deque) ToSlice() []interface{} {
+	l := dq.data.Front()
+	res := make([]interface{}, 0, dq.Size())
+	for l.Next() != nil {
+		res = append(res, l.Value)
+	}
+	return res
+}
+
+func (dq *Deque) ToStringSlice() []string {
+	l := dq.data.Front()
+	res := make([]string, 0, dq.Size())
+	for l.Next() != nil {
+		res = append(res, l.Value.(string))
+	}
+	return res
+}
