@@ -5,10 +5,12 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -138,22 +140,26 @@ func checkFileRe(filename string) {
 }
 
 func main() {
+	var num int64 = 5
+	var isReg = false
+	var isIgnoreCase = false
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
-	num := fs.Int64("n", terminalW.NumPrint, "number of found results to print")
-	ext := fs.String("t", "", "what type of file to search")
-	verboseFlag := fs.Bool("v", false, "if print error")
-	rootDir := fs.String("d", ".", "root directory for searching")
-	isReg := fs.Bool("re", false, `turn on regular expression (use "\" instead of "\\") `)
-	isIgnoreCase := fs.Bool("ignore", false, "ignore upper/lower case")
-	isIgnoreCaseShortcut := fs.Bool("i", false, "ignore upper/lower case (shortcut for -ignore)")
-	numLevel := fs.Int("level", math.MaxInt32, `number of directory levels to search. current directory's level is 0`)
-	isStrict := fs.Bool("strict", false, "find exact the same matches (after triming space)")
-	extExclude := fs.String("nt", "", "check files which are not some types")
-	findWord := fs.Bool("word", false, "only match the concrete word, is a shortcut for -re")
-	all := fs.Bool("all", false, "shortcut for -n=-1")
-	a := fs.Bool("a", false, "shortcut for -all")
-	files := fs.String("f", "", "check only these files/directories") // this flag will override -t
-	notFiles := fs.String("nf", "", "don't check these files/directories")
+	fs.Int64("n", terminalW.NumPrint, "number of found results to print")
+	fs.String("t", "", "what type of file to search")
+	fs.Bool("v", false, "if print error")
+	fs.String("d", ".", "root directory for searching")
+	fs.Bool("re", false, `turn on regular expression (use "\" instead of "\\") `)
+	fs.Bool("ignore", false, "ignore upper/lower case")
+	fs.Bool("i", false, "ignore upper/lower case (shortcut for -ignore)")
+	fs.Int("level", math.MaxInt32, `number of directory levels to search. current directory's level is 0`)
+	fs.Bool("strict", false, "find exact the same matches (after triming space)")
+	fs.String("nt", "", "check files which are not some types")
+	fs.Bool("word", false, "only match the concrete word, is a shortcut for -re")
+	fs.Bool("all", false, "shortcut for -n=-1")
+	fs.Bool("a", false, "shortcut for -all")
+	fs.String("f", "", "check only these files/directories") // this flag will override -t
+	fs.String("nf", "", "don't check these files/directories")
+	fs.Bool("s", false, "sentence mode")
 
 	fmt.Println()
 
@@ -167,22 +173,28 @@ func main() {
 	optionalMap, args := parsedResults.Optional, parsedResults.Positional.ToStringSlice()
 	optional := terminalW.MapToString(optionalMap)
 	if parsedResults.GetNumArgs() != -1 {
-		*num = int64(parsedResults.GetNumArgs())
+		num = int64(parsedResults.GetNumArgs())
 		r := regexp.MustCompile("-\\d+")
 		optional = r.ReplaceAllString(optional, "")
 	}
 
-	// fmt.Println(parsedResults)
-	fs.Parse(stringsW.SplitNoEmptyKeepQuote(optional, ' '))
-	*all = *all || *a
-	*rootDir = filepath.ToSlash(strings.ReplaceAll(*rootDir, `\\`, `\`))
-	if *num < 0 || *all {
-		*num = math.MaxInt64
+	ext := parsedResults.GetFlagValueDefault("ext", "")
+	rootDir := filepath.ToSlash(strings.ReplaceAll(parsedResults.GetFlagValueDefault("d", "."), `\\`, `\`))
+	if parsedResults.ContainsFlagStrict("s") {
+		// sentenceToken = '.'
 	}
-
-	terminalW.NumPrint = *num
-	terminalW.Verbose = *verboseFlag
-	terminalW.MaxLevel = int32(*numLevel)
+	// fmt.Println(parsedResults)
+	all := parsedResults.ContainsFlagStrict("all") || parsedResults.ContainsFlagStrict("a")
+	if num < 0 || all {
+		num = math.MaxInt64
+	}
+	terminalW.NumPrint = num
+	terminalW.Verbose = parsedResults.ContainsFlagStrict("v")
+	temp, err := strconv.Atoi(parsedResults.GetFlagValueDefault("level", strconv.Itoa(math.MaxInt32)))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	terminalW.MaxLevel = int32(temp)
 
 	// below the main thing is to define the task
 	var task func(string)
@@ -196,9 +208,8 @@ func main() {
 		return
 	}
 	target = strings.ReplaceAll(target, `\\`, `\`)
-
-	if *findWord {
-		*isReg = true
+	if parsedResults.ContainsFlagStrict("word") {
+		isReg = true
 		wordPattern := regexp.MustCompile("\\w+")
 		if !wordPattern.MatchString(target) {
 			// fmt.Println("here", target)
@@ -210,33 +221,37 @@ func main() {
 		r = regexp.MustCompile(target)
 	}
 
-	if *files != "" {
-		*files = strings.ReplaceAll(*files, ",", " ")
-		for _, f := range stringsW.SplitNoEmpty(*files, " ") {
+	extExclude := parsedResults.GetFlagValueDefault("nt", "")
+	files := parsedResults.GetFlagValueDefault("f", "")
+	notFiles := parsedResults.GetFlagValueDefault("nf", "")
+
+	if files != "" {
+		files = strings.ReplaceAll(files, ",", " ")
+		for _, f := range stringsW.SplitNoEmpty(files, " ") {
 			terminalW.FileNamesToCheck.Add(f)
 		}
-		*ext = ""
-		*extExclude = ""
+		ext = ""
+		extExclude = ""
 	}
 
-	if *notFiles != "" {
-		*notFiles = strings.ReplaceAll(*notFiles, ",", "")
-		for _, f := range stringsW.SplitNoEmpty(*notFiles, " ") {
+	if notFiles != "" {
+		notFiles = strings.ReplaceAll(notFiles, ",", "")
+		for _, f := range stringsW.SplitNoEmpty(notFiles, " ") {
 			terminalW.FileNamesNOTCheck.Add(f)
 			terminalW.FileNamesToCheck.Delete(f)
 		}
 		// because previous notFiles may make files empty
-		if *files != "" && terminalW.FileNamesToCheck.Empty() {
+		if files != "" && terminalW.FileNamesToCheck.Empty() {
 			terminalW.FileNamesToCheck.Add(nil)
 		}
 	}
 
-	*isIgnoreCase = *isIgnoreCase || *isIgnoreCaseShortcut
-	if *isReg {
+	isIgnoreCase = parsedResults.ContainsFlagStrict("ignore") || parsedResults.ContainsFlagStrict("i")
+	if isReg {
 		task = checkFileRe
 		r = regexp.MustCompile(target)
-	} else if *isStrict {
-		if *isIgnoreCase {
+	} else if parsedResults.ContainsFlagStrict("strict") {
+		if isIgnoreCase {
 			target = strings.ToLower(strings.TrimSpace(target))
 			task = checkFileStrictIgnoreCase
 		} else {
@@ -244,7 +259,7 @@ func main() {
 			task = checkFileStrict
 		}
 	} else {
-		if *isIgnoreCase {
+		if isIgnoreCase {
 			target = strings.ToLower(target)
 			task = checkFileIgnoreCase
 		} else {
@@ -253,28 +268,28 @@ func main() {
 	}
 
 	// fmt.Println("target", target)
-	if *ext != "" {
-		terminalW.Extensions = terminalW.FormatFileExtensions(*ext)
+	if ext != "" {
+		terminalW.Extensions = terminalW.FormatFileExtensions(ext)
 		terminalW.CheckExtension = true
 	} else {
 		terminalW.Extensions = utilsW.DefaultExtensions.ShallowCopy()
 		terminalW.CheckExtension = false
 	}
-	if *extExclude != "" {
+	if extExclude != "" {
 		// need to exclude some type of files
-		excludeSet := terminalW.FormatFileExtensions(*extExclude)
+		excludeSet := terminalW.FormatFileExtensions(extExclude)
 		terminalW.Extensions.Subtract(*excludeSet)
 		terminalW.CheckExtension = true
 	}
 
-	if *isReg && *isIgnoreCase {
+	if isReg && isIgnoreCase {
 		target = "(?i)" + target
 		r = regexp.MustCompile(target)
 	}
 
 	fmt.Println()
 	wg.Add(1)
-	go terminalW.Find(*rootDir, task, &wg, 0)
+	go terminalW.Find(rootDir, task, &wg, 0)
 	wg.Wait()
 
 	terminalW.Once.Do(func() {

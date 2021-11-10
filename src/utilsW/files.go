@@ -3,13 +3,14 @@ package utilsW
 import (
 	"archive/tar"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 )
 
 // TarGz add all srcNames to outName as tar.gz file
-func TarGz(outName string, srcNames []string) error {
+func TarGz(outName string, srcNames []string, verbose bool) error {
 	out, err := os.Create(outName)
 	if err != nil {
 		return err
@@ -45,6 +46,9 @@ func TarGz(outName string, srcNames []string) error {
 			if _, err = io.Copy(tw, src); err != nil {
 				return err
 			}
+		}
+		if verbose {
+			fmt.Println(filename)
 		}
 	}
 	return nil

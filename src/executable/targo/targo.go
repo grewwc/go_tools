@@ -10,14 +10,21 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
+var (
+	listOnly = false
+)
+
 func processTarGzFile(fname string, prefix string) {
-	fmt.Printf("untar %q to %q\n", fname, prefix)
+	if !listOnly {
+		fmt.Printf("untar %q to %q\n", fname, prefix)
+	}
 	// first open the file
 	f, err := os.Open(fname)
 	if err != nil {
@@ -51,15 +58,26 @@ func processTarGzFile(fname string, prefix string) {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			os.MkdirAll(filepath.Join(prefix, header.Name), os.ModeDir)
+			if listOnly {
+				continue
+			}
+			if err = os.MkdirAll(filepath.Join(prefix, header.Name), 0774); err != nil {
+				log.Fatalln(err)
+			}
 		case tar.TypeReg:
+			if listOnly {
+				fmt.Println(header.Name)
+				continue
+			}
 			buf := make([]byte, int(header.Size))
 			_, err = tf.Read(buf)
 			if err != io.EOF && err != nil {
 				log.Println(err)
 				os.Exit(1)
 			}
-			ioutil.WriteFile(filepath.Join(prefix, header.Name), buf, 0755)
+			if err = ioutil.WriteFile(filepath.Join(prefix, header.Name), buf, 0755); err != nil {
+				log.Fatalln(err)
+			}
 		}
 	}
 }
@@ -73,6 +91,11 @@ func clean(fname string) {
 }
 
 func main() {
+	oldMask := syscall.Umask(0)
+	defer func() {
+		syscall.Umask(oldMask)
+	}()
+
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.String("ex", "", "exclude file/directory")
 	fs.String("exclude", "", "exclude file/directory")
@@ -80,30 +103,15 @@ func main() {
 	fs.Bool("u", false, "untar")
 	fs.Bool("h", false, "print help info")
 	fs.Bool("clean", true, "clean the zipped file if error occurs")
+	fs.Bool("l", false, "only list files in the tar.gz")
 
-	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean")
+	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean", "l")
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		fmt.Println("targo thesis.tar.gz thesis_folder")
 		return
 	}
 
-	// extract tar files
-	if parsedResults.ContainsFlag("u") {
-		fmt.Println("e.g: untar src.tar.gz dest_directory")
-
-		args := parsedResults.Positional.ToStringSlice()
-		// fmt.Println(args)
-		if len(args) != 2 {
-			fmt.Println("need 2 arguments as hinted above")
-			os.Exit(1)
-		}
-		src := args[0]
-		prefix := args[1]
-
-		processTarGzFile(src, prefix)
-		os.Exit(0)
-	}
 	// create tar files
 	exclude, err := parsedResults.GetFlagVal("ex")
 	if err != nil || exclude == "" {
@@ -139,9 +147,29 @@ func main() {
 	srcNames := []string{}
 	var srcName string
 	outName := args[0]
+
 	if filepath.Ext(outName) != ".gz" {
 		log.Fatalf("%q is not a valid outname\n", outName)
 	}
+
+	if parsedResults.ContainsFlagStrict("l") {
+		listOnly = true
+	}
+	// extract tar files
+	if parsedResults.ContainsFlagStrict("u") || parsedResults.ContainsFlagStrict("l") {
+		fmt.Println("e.g: untar src.tar.gz dest_directory")
+
+		args := parsedResults.Positional.ToStringSlice()
+		var src, prefix string
+		src = args[0]
+		if !parsedResults.ContainsFlagStrict("l") {
+			prefix = args[1]
+		}
+
+		processTarGzFile(src, prefix)
+		os.Exit(0)
+	}
+
 	if len(args) > 2 {
 		srcNames = args[1:]
 	} else {
@@ -168,9 +196,6 @@ func main() {
 			// abspath := utilsW.Abs(path)
 			if !excludeSet.Contains(path) {
 				allFiles = append(allFiles, path)
-				if verbose {
-					fmt.Println(path)
-				}
 			} else if verbose {
 				fmt.Println("exclude: ", path)
 			}
@@ -185,7 +210,7 @@ func main() {
 		}
 		return
 	}
-	if err = utilsW.TarGz(outName, allFiles); err != nil {
+	if err = utilsW.TarGz(outName, allFiles, verbose); err != nil {
 		if parsedResults.ContainsFlagStrict("clean") {
 			clean(outName)
 		}
