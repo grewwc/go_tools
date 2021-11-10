@@ -79,7 +79,7 @@ func main() {
 	fs.Bool("v", false, "verbose")
 	fs.Bool("u", false, "untar")
 	fs.Bool("h", false, "print help info")
-	fs.Bool("clean", false, "if clean the zipped file if error occurs")
+	fs.Bool("clean", true, "clean the zipped file if error occurs")
 
 	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean")
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
@@ -139,6 +139,9 @@ func main() {
 	srcNames := []string{}
 	var srcName string
 	outName := args[0]
+	if filepath.Ext(outName) != ".gz" {
+		log.Fatalf("%q is not a valid outname\n", outName)
+	}
 	if len(args) > 2 {
 		srcNames = args[1:]
 	} else {
