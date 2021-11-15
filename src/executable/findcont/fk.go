@@ -178,7 +178,7 @@ func main() {
 		optional = r.ReplaceAllString(optional, "")
 	}
 
-	ext := parsedResults.GetFlagValueDefault("ext", "")
+	ext := parsedResults.GetFlagValueDefault("t", "")
 	rootDir := filepath.ToSlash(strings.ReplaceAll(parsedResults.GetFlagValueDefault("d", "."), `\\`, `\`))
 	if parsedResults.ContainsFlagStrict("s") {
 		// sentenceToken = '.'
