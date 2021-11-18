@@ -112,6 +112,7 @@ func main() {
 	fs.String("d", ".", "root directory for searching")
 	fs.String("i", "", "ignores some file pattern (support glob expression) ")
 	fs.Bool("a", false, "list all matches (has the highest priority)")
+	fs.Int("p", 4, "how many threads to use")
 	results := terminalW.ParseArgsCmd("v", "a")
 
 	if results == nil {
@@ -143,6 +144,14 @@ func main() {
 
 	if results.ContainsFlagStrict("a") {
 		numPrint = math.MaxInt64
+	}
+
+	if results.ContainsFlagStrict("p") {
+		res, err := strconv.Atoi(results.GetFlagValueDefault("p", "4"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		terminalW.MaxThreads = res
 	}
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")

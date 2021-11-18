@@ -2,6 +2,7 @@ package terminalW
 
 import (
 	"io/ioutil"
+	"log"
 	"math"
 	"os"
 	"path"
@@ -26,13 +27,19 @@ var NumPrint int64 = 5
 
 var Count int64
 
-// maximum 20 threads
-var maxThreads = make(chan struct{}, 20)
+// maximum 4 threads
+var maxThreads = make(chan struct{}, 4)
 var Verbose bool
 var CountMu sync.Mutex
 
 // how many levels to search
 var MaxLevel int32
+
+func ChangeThreads(num int) {
+	close(maxThreads)
+	maxThreads = make(chan struct{}, num)
+	log.Println("change threads num to", num)
+}
 
 // this function is the main part
 // acts like a framework

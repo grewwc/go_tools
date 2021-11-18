@@ -186,6 +186,7 @@ func main() {
 	fs.String("f", "", "check only these files/directories") // this flag will override -t
 	fs.String("nf", "", "don't check these files/directories")
 	fs.Int("l", 1, "how many lines more read to match")
+	fs.Int("p", 4, "how many threads to use")
 
 	fmt.Println()
 
@@ -266,6 +267,14 @@ func main() {
 		numLines = res
 	}
 
+	if parsedResults.ContainsFlagStrict("p") {
+		res, err := strconv.Atoi(parsedResults.GetFlagValueDefault("p", "4"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		terminalW.ChangeThreads(res)
+	}
+
 	if notFiles != "" {
 		notFiles = strings.ReplaceAll(notFiles, ",", "")
 		for _, f := range stringsW.SplitNoEmpty(notFiles, " ") {
@@ -300,7 +309,6 @@ func main() {
 		}
 	}
 
-	// fmt.Println("target", target)
 	if ext != "" {
 		terminalW.Extensions = terminalW.FormatFileExtensions(ext)
 		terminalW.CheckExtension = true
