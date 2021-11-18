@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/stringsW"
@@ -25,6 +26,7 @@ var target string
 var wg sync.WaitGroup
 var countMu sync.Mutex
 var r *regexp.Regexp = nil
+var numLines int = 1
 
 func colorTargetString(line string, matchedStrings []string) string {
 	var result string
@@ -34,7 +36,7 @@ func colorTargetString(line string, matchedStrings []string) string {
 	return result
 }
 
-func checkFileFunc(filename string, fn func(target, line string) (bool, []string)) {
+func checkFileFunc(filename string, fn func(target, line string) (bool, []string), numLines int) {
 	file, err := os.Open(filename)
 	if err != nil {
 		if terminalW.Verbose {
@@ -43,12 +45,34 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 		return
 	}
 	defer file.Close()
+	var matched bool
+	var matchedStrings []string
 	scanner := bufio.NewScanner(file)
 	lineno := 0
+	lineCnt := 1
+	var line string
 	for scanner.Scan() {
 		lineno++
-		line := scanner.Text()
-		matched, matchedStrings := fn(target, line)
+		if lineCnt == 1 {
+			line = scanner.Text()
+		}
+		for lineCnt < numLines && scanner.Scan() {
+			var sep string
+			no, _ := utf8.DecodeLastRuneInString(line)
+			if no < 256 && no != ' ' {
+				sep = " "
+			}
+			line += sep + strings.TrimSpace(scanner.Text())
+			// fmt.Println("here===> ", line)
+			lineno++
+			lineCnt++
+			matched, matchedStrings = fn(target, line)
+			if matched {
+				goto noMatchNeed
+			}
+		}
+		matched, matchedStrings = fn(target, line)
+	noMatchNeed:
 		if matched { // cannot reverse the order
 			countMu.Lock()
 			terminalW.Count++
@@ -72,13 +96,15 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 				dir, filepath.Separator, color.YellowString(base), lineno,
 				colorTargetString(strings.TrimSpace(line), matchedStrings))
 		}
+		line = ""
+		lineCnt = 1
 	}
 }
 
 func checkFile(filename string) {
 	checkFileFunc(filename, func(target, line string) (bool, []string) {
 		return strings.Contains(line, target), []string{target}
-	})
+	}, numLines)
 }
 
 func checkFileIgnoreCase(filename string) {
@@ -99,13 +125,13 @@ func checkFileIgnoreCase(filename string) {
 			idx += len(target)
 			prevIdx = idx
 		}
-	})
+	}, numLines)
 }
 
 func checkFileStrict(filename string) {
 	checkFileFunc(filename, func(target, line string) (bool, []string) {
 		return target == strings.TrimSpace(line), []string{target}
-	})
+	}, numLines)
 }
 
 func checkFileStrictIgnoreCase(filename string) {
@@ -123,7 +149,7 @@ func checkFileStrictIgnoreCase(filename string) {
 		}
 		// should not reach here forever
 		return false, nil
-	})
+	}, numLines)
 }
 
 func checkFileRe(filename string) {
@@ -136,7 +162,7 @@ func checkFileRe(filename string) {
 			return false, result
 		}
 		return true, result
-	})
+	}, numLines)
 }
 
 func main() {
@@ -159,7 +185,7 @@ func main() {
 	fs.Bool("a", false, "shortcut for -all")
 	fs.String("f", "", "check only these files/directories") // this flag will override -t
 	fs.String("nf", "", "don't check these files/directories")
-	fs.Bool("s", false, "sentence mode")
+	fs.Int("l", 1, "how many lines more read to match")
 
 	fmt.Println()
 
@@ -180,9 +206,7 @@ func main() {
 
 	ext := parsedResults.GetFlagValueDefault("t", "")
 	rootDir := filepath.ToSlash(strings.ReplaceAll(parsedResults.GetFlagValueDefault("d", "."), `\\`, `\`))
-	if parsedResults.ContainsFlagStrict("s") {
-		// sentenceToken = '.'
-	}
+
 	// fmt.Println(parsedResults)
 	all := parsedResults.ContainsFlagStrict("all") || parsedResults.ContainsFlagStrict("a")
 	if num < 0 || all {
@@ -234,6 +258,14 @@ func main() {
 		extExclude = ""
 	}
 
+	if parsedResults.ContainsFlagStrict("l") {
+		res, err := strconv.Atoi(parsedResults.GetFlagValueDefault("l", "1"))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		numLines = res
+	}
+
 	if notFiles != "" {
 		notFiles = strings.ReplaceAll(notFiles, ",", "")
 		for _, f := range stringsW.SplitNoEmpty(notFiles, " ") {
@@ -247,6 +279,7 @@ func main() {
 	}
 
 	isIgnoreCase = parsedResults.ContainsFlagStrict("ignore") || parsedResults.ContainsFlagStrict("i")
+
 	if isReg {
 		task = checkFileRe
 		r = regexp.MustCompile(target)
@@ -286,7 +319,7 @@ func main() {
 		target = "(?i)" + target
 		r = regexp.MustCompile(target)
 	}
-
+	// fmt.Println(numLines)
 	fmt.Println()
 	wg.Add(1)
 	go terminalW.Find(rootDir, task, &wg, 0)

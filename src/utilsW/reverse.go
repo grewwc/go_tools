@@ -1,5 +1,11 @@
 package utilsW
 
+import (
+	"bytes"
+
+	"github.com/grewwc/go_tools/src/containerW"
+)
+
 func ReverseBytes(arr []byte) {
 	last := len(arr) - 1
 	mid := len(arr) / 2
@@ -49,7 +55,13 @@ func ReverseFloat32(arr []float64) {
 }
 
 func ReverseString(s string) string {
-	res := []byte(s)
-	ReverseBytes(res)
-	return string(res)
+	stack := containerW.NewStack(len(s))
+	for _, r := range s {
+		stack.Push(r)
+	}
+	buf := bytes.Buffer{}
+	for !stack.Empty() {
+		buf.WriteRune(stack.Pop().(rune))
+	}
+	return buf.String()
 }

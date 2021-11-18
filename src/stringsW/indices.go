@@ -1,6 +1,8 @@
 package stringsW
 
-import "strings"
+import (
+	"strings"
+)
 
 func FindAll(str, substr string) []int {
 	var result []int

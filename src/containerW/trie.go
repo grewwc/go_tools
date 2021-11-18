@@ -17,7 +17,12 @@ func (this *Trie) Insert(word string) {
 
 /** Returns if the word is in the trie. */
 func (this *Trie) Search(word string) bool {
-	return this.searchFrom(&word, 0)
+	return this.searchFrom(&word, 0, true)
+}
+
+/** Returns if the word is in the trie. */
+func (this *Trie) LooseSearch(word string) bool {
+	return this.searchFrom(&word, 0, false)
 }
 
 /** Returns if there is any word in the trie that starts with the given prefix. */
@@ -31,7 +36,7 @@ func (this *Trie) Delete(word string) bool {
 	return this.deleteFrom(&word, &record, &path, 0)
 }
 
-// private mumber functions 
+// private mumber functions
 func (this *Trie) startsWithFrom(prefix *string, from int) bool {
 	if len(*prefix) == from {
 		return true
@@ -67,20 +72,23 @@ func (this *Trie) insertFrom(word *string, from int) {
 	}
 }
 
-func (this *Trie) searchFrom(word *string, from int) bool {
+func (this *Trie) searchFrom(word *string, from int, strict bool) bool {
 	if len(*word) == from {
 		return true
 	}
 	curByte := (*word)[from]
 	if len(*word) == from+1 {
 		if _, exist := this.values[curByte]; exist {
-			return this.end[curByte]
+			if strict {
+				return this.end[curByte]
+			}
+			return true
 		}
 		return false
 	}
 
 	if subTrie, exist := this.values[curByte]; exist {
-		return subTrie.searchFrom(word, from+1)
+		return subTrie.searchFrom(word, from+1, strict)
 	}
 
 	return false
