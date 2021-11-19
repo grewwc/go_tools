@@ -99,6 +99,9 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 		}
 		line = ""
 		lineCnt = 1
+		if scanner.Err() != nil {
+			log.Println(scanner.Err())
+		}
 	}
 }
 
