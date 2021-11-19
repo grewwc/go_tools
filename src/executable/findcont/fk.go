@@ -48,6 +48,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 	var matched bool
 	var matchedStrings []string
 	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 0, 100), 1024*1024*16)
 	lineno := 0
 	lineCnt := 1
 	var line string
