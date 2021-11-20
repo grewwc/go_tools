@@ -10,7 +10,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"syscall"
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/terminalW"
@@ -91,11 +90,6 @@ func clean(fname string) {
 }
 
 func main() {
-	oldMask := syscall.Umask(0)
-	defer func() {
-		syscall.Umask(oldMask)
-	}()
-
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.String("ex", "", "exclude file/directory")
 	fs.String("exclude", "", "exclude file/directory")

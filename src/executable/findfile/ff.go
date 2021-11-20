@@ -151,7 +151,7 @@ func main() {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		terminalW.MaxThreads = res
+		terminalW.ChangeThreads(res)
 	}
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
