@@ -168,7 +168,7 @@ func GetDirSize(dirname string) (int64, error) {
 	return size, err
 }
 
-// Abs ignore error
+// Abs returns absolute path , ignore error
 // return "" as representing error
 func Abs(path string) string {
 	if filepath.IsAbs(path) {

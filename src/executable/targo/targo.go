@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
@@ -22,7 +23,7 @@ var (
 
 func processTarGzFile(fname string, prefix string) {
 	if !listOnly {
-		fmt.Printf("untar %q to %q\n", fname, prefix)
+		fmt.Fprintf(color.Output, "untar \"%s\" to \"%s\"\n", color.GreenString(fname), color.YellowString(prefix))
 	}
 	// first open the file
 	f, err := os.Open(fname)
@@ -84,7 +85,8 @@ func processTarGzFile(fname string, prefix string) {
 func clean(fname string) {
 	fmt.Printf("cleaning %s\n", fname)
 	if utilsW.IsExist(fname) {
-		fmt.Printf("error occurred, clean %q\n", fname)
+		msg := fmt.Sprintf("error occurred, clean %q\n", fname)
+		log.Fatalln(color.RedString(msg))
 		os.Remove(fname)
 	}
 }
@@ -102,7 +104,7 @@ func main() {
 	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean", "l")
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
-		fmt.Println("targo thesis.tar.gz thesis_folder")
+		fmt.Println(color.GreenString("targo thesis.tar.gz thesis_folder"))
 		return
 	}
 
@@ -132,26 +134,27 @@ func main() {
 			if err != nil {
 				return err
 			}
-			excludeSet.Add(path)
+			excludeSet.Add(utilsW.Abs(path))
 			return nil
 		})
 	}
-
+	// fmt.Println("excludeset", excludeSet)
 	args := parsedResults.Positional.ToStringSlice()
 	srcNames := []string{}
 	var srcName string
 	outName := args[0]
 
 	if filepath.Ext(outName) != ".gz" {
-		log.Fatalf("%q is not a valid outname\n", outName)
+		msg := color.RedString(fmt.Sprintf("%q is not a valid outname", outName))
+		log.Fatalln(msg)
 	}
 
 	if parsedResults.ContainsFlagStrict("l") {
 		listOnly = true
 	}
 	// extract tar files
-	if parsedResults.ContainsFlagStrict("u") || parsedResults.ContainsFlagStrict("l") {
-		fmt.Println("e.g: untar src.tar.gz dest_directory")
+	if parsedResults.ContainsFlagStrict("u") || listOnly {
+		fmt.Println(color.GreenString("e.g: untar src.tar.gz dest_directory"))
 
 		args := parsedResults.Positional.ToStringSlice()
 		var src, prefix string
@@ -187,18 +190,18 @@ func main() {
 			if err != nil {
 				return err
 			}
-			// abspath := utilsW.Abs(path)
-			if !excludeSet.Contains(path) {
+			absPath := utilsW.Abs(path)
+			if !excludeSet.Contains(absPath) {
 				allFiles = append(allFiles, path)
 			} else if verbose {
-				fmt.Println("exclude: ", path)
+				fmt.Println("exclude: ", color.YellowString(path))
 			}
 			return nil
 		})
 	}
 
 	if len(allFiles) == 0 {
-		fmt.Printf("%q don't contain any files\n", srcName)
+		fmt.Println(color.RedString(fmt.Sprintf("%q don't contain any files\n", srcName)))
 		if parsedResults.ContainsFlagStrict("clean") {
 			clean(outName)
 		}
