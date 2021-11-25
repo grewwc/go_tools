@@ -111,6 +111,7 @@ func main() {
 	fs.Bool("v", false, "if print error")
 	fs.String("d", ".", "root directory for searching")
 	fs.String("i", "", "ignores some file pattern (support glob expression) ")
+	fs.String("ex", "", "the same as -i (second match)")
 	fs.Bool("a", false, "list all matches (has the highest priority)")
 	fs.Int("p", 4, "how many threads to use")
 	results := terminalW.ParseArgsCmd("v", "a")
@@ -132,6 +133,9 @@ func main() {
 		}
 	}
 	ignores := results.GetFlagValueDefault("i", "")
+	if ignores == "" {
+		ignores = results.GetFlagValueDefault("ex", "")
+	}
 
 	numPrint := int64(results.GetNumArgs())
 	if numPrint == -1 {
@@ -147,11 +151,7 @@ func main() {
 	}
 
 	if results.ContainsFlagStrict("p") {
-		res, err := strconv.Atoi(results.GetFlagValueDefault("p", "4"))
-		if err != nil {
-			log.Fatalln(err)
-		}
-		terminalW.ChangeThreads(res)
+		terminalW.ChangeThreads(results.MustGetFlagValAsInt("p"))
 	}
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")

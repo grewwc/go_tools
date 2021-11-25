@@ -34,6 +34,30 @@ func (r ParsedResults) GetFlagVal(flagName string) (string, error) {
 	return "", errors.New("not exist")
 }
 
+func (r ParsedResults) MustGetFlagValAsInt(flagName string) int {
+	resStr, err := r.GetFlagVal(flagName)
+	if err != nil {
+		panic(err)
+	}
+	res, err := strconv.Atoi(resStr)
+	if err != nil {
+		panic(err)
+	}
+	return res
+}
+
+func (r ParsedResults) MustGetFlagValAsInt64(flagName string) (res int64) {
+	resStr, err := r.GetFlagVal(flagName)
+	if err != nil {
+		panic(err)
+	}
+	res, err = strconv.ParseInt(resStr, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
 func (r ParsedResults) GetFlagValueDefault(flagName string, defaultVal string) string {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName

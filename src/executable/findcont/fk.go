@@ -237,6 +237,11 @@ func main() {
 		return
 	}
 	target = strings.ReplaceAll(target, `\\`, `\`)
+
+	if parsedResults.ContainsFlagStrict("re") {
+		isReg = true
+	}
+
 	if parsedResults.ContainsFlagStrict("word") {
 		isReg = true
 		wordPattern := regexp.MustCompile("\\w+")
@@ -264,18 +269,11 @@ func main() {
 	}
 
 	if parsedResults.ContainsFlagStrict("l") {
-		res, err := strconv.Atoi(parsedResults.GetFlagValueDefault("l", "1"))
-		if err != nil {
-			log.Fatalln(err)
-		}
-		numLines = res
+		numLines = parsedResults.MustGetFlagValAsInt("l")
 	}
 
 	if parsedResults.ContainsFlagStrict("p") {
-		res, err := strconv.Atoi(parsedResults.GetFlagValueDefault("p", "4"))
-		if err != nil {
-			log.Fatalln(err)
-		}
+		res := parsedResults.MustGetFlagValAsInt("p")
 		terminalW.ChangeThreads(res)
 	}
 
@@ -331,6 +329,7 @@ func main() {
 		target = "(?i)" + target
 		r = regexp.MustCompile(target)
 	}
+
 	// fmt.Println(numLines)
 	fmt.Println()
 	wg.Add(1)
