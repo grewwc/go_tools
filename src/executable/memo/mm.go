@@ -26,7 +26,6 @@ const (
 	collectionName = "memo"
 
 	localMongoConfigName = "mongo.local"
-	mongoDbAtlas         = "mongodb://wwc129:!Grewwc080959@cluster0.myh9q.mongodb.net/daily?retryWrites=true&w=majority"
 )
 
 const (
@@ -34,7 +33,7 @@ const (
 )
 
 var (
-	remoteURI = fmt.Sprintf("mongodb://wwc129:!Grewwc080959@cluster0.myh9q.mongodb.net/%s?retryWrites=true&w=majority", dbName)
+	remoteURI string
 )
 
 var (
@@ -260,7 +259,7 @@ func update(parsed *terminalW.ParsedResults) {
 	}
 }
 
-func create() {
+func insert() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("input the title: ")
 	scanner.Scan()
@@ -300,6 +299,27 @@ func delete() {
 	}
 	r.loadByID()
 	r.delete()
+}
+
+func changeTitle() {
+	var err error
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("input the Object ID: ")
+	scanner.Scan()
+	c := make(chan interface{})
+	r := record{}
+	if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
+		panic(err)
+	}
+	go func(chan interface{}) {
+		c <- nil
+		r.loadByID()
+	}(c)
+	<-c
+	fmt.Print("input the New Title: ")
+	scanner.Scan()
+	r.Title = strings.TrimSpace(scanner.Text())
+	r.update()
 }
 
 func addTag() {
@@ -347,7 +367,8 @@ func main() {
 	}()
 
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
-	fs.Bool("c", false, "create a record")
+	fs.Bool("i", false, "insert a record")
+	fs.Bool("ct", false, "change a record")
 	fs.Bool("u", false, "update a record")
 	fs.Bool("d", false, "delete a record")
 	fs.Bool("l", false, "list records")
@@ -364,7 +385,7 @@ func main() {
 	fs.Bool("-add-tag", false, "add tag")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "f", "a",
-		"c", "u", "d", "-include-finished", "-add-tag")
+		"ct", "i", "u", "d", "-include-finished", "-add-tag")
 
 	if parsed == nil || parsed.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
@@ -396,8 +417,12 @@ func main() {
 		update(parsed)
 	}
 
-	if parsed.ContainsFlagStrict("c") {
-		create()
+	if parsed.ContainsFlagStrict("i") {
+		insert()
+	}
+
+	if parsed.ContainsFlagStrict("ct") {
+		changeTitle()
 	}
 
 	if parsed.ContainsFlagStrict("d") {
