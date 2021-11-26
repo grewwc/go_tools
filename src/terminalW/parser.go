@@ -119,6 +119,7 @@ func (r ParsedResults) ContainsFlag(flagName string) bool {
 }
 
 // ContainsFlagStrict checks if an optional flag is set
+// if startswith "--", then use the full name (including the leading "--")
 // "main.exe -force" ==> [ContainsFlag("-f") == false, ContainsFlag("-force") == true]
 func (r ParsedResults) ContainsFlagStrict(flagName string) bool {
 	if flagName[0] != '-' {

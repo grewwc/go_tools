@@ -1,12 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"math"
+	"os"
+	"strings"
 	"time"
 
+	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,6 +26,11 @@ const (
 	collectionName = "memo"
 
 	localMongoConfigName = "mongo.local"
+	mongoDbAtlas         = "mongodb://wwc129:!Grewwc080959@cluster0.myh9q.mongodb.net/daily?retryWrites=true&w=majority"
+)
+
+const (
+	autoTag = "auto"
 )
 
 var (
@@ -35,17 +47,23 @@ var (
 type record struct {
 	ID           primitive.ObjectID `bson:"_id,ignoreempty"`
 	Title        string             `bson:"title,ignoreempty"`
-	Tag          string             `bson:"tag,ignoreempty"`
+	Tags         []string           `bson:"tags,ignoreempty"`
 	AddDate      time.Time          `bson:"add_date,ignoreempty"`
 	ModifiedDate time.Time          `bson:"modified_date,ignoreempty"`
 	Finished     bool               `bson:"finished,ignoreempty"`
 }
 
-func newRecord(title, tag string) *record {
-	r := &record{Title: title, Tag: tag, Finished: false}
+type tag struct {
+	ID   primitive.ObjectID `bson:"_id,ignoreempty"`
+	Name string             `bson:"name,ignoreempty"`
+}
+
+func newRecord(title string, tags ...string) *record {
+	r := &record{Title: title, Tags: tags, Finished: false}
 	t := time.Now()
 	r.AddDate = t
 	r.ModifiedDate = t
+	r.ID = primitive.NewObjectID()
 	return r
 }
 
@@ -59,9 +77,8 @@ func init() {
 	}
 
 	// init client
+	ctx = context.Background()
 	clientOptions.SetMaxPoolSize(10)
-	// ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-	// defer cancel()
 	var err error
 	client, err = mongo.Connect(ctx, clientOptions)
 	if err != nil {
@@ -69,9 +86,13 @@ func init() {
 	}
 }
 
+func (r record) String() string {
+	return utilsW.ToString(r, "AddDate", "ModifiedDate")
+}
+
 func (r *record) exists() bool {
 	collection := client.Database(dbName).Collection(collectionName)
-	singleResults := collection.FindOne(context.Background(), bson.M{"title": r.Title, "tag": r.Tag})
+	singleResults := collection.FindOne(context.Background(), bson.M{"title": r.Title, "tags": r.Tags})
 	err := singleResults.Err()
 	if err == nil {
 		return true
@@ -83,11 +104,7 @@ func (r *record) exists() bool {
 	panic(err)
 }
 
-func (r *record) save() {
-	r.do("save")
-}
-
-func (r *record) do(action string, data ...string) {
+func (r *record) do(action string) {
 	var err error
 	db := client.Database(dbName)
 	collection := db.Collection(collectionName)
@@ -99,6 +116,10 @@ func (r *record) do(action string, data ...string) {
 		panic(err)
 	}
 	switch action {
+	case "load":
+		if err = collection.FindOne(ctx, bson.M{"_id": r.ID}).Decode(r); err != nil {
+			panic(err)
+		}
 	case "save":
 		if r.exists() {
 			return
@@ -108,21 +129,18 @@ func (r *record) do(action string, data ...string) {
 			panic(err)
 		}
 	case "delete":
-		if _, err = collection.DeleteOne(ctx, bson.M{"title": r.Title, "tag": r.Tag}); err != nil {
+		if _, err = collection.DeleteOne(ctx, bson.M{"title": r.Title, "tags": r.Tags}); err != nil {
+			session.AbortTransaction(ctx)
+			panic(err)
+		}
+	case "deleteByID":
+		if _, err = collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
 			session.AbortTransaction(ctx)
 			panic(err)
 		}
 	case "update":
-		var m bson.M
-		switch len(data) {
-		case 1:
-			m = bson.M{"$set": bson.M{"title": data[0]}}
-		case 2:
-			m = bson.M{"$set": bson.M{"title": data[0], "tag": data[1]}}
-		default:
-			panic("title + tag (too many data)")
-		}
-		if _, err = collection.UpdateOne(ctx, bson.M{"title": r.Title, "tag": r.Tag}, m); err != nil {
+		if _, err = collection.UpdateOne(ctx, bson.M{"_id": r.ID}, bson.M{"$set": r}); err != nil {
+			session.AbortTransaction(ctx)
 			panic(err)
 		}
 
@@ -135,35 +153,275 @@ func (r *record) do(action string, data ...string) {
 	}
 }
 
+func (r *record) save() {
+	r.ModifiedDate = time.Now()
+	r.do("save")
+}
+
 func (r *record) delete() {
 	r.do("delete")
 }
 
-func (r *record) update(title, tag string) {
-	r.do("update", title, tag)
+func (r *record) deleteByID() {
+	r.do("deleteByID")
 }
 
-func listRecords(limit int64) []record {
-	if limit < 0 {
+func (r *record) update() {
+	r.ModifiedDate = time.Now()
+	r.do("update")
+}
+
+func (r *record) loadByID() {
+	r.do("load")
+}
+
+func listRecords(limit int64, reverse, includeFinished bool, tags []string) []*record {
+	if tags == nil {
+		tags = []string{}
+	}
+	if limit <= 0 {
 		limit = math.MaxInt64
 	}
+	reverseNum := 1
+	if reverse {
+		reverseNum = -1
+	}
 	collection := client.Database(dbName).Collection(collectionName)
-	findOpts := options.Find()
-	findOpts.SetLimit(limit)
-	findOpts.SetSort(bson.D{{"modified_date", -1}}.Map())
-	cursor, err := collection.Find(ctx, bson.D{}.Map(), findOpts)
+	modifiedDataOption := options.Find()
+	addDateOption := options.Find()
+	modifiedDataOption.SetLimit(limit)
+	addDateOption.SetLimit(limit)
+	modifiedDataOption.SetSort(bson.M{"modified_date": reverseNum})
+	addDateOption.SetSort(bson.M{"add_date": reverseNum})
+	m := bson.M{}
+	if !includeFinished {
+		m["finished"] = false
+	}
+	if len(tags) > 0 {
+		m["tags"] = bson.M{"$all": tags}
+	}
+	cursor, err := collection.Find(ctx, m, addDateOption, modifiedDataOption)
 	if err != nil {
 		panic(err)
 	}
-	var res []record
+	var res []*record
 	if err = cursor.All(ctx, &res); err != nil {
 		panic(err)
 	}
-	fmt.Println(res)
-	return nil
+	return res
+}
+
+func update(parsed *terminalW.ParsedResults) {
+	var err error
+	var changed bool
+	scanner := bufio.NewScanner(os.Stdin)
+	id := parsed.GetFlagValueDefault("u", "")
+	newRecord := record{}
+	if id == "" {
+		fmt.Print("input the Object ID: ")
+		scanner.Scan()
+		id = scanner.Text()
+	}
+	if newRecord.ID, err = primitive.ObjectIDFromHex(id); err != nil {
+		panic(err)
+	}
+
+	newRecord.loadByID()
+	oldTitle := newRecord.Title
+	oldTags := newRecord.Tags
+
+	fmt.Print("input the title: ")
+	scanner.Scan()
+	title := strings.TrimSpace(scanner.Text())
+	if title != "" {
+		changed = true
+		newRecord.Title = title
+	}
+	fmt.Print("input the tags: ")
+	scanner.Scan()
+	tags := strings.TrimSpace(scanner.Text())
+	if tags != "" {
+		changed = true
+		newRecord.Tags = stringsW.SplitNoEmpty(tags, " ")
+	}
+	if !changed {
+		return
+	}
+	fmt.Println("==> Changes: ")
+	fmt.Printf("title: %q -> %q\n", oldTitle, newRecord.Title)
+	fmt.Printf("tags: %q -> %q\n", oldTags, newRecord.Tags)
+	fmt.Print("Do you want to update the record? (y/n): ")
+	scanner.Scan()
+	ans := strings.ToLower(strings.TrimSpace(scanner.Text()))
+	if ans == "y" {
+		newRecord.update()
+	} else {
+		fmt.Println("Abort change")
+	}
+}
+
+func create() {
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("input the title: ")
+	scanner.Scan()
+	title := strings.TrimSpace(scanner.Text())
+	fmt.Print("input the tags: ")
+	scanner.Scan()
+	tags := stringsW.SplitNoEmpty(strings.TrimSpace(scanner.Text()), " ")
+	if len(tags) == 0 {
+		tags = []string{autoTag}
+	}
+	r := newRecord(title, tags...)
+	r.save()
+}
+
+func setFinish(finish bool) {
+	var err error
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("input the Object ID: ")
+	scanner.Scan()
+	r := record{}
+	if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
+		panic(err)
+	}
+	r.loadByID()
+	r.Finished = finish
+	r.update()
+}
+
+func delete() {
+	var err error
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("input the Object ID: ")
+	scanner.Scan()
+	r := record{}
+	if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
+		panic(err)
+	}
+	r.loadByID()
+	r.delete()
+}
+
+func addTag() {
+	var err error
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("input the Object ID: ")
+	scanner.Scan()
+	r := record{}
+	if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
+		panic(err)
+	}
+	c := make(chan interface{})
+	go func(c chan interface{}) {
+		defer func() {
+			c <- nil
+		}()
+		r.loadByID()
+	}(c)
+	<-c
+	go func(c chan interface{}) {
+		s := containerW.NewSet()
+		for _, tag := range r.Tags {
+			s.Add(tag)
+		}
+		c <- s
+	}(c)
+
+	fmt.Print("input the New Tag: ")
+	scanner.Scan()
+	newTags := stringsW.SplitNoEmpty(strings.TrimSpace(scanner.Text()), " ")
+
+	s := (<-c).(*containerW.Set)
+	for _, newTag := range newTags {
+		s.Add(newTag)
+	}
+	r.Tags = s.ToStringSlice()
+	r.update()
 }
 
 func main() {
-	// r := newRecord("hello worlds", "test")
-	listRecords(-1)
+	defer func() {
+		if res := recover(); res != nil {
+			fmt.Println(res)
+		}
+	}()
+
+	fs := flag.NewFlagSet("fs", flag.ExitOnError)
+	fs.Bool("c", false, "create a record")
+	fs.Bool("u", false, "update a record")
+	fs.Bool("d", false, "delete a record")
+	fs.Bool("l", false, "list records")
+	fs.Int("n", 3, "# of records to list")
+	fs.Bool("h", false, "print help information")
+	fs.Bool("sync", false, "sync to remote db (may take a while)")
+	fs.Bool("r", false, "if true, newer first")
+	fs.Bool("all", false, "including all record")
+	fs.Bool("a", false, "shortcut for -all")
+	fs.Bool("f", false, "finish a record")
+	fs.Bool("nf", false, "set a record UNFINISHED")
+	fs.String("t", "", "search by tags")
+	fs.Bool("-include-finished", false, "include finished record")
+	fs.Bool("-add-tag", false, "add tag")
+
+	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "f", "a",
+		"c", "u", "d", "-include-finished", "-add-tag")
+
+	if parsed == nil || parsed.ContainsFlagStrict("h") {
+		fs.PrintDefaults()
+		return
+	}
+
+	if parsed.ContainsFlagStrict("f") {
+		setFinish(true)
+	}
+	var n int64 = 3
+	if parsed.GetNumArgs() != -1 {
+		n = int64(parsed.GetNumArgs())
+	}
+	all := parsed.ContainsFlagStrict("all") || (parsed.ContainsFlag("a") && !parsed.ContainsFlagStrict("--add-tags"))
+	if all {
+		n = math.MaxInt64
+	}
+	reverse := parsed.ContainsFlag("r")
+	includeFinished := parsed.ContainsFlagStrict("--include-finished") || all
+
+	if parsed.ContainsFlag("l") && !parsed.ContainsFlagStrict("--include-finished") {
+		records := listRecords(n, reverse, includeFinished, nil)
+		for _, record := range records {
+			fmt.Println(record)
+		}
+	}
+
+	if parsed.ContainsFlagStrict("u") {
+		update(parsed)
+	}
+
+	if parsed.ContainsFlagStrict("c") {
+		create()
+	}
+
+	if parsed.ContainsFlagStrict("d") {
+		delete()
+	}
+
+	if parsed.ContainsFlagStrict("t") {
+		tags := stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetFlagValueDefault("t", "")), " ")
+		records := listRecords(n, reverse, includeFinished, tags)
+		for _, record := range records {
+			fmt.Println(record)
+		}
+	}
+
+	if parsed.ContainsFlagStrict("--add-tag") {
+		addTag()
+	}
+
+	if parsed.ContainsFlagStrict("sync") {
+		fmt.Println("unsupported!!")
+		return
+	}
+
+	if parsed.ContainsFlagStrict("nf") {
+		setFinish(false)
+	}
 }
