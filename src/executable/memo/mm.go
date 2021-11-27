@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/executable/memo/helpers"
 	"github.com/grewwc/go_tools/src/stringsW"
@@ -108,6 +109,10 @@ func incrementTagCount(db *mongo.Database, tags []string, val int) {
 	_, err := db.Collection(tagCollectionName).UpdateMany(ctx, bson.M{"name": bson.M{"$in": tags}},
 		bson.M{"$inc": bson.M{"count": val}}, options.Update().SetUpsert(true))
 	if err != nil {
+		panic(err)
+	}
+
+	if _, err = db.Collection(tagCollectionName).DeleteMany(ctx, bson.M{"count": bson.M{"$lt": 1}}); err != nil {
 		panic(err)
 	}
 }
@@ -241,7 +246,7 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	return res
 }
 
-func update(parsed *terminalW.ParsedResults, fromFile bool) {
+func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
 	var err error
 	var changed bool
 	scanner := bufio.NewScanner(os.Stdin)
@@ -262,13 +267,19 @@ func update(parsed *terminalW.ParsedResults, fromFile bool) {
 
 	fmt.Print("input the title: ")
 	scanner.Scan()
-	title := strings.TrimSpace(scanner.Text())
-	if fromFile {
-		title = utilsW.ReadString(title)
-	}
-	if title != "" {
-		changed = true
-		newRecord.Title = title
+	var title string
+	if fromEditor {
+		title = utilsW.InputWithEditor()
+		fmt.Println()
+	} else {
+		title = strings.TrimSpace(scanner.Text())
+		if fromFile {
+			title = utilsW.ReadString(title)
+		}
+		if title != "" {
+			changed = true
+			newRecord.Title = title
+		}
 	}
 	fmt.Print("input the tags: ")
 	scanner.Scan()
@@ -304,13 +315,19 @@ func update(parsed *terminalW.ParsedResults, fromFile bool) {
 	}
 }
 
-func insert(fromFile bool) {
+func insert(fromFile, fromEditor bool) {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("input the title: ")
-	scanner.Scan()
-	title := strings.TrimSpace(scanner.Text())
-	if fromFile {
-		title = utilsW.ReadString(title)
+	var title string
+	if fromEditor {
+		title = utilsW.InputWithEditor()
+		fmt.Println()
+	} else {
+		scanner.Scan()
+		title = strings.TrimSpace(scanner.Text())
+		if fromFile {
+			title = utilsW.ReadString(title)
+		}
 	}
 	fmt.Print("input the tags: ")
 	scanner.Scan()
@@ -358,7 +375,7 @@ func delete() {
 	r.delete()
 }
 
-func changeTitle(fromFile bool) {
+func changeTitle(fromFile, fromEditor bool) {
 	var err error
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("input the Object ID: ")
@@ -374,10 +391,15 @@ func changeTitle(fromFile bool) {
 	}(c)
 	<-c
 	fmt.Print("input the New Title: ")
-	scanner.Scan()
-	r.Title = strings.TrimSpace(scanner.Text())
-	if fromFile {
-		r.Title = utilsW.ReadString(r.Title)
+	if fromEditor {
+		r.Title = utilsW.InputWithEditor()
+		fmt.Println()
+	} else {
+		scanner.Scan()
+		r.Title = strings.TrimSpace(scanner.Text())
+		if fromFile {
+			r.Title = utilsW.ReadString(r.Title)
+		}
 	}
 	go func(c chan interface{}) {
 		r.update()
@@ -483,13 +505,15 @@ func main() {
 	fs.Bool("and", false, "use and logic to match tags")
 	fs.Bool("v", false, "verbose (show modify/add time)")
 	fs.Bool("file", false, "read title from a file")
+	fs.Bool("e", false, "read from editor")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "f", "a",
-		"ct", "i", "u", "d", "include-finished", "add-tag", "del-tag", "tags", "and", "v", "file")
+		"ct", "i", "u", "d", "include-finished", "add-tag", "del-tag", "tags", "and", "v", "file", "e")
 
 	if parsed == nil {
 		records := listRecords(n, false, false, []string{"todo", "urgent"}, false)
 		for _, record := range records {
+			fmt.Println(color.GreenString(strings.Repeat("~", 10)))
 			fmt.Println(record)
 		}
 		return
@@ -526,7 +550,7 @@ func main() {
 		}
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"))
 		ignoreFields := []string{"AddDate", "ModifiedDate"}
-		if parsed.ContainsFlagStrict("v") {
+		if parsed.ContainsFlag("v") {
 			ignoreFields = []string{}
 		}
 		for _, record := range records {
@@ -535,17 +559,17 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("u") {
-		update(parsed, parsed.ContainsFlagStrict("file"))
+		update(parsed, parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("i") {
-		insert(parsed.ContainsFlagStrict("file"))
+		insert(parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("ct") {
-		changeTitle(parsed.ContainsFlagStrict("file"))
+		changeTitle(parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"))
 		return
 	}
 

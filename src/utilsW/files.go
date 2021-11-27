@@ -7,7 +7,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+
+	"github.com/google/uuid"
 )
 
 // TarGz add all srcNames to outName as tar.gz file
@@ -66,4 +69,21 @@ func ReadString(fname string) string {
 		panic(err)
 	}
 	return string(b)
+}
+
+func InputWithEditor() (res string) {
+	fname := uuid.New().String()
+	var cmd *exec.Cmd
+	switch GetPlatform() {
+	case MAC, LINUX:
+		cmd = exec.Command("vim", fname)
+	case WINDOWS:
+		cmd = exec.Command("cmd.exe", "/C", "notepad.exe", fname)
+	}
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+	res = ReadString(fname)
+	os.Remove(fname)
+	return
 }
