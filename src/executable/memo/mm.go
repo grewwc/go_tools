@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/executable/memo/helpers"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
@@ -22,8 +23,9 @@ import (
 )
 
 const (
-	dbName         = "daily"
-	collectionName = "memo"
+	dbName            = "daily"
+	collectionName    = "memo"
+	tagCollectionName = "tag"
 
 	localMongoConfigName = "mongo.local"
 )
@@ -33,28 +35,25 @@ const (
 )
 
 var (
-	remoteURI string
-)
-
-var (
-	uri           string = remoteURI
-	clientOptions        = &options.ClientOptions{}
+	uri           string
+	clientOptions = &options.ClientOptions{}
 	ctx           context.Context
 	client        *mongo.Client
 )
 
 type record struct {
 	ID           primitive.ObjectID `bson:"_id,ignoreempty"`
-	Title        string             `bson:"title,ignoreempty"`
 	Tags         []string           `bson:"tags,ignoreempty"`
 	AddDate      time.Time          `bson:"add_date,ignoreempty"`
 	ModifiedDate time.Time          `bson:"modified_date,ignoreempty"`
 	Finished     bool               `bson:"finished,ignoreempty"`
+	Title        string             `bson:"title,ignoreempty"`
 }
 
 type tag struct {
-	ID   primitive.ObjectID `bson:"_id,ignoreempty"`
-	Name string             `bson:"name,ignoreempty"`
+	ID    primitive.ObjectID `bson:"_id,ignoreempty"`
+	Name  string             `bson:"name,ignoreempty"`
+	Count int64              `bson:"count,ignoreempty"`
 }
 
 func newRecord(title string, tags ...string) *record {
@@ -83,15 +82,39 @@ func init() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// check if tags and memo collections exists
+	db := client.Database(dbName)
+	if !helpers.CollectionExists(db, ctx, tagCollectionName) {
+		db.Collection(tagCollectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys:    bson.D{bson.DocElem{Name: "name", Value: "text"}}.Map(),
+			Options: options.Index().SetUnique(true),
+		})
+	}
+
+	if !helpers.CollectionExists(db, ctx, collectionName) {
+		db.Collection(collectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys:    bson.D{bson.DocElem{Name: "title", Value: "text"}}.Map(),
+			Options: options.Index().SetUnique(true),
+		})
+	}
 }
 
 func (r record) String() string {
 	return utilsW.ToString(r, "AddDate", "ModifiedDate")
 }
 
+func incrementTagCount(db *mongo.Database, tags []string, val int) {
+	_, err := db.Collection(tagCollectionName).UpdateMany(ctx, bson.M{"name": bson.M{"$in": tags}},
+		bson.M{"$inc": bson.M{"count": val}}, options.Update().SetUpsert(true))
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (r *record) exists() bool {
 	collection := client.Database(dbName).Collection(collectionName)
-	singleResults := collection.FindOne(context.Background(), bson.M{"title": r.Title, "tags": r.Tags})
+	singleResults := collection.FindOne(context.Background(), bson.M{"_id": r.ID})
 	err := singleResults.Err()
 	if err == nil {
 		return true
@@ -119,6 +142,7 @@ func (r *record) do(action string) {
 		if err = collection.FindOne(ctx, bson.M{"_id": r.ID}).Decode(r); err != nil {
 			panic(err)
 		}
+
 	case "save":
 		if r.exists() {
 			return
@@ -127,16 +151,19 @@ func (r *record) do(action string) {
 			session.AbortTransaction(ctx)
 			panic(err)
 		}
+		incrementTagCount(db, r.Tags, 1)
 	case "delete":
-		if _, err = collection.DeleteOne(ctx, bson.M{"title": r.Title, "tags": r.Tags}); err != nil {
+		if _, err = collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
 			session.AbortTransaction(ctx)
 			panic(err)
 		}
+		incrementTagCount(db, r.Tags, -1)
 	case "deleteByID":
 		if _, err = collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
 			session.AbortTransaction(ctx)
 			panic(err)
 		}
+		incrementTagCount(db, r.Tags, -1)
 	case "update":
 		if _, err = collection.UpdateOne(ctx, bson.M{"_id": r.ID}, bson.M{"$set": r}); err != nil {
 			session.AbortTransaction(ctx)
@@ -174,7 +201,7 @@ func (r *record) loadByID() {
 	r.do("load")
 }
 
-func listRecords(limit int64, reverse, includeFinished bool, tags []string) []*record {
+func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool) []*record {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -197,7 +224,11 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string) []*r
 		m["finished"] = false
 	}
 	if len(tags) > 0 {
-		m["tags"] = bson.M{"$all": tags}
+		if useAnd {
+			m["tags"] = bson.M{"$all": tags}
+		} else {
+			m["tags"] = bson.M{"$in": tags}
+		}
 	}
 	cursor, err := collection.Find(ctx, m, addDateOption, modifiedDataOption)
 	if err != nil {
@@ -210,7 +241,7 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string) []*r
 	return res
 }
 
-func update(parsed *terminalW.ParsedResults) {
+func update(parsed *terminalW.ParsedResults, fromFile bool) {
 	var err error
 	var changed bool
 	scanner := bufio.NewScanner(os.Stdin)
@@ -232,6 +263,9 @@ func update(parsed *terminalW.ParsedResults) {
 	fmt.Print("input the title: ")
 	scanner.Scan()
 	title := strings.TrimSpace(scanner.Text())
+	if fromFile {
+		title = utilsW.ReadString(title)
+	}
 	if title != "" {
 		changed = true
 		newRecord.Title = title
@@ -242,6 +276,17 @@ func update(parsed *terminalW.ParsedResults) {
 	if tags != "" {
 		changed = true
 		newRecord.Tags = stringsW.SplitNoEmpty(tags, " ")
+		c := make(chan interface{}, 1)
+		go func(c chan interface{}) {
+			incrementTagCount(client.Database(dbName), oldTags, -1)
+			c <- nil
+		}(c)
+		go func(c chan interface{}) {
+			incrementTagCount(client.Database(dbName), newRecord.Tags, 1)
+			c <- nil
+		}(c)
+		<-c
+		<-c
 	}
 	if !changed {
 		return
@@ -259,11 +304,14 @@ func update(parsed *terminalW.ParsedResults) {
 	}
 }
 
-func insert() {
+func insert(fromFile bool) {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("input the title: ")
 	scanner.Scan()
 	title := strings.TrimSpace(scanner.Text())
+	if fromFile {
+		title = utilsW.ReadString(title)
+	}
 	fmt.Print("input the tags: ")
 	scanner.Scan()
 	tags := stringsW.SplitNoEmpty(strings.TrimSpace(scanner.Text()), " ")
@@ -271,7 +319,16 @@ func insert() {
 		tags = []string{autoTag}
 	}
 	r := newRecord(title, tags...)
-	r.save()
+	c := make(chan interface{})
+	go func(chan interface{}) {
+		defer func() {
+			c <- nil
+		}()
+		r.save()
+	}(c)
+	<-c
+	fmt.Println("Inserted: ")
+	fmt.Println(r)
 }
 
 func setFinish(finish bool) {
@@ -301,7 +358,7 @@ func delete() {
 	r.delete()
 }
 
-func changeTitle() {
+func changeTitle(fromFile bool) {
 	var err error
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("input the Object ID: ")
@@ -319,10 +376,19 @@ func changeTitle() {
 	fmt.Print("input the New Title: ")
 	scanner.Scan()
 	r.Title = strings.TrimSpace(scanner.Text())
-	r.update()
+	if fromFile {
+		r.Title = utilsW.ReadString(r.Title)
+	}
+	go func(c chan interface{}) {
+		r.update()
+		c <- nil
+	}(c)
+	<-c
+	fmt.Println("New Record: ")
+	fmt.Println(r)
 }
 
-func addTag() {
+func addTag(add bool) {
 	var err error
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("input the Object ID: ")
@@ -346,17 +412,45 @@ func addTag() {
 		}
 		c <- s
 	}(c)
-
-	fmt.Print("input the New Tag: ")
+	fmt.Print("input the Tag: ")
 	scanner.Scan()
 	newTags := stringsW.SplitNoEmpty(strings.TrimSpace(scanner.Text()), " ")
 
 	s := (<-c).(*containerW.Set)
+	newTagSet := containerW.NewSet()
 	for _, newTag := range newTags {
-		s.Add(newTag)
+		if !s.Contains(newTag) {
+			newTagSet.Add(newTag)
+		}
+		if add {
+			s.Add(newTag)
+		} else {
+			s.Delete(newTag)
+		}
 	}
-	r.Tags = s.ToStringSlice()
-	r.update()
+	var incVal int
+	if add {
+		incVal = 1
+	} else {
+		incVal = -1
+	}
+	go func(c chan interface{}) {
+		defer func() {
+			c <- nil
+		}()
+		incrementTagCount(client.Database(dbName), newTagSet.ToStringSlice(), incVal)
+	}(c)
+	<-c
+	go func(c chan interface{}) {
+		defer func() {
+			c <- nil
+		}()
+		r.Tags = s.ToStringSlice()
+		r.update()
+	}(c)
+	<-c
+	fmt.Println("New Record: ")
+	fmt.Println(r)
 }
 
 func main() {
@@ -365,6 +459,7 @@ func main() {
 			fmt.Println(res)
 		}
 	}()
+	var n int64 = 3
 
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("i", false, "insert a record")
@@ -381,64 +476,92 @@ func main() {
 	fs.Bool("f", false, "finish a record")
 	fs.Bool("nf", false, "set a record UNFINISHED")
 	fs.String("t", "", "search by tags")
-	fs.Bool("-include-finished", false, "include finished record")
-	fs.Bool("-add-tag", false, "add tag")
+	fs.Bool("include-finished", false, "include finished record")
+	fs.Bool("add-tag", false, "add tags")
+	fs.Bool("del-tag", false, "delete tags")
+	fs.Bool("tags", false, "list all tags")
+	fs.Bool("and", false, "use and logic to match tags")
+	fs.Bool("v", false, "verbose (show modify/add time)")
+	fs.Bool("file", false, "read title from a file")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "f", "a",
-		"ct", "i", "u", "d", "-include-finished", "-add-tag")
+		"ct", "i", "u", "d", "include-finished", "add-tag", "del-tag", "tags", "and", "v", "file")
 
-	if parsed == nil || parsed.ContainsFlagStrict("h") {
+	if parsed == nil {
+		records := listRecords(n, false, false, []string{"todo", "urgent"}, false)
+		for _, record := range records {
+			fmt.Println(record)
+		}
+		return
+	}
+
+	if parsed.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
 
 	if parsed.ContainsFlagStrict("f") {
 		setFinish(true)
+		return
 	}
-	var n int64 = 3
+
 	if parsed.GetNumArgs() != -1 {
 		n = int64(parsed.GetNumArgs())
 	}
-	all := parsed.ContainsFlagStrict("all") || (parsed.ContainsFlag("a") && !parsed.ContainsFlagStrict("--add-tags"))
+	all := parsed.ContainsFlagStrict("all") || (parsed.ContainsFlag("a") &&
+		!parsed.ContainsFlagStrict("add-tag") && !parsed.ContainsFlagStrict("del-tag"))
 	if all {
 		n = math.MaxInt64
 	}
 	reverse := parsed.ContainsFlag("r")
-	includeFinished := parsed.ContainsFlagStrict("--include-finished") || all
+	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
 
-	if parsed.ContainsFlag("l") && !parsed.ContainsFlagStrict("--include-finished") {
-		records := listRecords(n, reverse, includeFinished, nil)
+	if parsed.ContainsFlag("l") &&
+		!parsed.ContainsFlagStrict("include-finished") &&
+		!parsed.ContainsFlagStrict("del-tag") &&
+		!parsed.ContainsFlagStrict("file") {
+		var tags []string = nil
+		if parsed.ContainsFlagStrict("t") {
+			tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetFlagValueDefault("t", "")), " ")
+		}
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"))
+		ignoreFields := []string{"AddDate", "ModifiedDate"}
+		if parsed.ContainsFlagStrict("v") {
+			ignoreFields = []string{}
+		}
 		for _, record := range records {
-			fmt.Println(record)
+			fmt.Println(utilsW.ToString(record, ignoreFields...))
 		}
 	}
 
 	if parsed.ContainsFlagStrict("u") {
-		update(parsed)
+		update(parsed, parsed.ContainsFlagStrict("file"))
+		return
 	}
 
 	if parsed.ContainsFlagStrict("i") {
-		insert()
+		insert(parsed.ContainsFlagStrict("file"))
+		return
 	}
 
 	if parsed.ContainsFlagStrict("ct") {
-		changeTitle()
+		changeTitle(parsed.ContainsFlagStrict("file"))
+		return
 	}
 
 	if parsed.ContainsFlagStrict("d") {
 		delete()
+		return
 	}
 
-	if parsed.ContainsFlagStrict("t") {
-		tags := stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetFlagValueDefault("t", "")), " ")
-		records := listRecords(n, reverse, includeFinished, tags)
-		for _, record := range records {
-			fmt.Println(record)
-		}
+	if parsed.ContainsFlagStrict("add-tag") {
+		addTag(true)
+		return
 	}
 
-	if parsed.ContainsFlagStrict("--add-tag") {
-		addTag()
+	if parsed.ContainsFlagStrict("del-tag") {
+		addTag(false)
+		return
 	}
 
 	if parsed.ContainsFlagStrict("sync") {
@@ -448,5 +571,19 @@ func main() {
 
 	if parsed.ContainsFlagStrict("nf") {
 		setFinish(false)
+		return
 	}
+
+	if parsed.ContainsFlagStrict("tags") {
+		cursor, err := client.Database(dbName).Collection(tagCollectionName).Find(ctx, bson.M{})
+		if err != nil {
+			panic(err)
+		}
+		var tags []tag
+		cursor.All(ctx, &tags)
+		for _, tag := range tags {
+			fmt.Println(utilsW.ToString(tag))
+		}
+	}
+	return
 }

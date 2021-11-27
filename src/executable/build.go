@@ -57,7 +57,16 @@ func main() {
 			continue
 		}
 		defer os.Chdir("../")
-		filename := utilsW.LsDir(".")[0]
+		var filename string
+		filenames := utilsW.LsDir(".")
+		// find the first go file to build as binary
+		for _, name := range filenames {
+			if filepath.Ext(name) != ".go" {
+				continue
+			}
+			filename = name
+		}
+
 		executableFilename := filepath.Join(outputDir, utilsW.TrimFileExt(filename))
 		if utilsW.GetPlatform() == utilsW.WINDOWS {
 			executableFilename += ".exe"

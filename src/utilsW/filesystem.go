@@ -126,6 +126,9 @@ func GetCurrentFileName() string {
 
 func TrimFileExt(filename string) string {
 	idx := strings.LastIndex(filename, ".")
+	if idx < 0 {
+		return filename
+	}
 	return filename[:idx]
 }
 

@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -52,4 +53,17 @@ func TarGz(outName string, srcNames []string, verbose bool) error {
 		}
 	}
 	return nil
+}
+
+// ReadString read all content from fname
+func ReadString(fname string) string {
+	f, err := os.Open(fname)
+	if err != nil {
+		panic(err)
+	}
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
 }
