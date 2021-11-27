@@ -362,14 +362,21 @@ func setFinish(finish bool) {
 	r.update()
 }
 
-func delete() {
+func delete(id string) {
 	var err error
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("input the Object ID: ")
-	scanner.Scan()
 	r := record{}
-	if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
-		panic(err)
+	id = strings.TrimSpace(id)
+	if id == "" {
+		scanner := bufio.NewScanner(os.Stdin)
+		fmt.Print("input the Object ID: ")
+		scanner.Scan()
+		if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
+			panic(err)
+		}
+	} else {
+		if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
+			panic(err)
+		}
 	}
 	r.loadByID()
 	r.delete()
@@ -475,6 +482,10 @@ func addTag(add bool) {
 	fmt.Println(r)
 }
 
+func printSeperator() {
+	fmt.Println(color.GreenString(strings.Repeat("~", 10)))
+}
+
 func main() {
 	defer func() {
 		if res := recover(); res != nil {
@@ -487,7 +498,7 @@ func main() {
 	fs.Bool("i", false, "insert a record")
 	fs.Bool("ct", false, "change a record")
 	fs.Bool("u", false, "update a record")
-	fs.Bool("d", false, "delete a record")
+	fs.String("d", "", "delete a record")
 	fs.Bool("l", false, "list records")
 	fs.Int("n", 3, "# of records to list")
 	fs.Bool("h", false, "print help information")
@@ -508,12 +519,13 @@ func main() {
 	fs.Bool("e", false, "read from editor")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "f", "a",
-		"ct", "i", "u", "d", "include-finished", "add-tag", "del-tag", "tags", "and", "v", "file", "e")
+		"ct", "i", "u", "include-finished", "add-tag", "del-tag", "tags", "and",
+		"v", "file", "e")
 
 	if parsed == nil {
 		records := listRecords(n, false, false, []string{"todo", "urgent"}, false)
 		for _, record := range records {
-			fmt.Println(color.GreenString(strings.Repeat("~", 10)))
+			printSeperator()
 			fmt.Println(record)
 		}
 		return
@@ -554,6 +566,7 @@ func main() {
 			ignoreFields = []string{}
 		}
 		for _, record := range records {
+			printSeperator()
 			fmt.Println(utilsW.ToString(record, ignoreFields...))
 		}
 	}
@@ -574,7 +587,7 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("d") {
-		delete()
+		delete(parsed.GetFlagValueDefault("d", ""))
 		return
 	}
 
@@ -608,6 +621,6 @@ func main() {
 		for _, tag := range tags {
 			fmt.Println(utilsW.ToString(tag))
 		}
+		return
 	}
-	return
 }

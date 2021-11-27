@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -64,6 +65,7 @@ func ReadString(fname string) string {
 	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
 	b, err := ioutil.ReadAll(f)
 	if err != nil {
 		panic(err)
@@ -72,7 +74,7 @@ func ReadString(fname string) string {
 }
 
 func InputWithEditor() (res string) {
-	fname := uuid.New().String()
+	fname := uuid.New().String() + ".txt"
 	var cmd *exec.Cmd
 	switch GetPlatform() {
 	case MAC, LINUX:
@@ -84,6 +86,21 @@ func InputWithEditor() (res string) {
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 	res = ReadString(fname)
-	os.Remove(fname)
-	return
+
+	t := time.After(time.Second)
+	ch := make(chan interface{})
+	go func() {
+		for err := os.Remove(fname); err != nil; err = os.Remove(fname) {
+		}
+		ch <- nil
+	}()
+
+	for {
+		select {
+		case <-ch:
+			return
+		case <-t:
+			return
+		}
+	}
 }
