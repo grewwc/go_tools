@@ -243,7 +243,6 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	if title != "" {
 		m["title"] = bson.M{"$regex": primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", title), Options: "i"}}
 	}
-	fmt.Println("here", m)
 	cursor, err := collection.Find(ctx, m, addDateOption, modifiedDataOption)
 	if err != nil {
 		panic(err)
@@ -495,6 +494,17 @@ func printSeperator() {
 	fmt.Println(color.GreenString(strings.Repeat("~", 10)))
 }
 
+func coloringRecord(r *record, p *regexp.Regexp) {
+	if p != nil {
+		r.Title = p.ReplaceAllString(r.Title, color.RedString("$0"))
+	} else {
+		r.Title = color.YellowString(r.Title)
+	}
+	for i := range r.Tags {
+		r.Tags[i] = color.RedString(r.Tags[i])
+	}
+}
+
 func main() {
 	defer func() {
 		if res := recover(); res != nil {
@@ -537,6 +547,7 @@ func main() {
 		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "")
 		for _, record := range records {
 			printSeperator()
+			coloringRecord(record, nil)
 			fmt.Println(record)
 		}
 		return
@@ -564,25 +575,25 @@ func main() {
 	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
 	verbose := parsed.ContainsFlagStrict("v")
 	tags := []string{}
-	toJson := parsed.ContainsFlagStrict("json")
+	toJSON := parsed.ContainsFlagStrict("json")
 
 	if parsed.ContainsFlagStrict("t") {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetFlagValueDefault("t", "")), " ")
 	}
-	if parsed.ContainsFlag("l") &&
+	if (parsed.ContainsFlag("l") || parsed.ContainsFlagStrict("t")) &&
 		!parsed.ContainsFlagStrict("include-finished") &&
 		!parsed.ContainsFlagStrict("del-tag") &&
 		!parsed.ContainsFlagStrict("file") &&
 		!parsed.ContainsFlagStrict("title") {
-
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "")
 		ignoreFields := []string{"AddDate", "ModifiedDate"}
 		if verbose {
 			ignoreFields = []string{}
 		}
-		if !toJson {
+		if !toJSON {
 			for _, record := range records {
 				printSeperator()
+				coloringRecord(record, nil)
 				fmt.Println(utilsW.ToString(record, ignoreFields...))
 			}
 		} else {
@@ -596,7 +607,6 @@ func main() {
 				}
 			}
 		}
-		return
 	}
 
 	if parsed.ContainsFlagStrict("u") {
@@ -648,6 +658,7 @@ func main() {
 		cursor.All(ctx, &tags)
 		for _, tag := range tags {
 			printSeperator()
+			tag.Name = color.RedString(tag.Name)
 			fmt.Println(utilsW.ToString(tag))
 		}
 		return
@@ -656,11 +667,11 @@ func main() {
 	if parsed.ContainsFlagStrict("title") {
 		title := parsed.GetFlagValueDefault("title", "")
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title)
-		if !toJson {
+		if !toJSON {
 			for _, record := range records {
 				printSeperator()
 				p := regexp.MustCompile(`(?i)` + title)
-				record.Title = p.ReplaceAllString(record.Title, color.RedString(title))
+				coloringRecord(record, p)
 				fmt.Println(record)
 			}
 		} else {
