@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -496,12 +497,31 @@ func printSeperator() {
 
 func coloringRecord(r *record, p *regexp.Regexp) {
 	if p != nil {
-		r.Title = p.ReplaceAllString(r.Title, color.RedString("$0"))
+		all := bytes.NewBufferString("")
+		indices := p.FindAllStringIndex(r.Title, -1)
+		beg := containerW.NewQueue()
+		end := containerW.NewQueue()
+		bt := []byte(r.Title)
+		for _, idx := range indices {
+			i, j := idx[0], idx[1]
+			beg.Enqueue(i)
+			end.Enqueue(j)
+		}
+		idx := 0
+		for !beg.Empty() {
+			i := beg.Dequeue().(int)
+			j := end.Dequeue().(int)
+			all.WriteString(color.YellowString(string(bt[idx:i])))
+			all.WriteString(color.RedString(string(bt[i:j])))
+			idx = j
+		}
+		all.WriteString(color.YellowString(string(bt[idx:])))
+		r.Title = all.String()
 	} else {
 		r.Title = color.YellowString(r.Title)
 	}
 	for i := range r.Tags {
-		r.Tags[i] = color.RedString(r.Tags[i])
+		r.Tags[i] = color.HiBlueString(r.Tags[i])
 	}
 }
 
@@ -537,6 +557,7 @@ func main() {
 	fs.Bool("file", false, "read title from a file")
 	fs.Bool("e", false, "read from editor")
 	fs.String("title", "", "search by title")
+	fs.String("c", "", "content (alias for title)")
 	fs.Bool("json", false, "print output to json")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "f", "a",
@@ -664,8 +685,11 @@ func main() {
 		return
 	}
 
-	if parsed.ContainsFlagStrict("title") {
+	if parsed.ContainsFlagStrict("title") || parsed.ContainsFlagStrict("c") {
 		title := parsed.GetFlagValueDefault("title", "")
+		if title == "" {
+			title = parsed.GetFlagValueDefault("c", "")
+		}
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title)
 		if !toJSON {
 			for _, record := range records {
