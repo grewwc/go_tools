@@ -619,6 +619,7 @@ func main() {
 		var tags []tag
 		cursor.All(ctx, &tags)
 		for _, tag := range tags {
+			printSeperator()
 			fmt.Println(utilsW.ToString(tag))
 		}
 		return
