@@ -1,7 +1,11 @@
 package helpers
 
 import (
+	"bufio"
 	"context"
+	"fmt"
+	"os"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
@@ -16,6 +20,17 @@ func CollectionExists(db *mongo.Database, ctx context.Context, collectionName st
 		if name == collectionName {
 			return true
 		}
+	}
+	return false
+}
+
+func PromptYesOrNo(msg string) bool {
+	fmt.Print(msg)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	ans := strings.TrimSpace(scanner.Text())
+	if strings.ToLower(ans) == "y" {
+		return true
 	}
 	return false
 }

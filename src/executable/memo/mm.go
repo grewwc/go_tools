@@ -3,11 +3,14 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -32,7 +35,8 @@ const (
 )
 
 const (
-	autoTag = "auto"
+	autoTag        = "auto"
+	jsonOutputName = "output.json"
 )
 
 var (
@@ -43,12 +47,12 @@ var (
 )
 
 type record struct {
-	ID           primitive.ObjectID `bson:"_id,ignoreempty"`
-	Tags         []string           `bson:"tags,ignoreempty"`
-	AddDate      time.Time          `bson:"add_date,ignoreempty"`
-	ModifiedDate time.Time          `bson:"modified_date,ignoreempty"`
-	Finished     bool               `bson:"finished,ignoreempty"`
-	Title        string             `bson:"title,ignoreempty"`
+	ID           primitive.ObjectID `bson:"_id,ignoreempty" json:"id,ignoreempty"`
+	Tags         []string           `bson:"tags,ignoreempty" json:"tags,ignoreempty"`
+	AddDate      time.Time          `bson:"add_date,ignoreempty" json:"add_date,ignoreempty"`
+	ModifiedDate time.Time          `bson:"modified_date,ignoreempty" json:"modified_date,ignoreempty"`
+	Finished     bool               `bson:"finished,ignoreempty" json:"finished,ignoreempty"`
+	Title        string             `bson:"title,ignoreempty" json:"title,ignoreempty"`
 }
 
 type tag struct {
@@ -206,7 +210,7 @@ func (r *record) loadByID() {
 	r.do("load")
 }
 
-func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool) []*record {
+func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool, title string) []*record {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -225,6 +229,7 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	modifiedDataOption.SetSort(bson.M{"modified_date": reverseNum})
 	addDateOption.SetSort(bson.M{"add_date": reverseNum})
 	m := bson.M{}
+	// construct search filter
 	if !includeFinished {
 		m["finished"] = false
 	}
@@ -235,6 +240,10 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 			m["tags"] = bson.M{"$in": tags}
 		}
 	}
+	if title != "" {
+		m["title"] = bson.M{"$regex": primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", title), Options: "i"}}
+	}
+	fmt.Println("here", m)
 	cursor, err := collection.Find(ctx, m, addDateOption, modifiedDataOption)
 	if err != nil {
 		panic(err)
@@ -496,7 +505,7 @@ func main() {
 
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("i", false, "insert a record")
-	fs.Bool("ct", false, "change a record")
+	fs.Bool("ct", false, "change a record title")
 	fs.Bool("u", false, "update a record")
 	fs.String("d", "", "delete a record")
 	fs.Bool("l", false, "list records")
@@ -510,20 +519,22 @@ func main() {
 	fs.Bool("nf", false, "set a record UNFINISHED")
 	fs.String("t", "", "search by tags")
 	fs.Bool("include-finished", false, "include finished record")
-	fs.Bool("add-tag", false, "add tags")
-	fs.Bool("del-tag", false, "delete tags")
+	fs.Bool("add-tag", false, "add tags for a record")
+	fs.Bool("del-tag", false, "delete tags for a record")
 	fs.Bool("tags", false, "list all tags")
 	fs.Bool("and", false, "use and logic to match tags")
 	fs.Bool("v", false, "verbose (show modify/add time)")
 	fs.Bool("file", false, "read title from a file")
 	fs.Bool("e", false, "read from editor")
+	fs.String("title", "", "search by title")
+	fs.Bool("json", false, "print output to json")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "f", "a",
 		"ct", "i", "u", "include-finished", "add-tag", "del-tag", "tags", "and",
-		"v", "file", "e")
+		"v", "file", "e", "json")
 
 	if parsed == nil {
-		records := listRecords(n, false, false, []string{"todo", "urgent"}, false)
+		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "")
 		for _, record := range records {
 			printSeperator()
 			fmt.Println(record)
@@ -551,24 +562,41 @@ func main() {
 	}
 	reverse := parsed.ContainsFlag("r")
 	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
+	verbose := parsed.ContainsFlagStrict("v")
+	tags := []string{}
+	toJson := parsed.ContainsFlagStrict("json")
 
+	if parsed.ContainsFlagStrict("t") {
+		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetFlagValueDefault("t", "")), " ")
+	}
 	if parsed.ContainsFlag("l") &&
 		!parsed.ContainsFlagStrict("include-finished") &&
 		!parsed.ContainsFlagStrict("del-tag") &&
-		!parsed.ContainsFlagStrict("file") {
-		var tags []string = nil
-		if parsed.ContainsFlagStrict("t") {
-			tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetFlagValueDefault("t", "")), " ")
-		}
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"))
+		!parsed.ContainsFlagStrict("file") &&
+		!parsed.ContainsFlagStrict("title") {
+
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "")
 		ignoreFields := []string{"AddDate", "ModifiedDate"}
-		if parsed.ContainsFlag("v") {
+		if verbose {
 			ignoreFields = []string{}
 		}
-		for _, record := range records {
-			printSeperator()
-			fmt.Println(utilsW.ToString(record, ignoreFields...))
+		if !toJson {
+			for _, record := range records {
+				printSeperator()
+				fmt.Println(utilsW.ToString(record, ignoreFields...))
+			}
+		} else {
+			data, err := json.MarshalIndent(records, "", "  ")
+			if err != nil {
+				panic(err)
+			}
+			if !utilsW.IsExist(jsonOutputName) && helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
+				if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
+					panic(err)
+				}
+			}
 		}
+		return
 	}
 
 	if parsed.ContainsFlagStrict("u") {
@@ -623,5 +651,28 @@ func main() {
 			fmt.Println(utilsW.ToString(tag))
 		}
 		return
+	}
+
+	if parsed.ContainsFlagStrict("title") {
+		title := parsed.GetFlagValueDefault("title", "")
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title)
+		if !toJson {
+			for _, record := range records {
+				printSeperator()
+				p := regexp.MustCompile(`(?i)` + title)
+				record.Title = p.ReplaceAllString(record.Title, color.RedString(title))
+				fmt.Println(record)
+			}
+		} else {
+			data, err := json.MarshalIndent(records, "", "  ")
+			if err != nil {
+				panic(err)
+			}
+			if !utilsW.IsExist(jsonOutputName) && helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
+				if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
+					panic(err)
+				}
+			}
+		}
 	}
 }
