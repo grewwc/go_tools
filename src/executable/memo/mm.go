@@ -238,7 +238,7 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 		if useAnd {
 			m["tags"] = bson.M{"$all": tags}
 		} else {
-			m["tags"] = bson.M{"$in": tags}
+			m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tags}}
 		}
 	}
 	if title != "" {
