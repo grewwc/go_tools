@@ -276,12 +276,11 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
 	newRecord.loadByID()
 	oldTitle := newRecord.Title
 	oldTags := newRecord.Tags
-
 	fmt.Print("input the title: ")
 	scanner.Scan()
 	var title string
 	if fromEditor {
-		title = utilsW.InputWithEditor(oldTitle)
+		newRecord.Title = utilsW.InputWithEditor(oldTitle)
 		fmt.Println()
 	} else {
 		title = strings.TrimSpace(scanner.Text())
@@ -405,8 +404,8 @@ func changeTitle(fromFile, fromEditor bool) {
 		panic(err)
 	}
 	go func(chan interface{}) {
-		c <- nil
 		r.loadByID()
+		c <- nil
 	}(c)
 	<-c
 	fmt.Print("input the New Title: ")
