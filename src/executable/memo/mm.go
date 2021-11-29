@@ -63,6 +63,9 @@ type tag struct {
 }
 
 func newRecord(title string, tags ...string) *record {
+	if len(tags) == 0 {
+		tags = []string{autoTag}
+	}
 	r := &record{Title: title, Tags: tags, Finished: false}
 	t := time.Now()
 	r.AddDate = t
@@ -278,7 +281,7 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
 	scanner.Scan()
 	var title string
 	if fromEditor {
-		title = utilsW.InputWithEditor()
+		title = utilsW.InputWithEditor(oldTitle)
 		fmt.Println()
 	} else {
 		title = strings.TrimSpace(scanner.Text())
@@ -329,7 +332,7 @@ func insert(fromFile, fromEditor bool) {
 	fmt.Print("input the title: ")
 	var title string
 	if fromEditor {
-		title = utilsW.InputWithEditor()
+		title = utilsW.InputWithEditor("")
 		fmt.Println()
 	} else {
 		scanner.Scan()
@@ -408,7 +411,7 @@ func changeTitle(fromFile, fromEditor bool) {
 	<-c
 	fmt.Print("input the New Title: ")
 	if fromEditor {
-		r.Title = utilsW.InputWithEditor()
+		r.Title = utilsW.InputWithEditor(r.Title)
 		fmt.Println()
 	} else {
 		scanner.Scan()
@@ -531,7 +534,7 @@ func main() {
 			fmt.Println(res)
 		}
 	}()
-	var n int64 = 3
+	var n int64 = 5
 
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("i", false, "insert a record")
@@ -570,6 +573,7 @@ func main() {
 			printSeperator()
 			coloringRecord(record, nil)
 			fmt.Println(record)
+			fmt.Println(color.HiRedString(record.ID.String()))
 		}
 		return
 	}
@@ -616,6 +620,7 @@ func main() {
 				printSeperator()
 				coloringRecord(record, nil)
 				fmt.Println(utilsW.ToString(record, ignoreFields...))
+				fmt.Println(color.HiRedString(record.ID.String()))
 			}
 		} else {
 			data, err := json.MarshalIndent(records, "", "  ")
@@ -697,6 +702,7 @@ func main() {
 				p := regexp.MustCompile(`(?i)` + title)
 				coloringRecord(record, p)
 				fmt.Println(record)
+				fmt.Println(color.HiRedString(record.ID.String()))
 			}
 		} else {
 			data, err := json.MarshalIndent(records, "", "  ")

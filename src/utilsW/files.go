@@ -73,9 +73,16 @@ func ReadString(fname string) string {
 	return string(b)
 }
 
-func InputWithEditor() (res string) {
+func InputWithEditor(originalContent string) (res string) {
 	fname := uuid.New().String() + ".txt"
 	var cmd *exec.Cmd
+	f, err := os.OpenFile(fname, os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		panic(err)
+	}
+	f.WriteString(originalContent)
+	f.Close()
+
 	switch GetPlatform() {
 	case MAC, LINUX:
 		cmd = exec.Command("vim", fname)
