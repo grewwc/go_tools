@@ -567,7 +567,7 @@ func main() {
 			fmt.Println(res)
 		}
 	}()
-	var n int64 = 5
+	var n int64 = 10
 
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("i", false, "insert a record")
