@@ -369,6 +369,18 @@ func setFinish(finish bool) {
 		panic(err)
 	}
 	r.loadByID()
+	c := make(chan interface{})
+	go func(c chan interface{}) {
+		defer func() {
+			c <- nil
+		}()
+		inc := 1
+		if finish {
+			inc = -1
+		}
+		incrementTagCount(client.Database(dbName), r.Tags, inc)
+	}(c)
+	<-c
 	r.Finished = finish
 	r.update()
 }
