@@ -591,7 +591,8 @@ func main() {
 		n = int64(parsed.GetNumArgs())
 	}
 	all := parsed.ContainsFlagStrict("all") || (parsed.ContainsFlag("a") &&
-		!parsed.ContainsFlagStrict("add-tag") && !parsed.ContainsFlagStrict("del-tag"))
+		!parsed.ContainsFlagStrict("add-tag") && !parsed.ContainsFlagStrict("del-tag") &&
+		!parsed.ContainsFlagStrict("tags"))
 	if all {
 		n = math.MaxInt64
 	}
@@ -675,16 +676,38 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("tags") {
-		cursor, err := client.Database(dbName).Collection(tagCollectionName).Find(ctx, bson.M{})
+		all = parsed.ContainsFlagStrict("a")
+		if all {
+			n = math.MaxInt64
+		} else if parsed.GetNumArgs() != -1 {
+			n = int64(parsed.GetNumArgs())
+		} else {
+			n = 10
+		}
+		op1 := options.FindOptions{}
+		op1.SetLimit(n)
+		if reverse {
+			op1.SetSort(bson.M{"count": 1})
+		} else {
+			op1.SetSort(bson.M{"count": -1})
+		}
+		cursor, err := client.Database(dbName).Collection(tagCollectionName).Find(ctx, bson.M{}, &op1)
 		if err != nil {
 			panic(err)
 		}
 		var tags []tag
 		cursor.All(ctx, &tags)
 		for _, tag := range tags {
-			printSeperator()
-			tag.Name = color.RedString(tag.Name)
-			fmt.Println(utilsW.ToString(tag))
+			tag.Name = color.HiBlueString(tag.Name)
+			if verbose {
+				printSeperator()
+				fmt.Println(utilsW.ToString(tag))
+			} else {
+				fmt.Fprintf(color.Output, `"%s" `, tag.Name)
+			}
+		}
+		if !verbose {
+			fmt.Println()
 		}
 		return
 	}
