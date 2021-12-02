@@ -39,7 +39,6 @@ func transferImgToBase64(url string, isUrl bool) {
 			panic(err)
 		}
 	}
-
 	str := base64.StdEncoding.EncodeToString(buf)
 	if err = ioutil.WriteFile(outName, []byte(str), 0666); err != nil {
 		panic(err)

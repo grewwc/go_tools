@@ -101,12 +101,12 @@ func init() {
 		})
 	}
 
-	if !helpers.CollectionExists(db, ctx, collectionName) {
-		db.Collection(collectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
-			Keys:    bson.D{bson.DocElem{Name: "title", Value: "text"}}.Map(),
-			Options: options.Index().SetUnique(true),
-		})
-	}
+	// if !helpers.CollectionExists(db, ctx, collectionName) {
+	// 	db.Collection(collectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
+	// 		Keys:    bson.D{bson.DocElem{Name: "title", Value: "text"}}.Map(),
+	// 		Options: options.Index().SetUnique(true),
+	// 	})
+	// }
 }
 
 func (r record) String() string {
