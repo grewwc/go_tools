@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -114,15 +115,29 @@ func (r record) String() string {
 }
 
 func incrementTagCount(db *mongo.Database, tags []string, val int) {
-	_, err := db.Collection(tagCollectionName).UpdateMany(ctx, bson.M{"name": bson.M{"$in": tags}},
-		bson.M{"$inc": bson.M{"count": val}}, options.Update().SetUpsert(true))
+	session, err := client.StartSession()
 	if err != nil {
 		panic(err)
 	}
-
-	if _, err = db.Collection(tagCollectionName).DeleteMany(ctx, bson.M{"count": bson.M{"$lt": 1}}); err != nil {
+	if err = session.StartTransaction(); err != nil {
 		panic(err)
 	}
+
+	for _, tag := range tags {
+		_, err = db.Collection(tagCollectionName).UpdateOne(ctx,
+			bson.M{"name": tag},
+			bson.M{"$inc": bson.M{"count": val}}, options.Update().SetUpsert(true))
+		if err != nil {
+			session.AbortTransaction(ctx)
+			panic(err)
+		}
+	}
+
+	if _, err := db.Collection(tagCollectionName).DeleteMany(ctx, bson.M{"count": bson.M{"$lt": 1}}); err != nil {
+		session.AbortTransaction(ctx)
+		panic(err)
+	}
+	session.CommitTransaction(ctx)
 }
 
 func (r *record) exists() bool {
@@ -440,13 +455,17 @@ func changeTitle(fromFile, fromEditor bool) {
 	fmt.Println(r)
 }
 
-func addTag(add bool) {
+func addTag(add bool, id string) {
 	var err error
+	id = strings.TrimSpace(id)
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("input the Object ID: ")
-	scanner.Scan()
+	if id == "" {
+		fmt.Print("input the Object ID: ")
+		scanner.Scan()
+		id = strings.TrimSpace(scanner.Text())
+	}
 	r := record{}
-	if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
+	if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
 		panic(err)
 	}
 	c := make(chan interface{})
@@ -471,6 +490,9 @@ func addTag(add bool) {
 	s := (<-c).(*containerW.Set)
 	newTagSet := containerW.NewSet()
 	for _, newTag := range newTags {
+		if strings.TrimSpace(newTag) == "" {
+			continue
+		}
 		if !s.Contains(newTag) {
 			newTagSet.Add(newTag)
 		}
@@ -551,7 +573,7 @@ func main() {
 	fs.Bool("i", false, "insert a record")
 	fs.Bool("ct", false, "change a record title")
 	fs.Bool("u", false, "update a record")
-	fs.String("d", "", "delete a record")
+	fs.String("d", "", "delete records ()")
 	fs.Bool("l", false, "list records")
 	fs.Int("n", 3, "# of records to list")
 	fs.Bool("h", false, "print help information")
@@ -563,7 +585,7 @@ func main() {
 	fs.Bool("nf", false, "set a record UNFINISHED")
 	fs.String("t", "", "search by tags")
 	fs.Bool("include-finished", false, "include finished record")
-	fs.Bool("add-tag", false, "add tags for a record")
+	fs.String("add-tag", "", "add tags for a record")
 	fs.Bool("del-tag", false, "delete tags for a record")
 	fs.Bool("tags", false, "list all tags")
 	fs.Bool("and", false, "use and logic to match tags")
@@ -575,7 +597,7 @@ func main() {
 	fs.Bool("json", false, "print output to json")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "f", "a",
-		"ct", "i", "u", "include-finished", "add-tag", "del-tag", "tags", "and",
+		"ct", "i", "u", "include-finished", "del-tag", "tags", "and",
 		"v", "file", "e", "json")
 
 	if parsed == nil {
@@ -587,6 +609,10 @@ func main() {
 			fmt.Println(color.HiRedString(record.ID.String()))
 		}
 		return
+	}
+	positional := parsed.Positional
+	if positional.Size() > 1 {
+		panic(errors.New("too many positional arguments: " + strings.Join(positional.ToStringSlice(), " ")))
 	}
 
 	if parsed.ContainsFlagStrict("h") {
@@ -668,12 +694,12 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("add-tag") {
-		addTag(true)
+		addTag(true, parsed.GetFlagValueDefault("add-tag", ""))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("del-tag") {
-		addTag(false)
+		addTag(false, parsed.GetFlagValueDefault("del-tag", ""))
 		return
 	}
 
@@ -687,7 +713,7 @@ func main() {
 		return
 	}
 
-	if parsed.ContainsFlagStrict("tags") {
+	if parsed.ContainsFlagStrict("tags") || positional.Contains("tags") {
 		all = parsed.ContainsFlagStrict("a")
 		if all {
 			n = math.MaxInt64
