@@ -19,8 +19,7 @@ const (
 )
 
 type ParsedResults struct {
-	Optional map[string]string
-	// Positional *containerW.Set
+	Optional   map[string]string
 	Positional *containerW.OrderedSet
 }
 
@@ -311,9 +310,6 @@ func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	if len(cmdSlice) <= 1 {
 		return nil
 	}
-	// fmt.Println("prev", boolOptionals)
-	// boolOptionals = constructBoolOptional(boolOptionals...)
-	// fmt.Println("after", boolOptionals)
 	cmd = strings.Join(cmdSlice[1:], fmt.Sprintf("%c", sep))
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)
 	return parseArgs(cmd, boolOptionals...)

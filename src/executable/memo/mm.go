@@ -374,15 +374,23 @@ func insert(fromFile, fromEditor bool) {
 	fmt.Println(r)
 }
 
-func setFinish(finish bool) {
+func setFinish(finish bool, id string) {
 	var err error
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("input the Object ID: ")
-	scanner.Scan()
-	r := record{}
-	if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
-		panic(err)
+	var r record
+	id = strings.TrimSpace(id)
+	if id == "" {
+		scanner := bufio.NewScanner(os.Stdin)
+		fmt.Print("input the Object ID: ")
+		scanner.Scan()
+		if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
+			panic(err)
+		}
+	} else {
+		if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
+			panic(err)
+		}
 	}
+
 	r.loadByID()
 	c := make(chan interface{})
 	go func(c chan interface{}) {
@@ -420,16 +428,23 @@ func delete(id string) {
 	r.delete()
 }
 
-func changeTitle(fromFile, fromEditor bool) {
+func changeTitle(fromFile, fromEditor bool, id string) {
 	var err error
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("input the Object ID: ")
-	scanner.Scan()
-	c := make(chan interface{})
+	id = strings.TrimSpace(id)
 	r := record{}
-	if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
-		panic(err)
+	scanner := bufio.NewScanner(os.Stdin)
+	if id == "" {
+		fmt.Print("input the Object ID: ")
+		scanner.Scan()
+		if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
+			panic(err)
+		}
+	} else {
+		if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
+			panic(err)
+		}
 	}
+	c := make(chan interface{})
 	go func(chan interface{}) {
 		r.loadByID()
 		c <- nil
@@ -571,22 +586,22 @@ func main() {
 
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("i", false, "insert a record")
-	fs.Bool("ct", false, "change a record title")
-	fs.Bool("u", false, "update a record")
-	fs.String("d", "", "delete records ()")
+	fs.String("ct", "", "change a record title")
+	fs.String("u", "", "update a record")
+	fs.String("d", "", "delete a record")
 	fs.Bool("l", false, "list records")
-	fs.Int("n", 3, "# of records to list")
+	fs.Int("n", 10, "# of records to list")
 	fs.Bool("h", false, "print help information")
 	fs.Bool("sync", false, "sync to remote db (may take a while)")
-	fs.Bool("r", false, "if true, newer first")
+	fs.Bool("r", false, "reverse sort")
 	fs.Bool("all", false, "including all record")
 	fs.Bool("a", false, "shortcut for -all")
-	fs.Bool("f", false, "finish a record")
-	fs.Bool("nf", false, "set a record UNFINISHED")
+	fs.String("f", "", "finish a record")
+	fs.String("nf", "", "set a record UNFINISHED")
 	fs.String("t", "", "search by tags")
 	fs.Bool("include-finished", false, "include finished record")
 	fs.String("add-tag", "", "add tags for a record")
-	fs.Bool("del-tag", false, "delete tags for a record")
+	fs.String("del-tag", "", "delete tags for a record")
 	fs.Bool("tags", false, "list all tags")
 	fs.Bool("and", false, "use and logic to match tags")
 	fs.Bool("v", false, "verbose (show modify/add time)")
@@ -596,9 +611,8 @@ func main() {
 	fs.String("c", "", "content (alias for title)")
 	fs.Bool("json", false, "print output to json")
 
-	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "f", "a",
-		"ct", "i", "u", "include-finished", "del-tag", "tags", "and",
-		"v", "file", "e", "json")
+	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "a",
+		"i", "include-finished", "tags", "and", "v", "file", "e", "json")
 
 	if parsed == nil {
 		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "")
@@ -621,7 +635,7 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("f") {
-		setFinish(true)
+		setFinish(true, parsed.GetFlagValueDefault("f", ""))
 		return
 	}
 
@@ -684,7 +698,7 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("ct") {
-		changeTitle(parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"))
+		changeTitle(parsed.ContainsFlagStrict("file"), parsed.ContainsFlag("e"), parsed.GetFlagValueDefault("ct", ""))
 		return
 	}
 
@@ -709,7 +723,7 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("nf") {
-		setFinish(false)
+		setFinish(false, parsed.GetFlagValueDefault("nf", ""))
 		return
 	}
 
@@ -720,7 +734,7 @@ func main() {
 		} else if parsed.GetNumArgs() != -1 {
 			n = int64(parsed.GetNumArgs())
 		} else {
-			n = 10
+			n = 100
 		}
 		op1 := options.FindOptions{}
 		op1.SetLimit(n)
@@ -741,7 +755,7 @@ func main() {
 				printSeperator()
 				fmt.Println(utilsW.ToString(tag))
 			} else {
-				fmt.Fprintf(color.Output, `"%s" `, tag.Name)
+				fmt.Fprintf(color.Output, `%s/%d `, tag.Name, tag.Count)
 			}
 		}
 		if !verbose {
