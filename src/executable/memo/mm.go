@@ -39,6 +39,8 @@ const (
 const (
 	autoTag        = "auto"
 	jsonOutputName = "output.json"
+	finish         = "finish"
+	myproblem      = "myproblem"
 )
 
 var (
@@ -53,6 +55,7 @@ type record struct {
 	Tags         []string           `bson:"tags,ignoreempty" json:"tags,ignoreempty"`
 	AddDate      time.Time          `bson:"add_date,ignoreempty" json:"add_date,ignoreempty"`
 	ModifiedDate time.Time          `bson:"modified_date,ignoreempty" json:"modified_date,ignoreempty"`
+	MyProblem    bool               `bson:"my_problem,ignoreempty" json:"my_problem,ignoreempty"`
 	Finished     bool               `bson:"finished,ignoreempty" json:"finished,ignoreempty"`
 	Title        string             `bson:"title,ignoreempty" json:"title,ignoreempty"`
 }
@@ -67,7 +70,7 @@ func newRecord(title string, tags ...string) *record {
 	if len(tags) == 0 {
 		tags = []string{autoTag}
 	}
-	r := &record{Title: title, Tags: tags, Finished: false}
+	r := &record{Title: title, Tags: tags, Finished: false, MyProblem: true}
 	t := time.Now()
 	r.AddDate = t
 	r.ModifiedDate = t
@@ -229,7 +232,8 @@ func (r *record) loadByID() {
 	r.do("load")
 }
 
-func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool, title string) []*record {
+func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool, title string,
+	onlyMyproblem bool) []*record {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -252,6 +256,9 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	if !includeFinished {
 		m["finished"] = false
 	}
+	if onlyMyproblem {
+		m["my_problem"] = true
+	}
 	if len(tags) > 0 {
 		if useAnd {
 			m["tags"] = bson.M{"$all": tags}
@@ -262,6 +269,7 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	if title != "" {
 		m["title"] = bson.M{"$regex": primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", title), Options: "i"}}
 	}
+
 	cursor, err := collection.Find(ctx, m, addDateOption, modifiedDataOption)
 	if err != nil {
 		panic(err)
@@ -374,7 +382,7 @@ func insert(fromFile, fromEditor bool) {
 	fmt.Println(r)
 }
 
-func setFinish(finish bool, id string) {
+func toggle(val bool, id string, name string) {
 	var err error
 	var r record
 	id = strings.TrimSpace(id)
@@ -398,13 +406,20 @@ func setFinish(finish bool, id string) {
 			c <- nil
 		}()
 		inc := 1
-		if finish {
+		if val {
 			inc = -1
 		}
 		incrementTagCount(client.Database(dbName), r.Tags, inc)
 	}(c)
 	<-c
-	r.Finished = finish
+	switch name {
+	case finish:
+		r.Finished = val
+	case myproblem:
+		r.MyProblem = val
+	default:
+		panic("unknown name")
+	}
 	r.update()
 }
 
@@ -598,6 +613,8 @@ func main() {
 	fs.Bool("a", false, "shortcut for -all")
 	fs.String("f", "", "finish a record")
 	fs.String("nf", "", "set a record UNFINISHED")
+	fs.String("p", "", "set a record my problem")
+	fs.String("np", "", "set a record NOT my problem")
 	fs.String("t", "", "search by tags")
 	fs.Bool("include-finished", false, "include finished record")
 	fs.String("add-tag", "", "add tags for a record")
@@ -610,12 +627,13 @@ func main() {
 	fs.String("title", "", "search by title")
 	fs.String("c", "", "content (alias for title)")
 	fs.Bool("json", false, "print output to json")
+	fs.Bool("my", false, "only list my problem")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "a",
-		"i", "include-finished", "tags", "and", "v", "file", "e", "json")
+		"i", "include-finished", "tags", "and", "v", "file", "e", "json", "my")
 
 	if parsed == nil {
-		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "")
+		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", false)
 		for _, record := range records {
 			printSeperator()
 			coloringRecord(record, nil)
@@ -635,8 +653,21 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("f") {
-		setFinish(true, parsed.GetFlagValueDefault("f", ""))
+		toggle(true, parsed.GetFlagValueDefault("f", ""), finish)
 		return
+	}
+
+	if parsed.ContainsFlagStrict("nf") {
+		toggle(false, parsed.GetFlagValueDefault("nf", ""), finish)
+		return
+	}
+
+	if parsed.ContainsFlagStrict("p") {
+		toggle(true, parsed.GetFlagValueDefault("p", ""), myproblem)
+	}
+
+	if parsed.ContainsFlagStrict("np") {
+		toggle(true, parsed.GetFlagValueDefault("np", ""), myproblem)
 	}
 
 	if parsed.GetNumArgs() != -1 {
@@ -662,7 +693,7 @@ func main() {
 		!parsed.ContainsFlagStrict("del-tag") &&
 		!parsed.ContainsFlagStrict("file") &&
 		!parsed.ContainsFlagStrict("title") {
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "")
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my"))
 		ignoreFields := []string{"AddDate", "ModifiedDate"}
 		if verbose {
 			ignoreFields = []string{}
@@ -722,11 +753,6 @@ func main() {
 		return
 	}
 
-	if parsed.ContainsFlagStrict("nf") {
-		setFinish(false, parsed.GetFlagValueDefault("nf", ""))
-		return
-	}
-
 	if parsed.ContainsFlagStrict("tags") || positional.Contains("tags") {
 		all = parsed.ContainsFlagStrict("a")
 		if all {
@@ -769,7 +795,7 @@ func main() {
 		if title == "" {
 			title = parsed.GetFlagValueDefault("c", "")
 		}
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title)
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my"))
 		if !toJSON {
 			for _, record := range records {
 				printSeperator()
