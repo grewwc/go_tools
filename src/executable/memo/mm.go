@@ -401,10 +401,29 @@ func toggle(val bool, id string, name string) {
 
 	r.loadByID()
 	c := make(chan interface{})
+
+	var changed bool
+	switch name {
+	case finish:
+		if r.Finished != val {
+			changed = true
+			r.Finished = val
+		}
+	case myproblem:
+		if r.MyProblem != val {
+			changed = true
+			r.MyProblem = val
+		}
+	default:
+		panic("unknown name")
+	}
 	go func(c chan interface{}) {
 		defer func() {
 			c <- nil
 		}()
+		if !changed {
+			return
+		}
 		inc := 1
 		if val {
 			inc = -1
@@ -412,14 +431,6 @@ func toggle(val bool, id string, name string) {
 		incrementTagCount(client.Database(dbName), r.Tags, inc)
 	}(c)
 	<-c
-	switch name {
-	case finish:
-		r.Finished = val
-	case myproblem:
-		r.MyProblem = val
-	default:
-		panic("unknown name")
-	}
 	r.update()
 }
 
@@ -667,7 +678,7 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("np") {
-		toggle(true, parsed.GetFlagValueDefault("np", ""), myproblem)
+		toggle(false, parsed.GetFlagValueDefault("np", ""), myproblem)
 	}
 
 	if parsed.GetNumArgs() != -1 {
