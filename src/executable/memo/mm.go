@@ -644,7 +644,7 @@ func main() {
 		"i", "include-finished", "tags", "and", "v", "file", "e", "json", "my")
 
 	if parsed == nil {
-		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", false)
+		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true)
 		for _, record := range records {
 			printSeperator()
 			coloringRecord(record, nil)
@@ -699,12 +699,12 @@ func main() {
 	if parsed.ContainsFlagStrict("t") {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetFlagValueDefault("t", "")), " ")
 	}
+
 	if (parsed.ContainsFlag("l") || parsed.ContainsFlagStrict("t")) &&
-		!parsed.ContainsFlagStrict("include-finished") &&
 		!parsed.ContainsFlagStrict("del-tag") &&
 		!parsed.ContainsFlagStrict("file") &&
 		!parsed.ContainsFlagStrict("title") {
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my"))
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") || all)
 		ignoreFields := []string{"AddDate", "ModifiedDate"}
 		if verbose {
 			ignoreFields = []string{}
@@ -806,7 +806,7 @@ func main() {
 		if title == "" {
 			title = parsed.GetFlagValueDefault("c", "")
 		}
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my"))
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || all)
 		if !toJSON {
 			for _, record := range records {
 				printSeperator()
