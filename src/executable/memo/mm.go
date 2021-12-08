@@ -704,7 +704,7 @@ func main() {
 		!parsed.ContainsFlagStrict("del-tag") &&
 		!parsed.ContainsFlagStrict("file") &&
 		!parsed.ContainsFlagStrict("title") {
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") || all)
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") || !all)
 		ignoreFields := []string{"AddDate", "ModifiedDate"}
 		if verbose {
 			ignoreFields = []string{}
@@ -806,7 +806,7 @@ func main() {
 		if title == "" {
 			title = parsed.GetFlagValueDefault("c", "")
 		}
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || all)
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || !all)
 		if !toJSON {
 			for _, record := range records {
 				printSeperator()
