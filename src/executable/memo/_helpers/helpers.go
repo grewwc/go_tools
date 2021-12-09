@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	fname = ".go_tools_urls.txt"
+	fname   = ".go_tools_urls.txt"
+	hintLen = 70
 )
 
 var (
@@ -67,13 +68,22 @@ func WriteUrls(titles []string) {
 
 	p := regexp.MustCompile(`(?i)^url[\s]*:`)
 	for _, title := range titles {
-		buf := bytes.NewBufferString(title)
+		titleOneLine := strings.ReplaceAll(title, "\n", "")
+		buf := bytes.NewBufferString("")
+		for i, ch := range titleOneLine {
+			if i >= hintLen {
+				break
+			}
+			buf.WriteRune(ch)
+		}
+		titleOneLine = buf.String()
+		buf = bytes.NewBufferString(title)
 		scanner := bufio.NewScanner(buf)
 		for scanner.Scan() {
 			line := scanner.Text()
 			line = strings.TrimSpace(line)
 			if p.MatchString(line) {
-				f.WriteString(p.ReplaceAllString(line, ""))
+				f.WriteString(p.ReplaceAllString(line, "") + "\x00" + titleOneLine)
 				f.WriteString("\n")
 			}
 		}
@@ -89,9 +99,13 @@ func OpenUrls() {
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	urls := make([]string, 0)
+	hints := make([]string, 0)
 	for scanner.Scan() {
-		url := strings.TrimSpace(scanner.Text())
+		line := strings.TrimSpace(scanner.Text())
+		info := strings.Split(line, "\x00")
+		url, hint := info[0], info[1]
 		urls = append(urls, url)
+		hints = append(hints, hint)
 	}
 
 	if len(urls) == 0 {
@@ -105,21 +119,22 @@ func OpenUrls() {
 	// more than one urls
 	urlsWithNo := make([]string, len(urls))
 	for i := range urls {
-		urlsWithNo[i] = fmt.Sprintf("%d: %s", i+1, color.GreenString(urls[i]))
+		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.GreenString(urls[i]),
+			color.HiBlueString(hints[i]))
 	}
-	_print := func(urlsWithNo []string) {
-		for _, line := range urlsWithNo {
-			fmt.Println(line)
+	_print := func(urlsWithNo, info []string) {
+		for i := range urlsWithNo {
+			fmt.Println(urlsWithNo[i])
 		}
 	}
-	_print(urlsWithNo)
+	_print(urlsWithNo, hints)
 	fmt.Print("\ninput the number: ")
 	scanner = bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	text := strings.TrimSpace(scanner.Text())
 	for {
 		if val, err := strconv.Atoi(text); err != nil {
-			_print(urlsWithNo)
+			_print(urlsWithNo, hints)
 			fmt.Printf("%s is not a valid choice\n")
 			scanner.Scan()
 		} else {
