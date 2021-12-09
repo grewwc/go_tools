@@ -113,7 +113,7 @@ func OpenUrls() {
 		}
 	}
 	_print(urlsWithNo)
-	fmt.Print("input the number: ")
+	fmt.Print("\ninput the number: ")
 	scanner = bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	text := strings.TrimSpace(scanner.Text())
