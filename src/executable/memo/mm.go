@@ -279,6 +279,12 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	if err = cursor.All(ctx, &res); err != nil {
 		panic(err)
 	}
+
+	recordTitles := make([]string, len(res))
+	for i := range res {
+		recordTitles[i] = res[i].Title
+	}
+	_helpers.WriteUrls(recordTitles)
 	return res
 }
 
@@ -685,6 +691,10 @@ func main() {
 	if parsed.GetNumArgs() != -1 {
 		n = int64(parsed.GetNumArgs())
 	}
+	if parsed.ContainsFlagStrict("n") {
+		n = parsed.MustGetFlagValAsInt64("n")
+	}
+
 	all := parsed.ContainsFlagStrict("all") || (parsed.ContainsFlag("a") &&
 		!parsed.ContainsFlagStrict("add-tag") && !parsed.ContainsFlagStrict("del-tag") &&
 		!parsed.ContainsFlagStrict("tags"))
@@ -827,5 +837,9 @@ func main() {
 				}
 			}
 		}
+	}
+	if positional.Contains("open") {
+		_helpers.OpenUrls()
+		return
 	}
 }

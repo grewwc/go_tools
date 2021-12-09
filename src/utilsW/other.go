@@ -3,6 +3,7 @@ package utilsW
 import (
 	"bytes"
 	"fmt"
+	"os/exec"
 	"reflect"
 	"strings"
 	"time"
@@ -63,4 +64,25 @@ func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
 
 func ToString(obj interface{}, ignoresFieldName ...string) string {
 	return toString(0, obj, ignoresFieldName...)
+}
+
+func OpenUrlInBrowswer(url string) {
+	var cmdStr string
+	var args []string
+
+	switch GetPlatform() {
+	case WINDOWS:
+		cmdStr = "start"
+		args = []string{"", url}
+	case LINUX:
+		cmdStr = "xdg-open"
+		args = []string{url}
+	case MAC:
+		cmdStr = "open"
+		args = []string{url}
+	}
+	cmd := exec.Command(cmdStr, args...)
+	if err := cmd.Run(); err != nil {
+		panic(err)
+	}
 }
