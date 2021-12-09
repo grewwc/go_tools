@@ -59,13 +59,17 @@ func PromptYesOrNo(msg string) bool {
 }
 
 func WriteUrls(titles []string) {
+	if len(titles) < 1 {
+		return
+	}
 	absName := filepath.Join(homeDir, fname)
+	originalData := utilsW.ReadString(absName)
 	f, err := os.OpenFile(absName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0666)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
-
+	matched := 0
 	p := regexp.MustCompile(`(?i)^url[\s]*:`)
 	for _, title := range titles {
 		titleOneLine := strings.ReplaceAll(title, "\n", "")
@@ -83,11 +87,16 @@ func WriteUrls(titles []string) {
 			line := scanner.Text()
 			line = strings.TrimSpace(line)
 			if p.MatchString(line) {
+				matched++
 				f.WriteString(p.ReplaceAllString(line, "") + "\x00" + titleOneLine)
 				f.WriteString("\n")
 			}
 		}
 	}
+	if matched < 1 {
+		f.WriteString(originalData)
+	}
+
 }
 
 func OpenUrls() {
