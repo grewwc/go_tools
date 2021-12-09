@@ -144,8 +144,10 @@ func OpenUrls() {
 	for {
 		if val, err := strconv.Atoi(text); err != nil {
 			_print(urlsWithNo, hints)
-			fmt.Printf("%s is not a valid choice\n")
+			fmt.Printf("%s is not a valid choice\n", text)
 			scanner.Scan()
+		} else if val > len(urls) {
+			fmt.Printf("%d is too large\n", val)
 		} else {
 			utilsW.OpenUrlInBrowswer(urls[val-1])
 			return
