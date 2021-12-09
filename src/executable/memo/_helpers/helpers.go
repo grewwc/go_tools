@@ -63,7 +63,10 @@ func WriteUrls(titles []string) {
 		return
 	}
 	absName := filepath.Join(homeDir, fname)
-	originalData := utilsW.ReadString(absName)
+	var originalData string
+	if utilsW.IsExist(absName) {
+		originalData = utilsW.ReadString(absName)
+	}
 	f, err := os.OpenFile(absName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0666)
 	if err != nil {
 		panic(err)
@@ -93,7 +96,7 @@ func WriteUrls(titles []string) {
 			}
 		}
 	}
-	if matched < 1 {
+	if matched < 1 && originalData != "" {
 		f.WriteString(originalData)
 	}
 

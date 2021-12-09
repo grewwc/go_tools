@@ -72,8 +72,8 @@ func OpenUrlInBrowswer(url string) {
 
 	switch GetPlatform() {
 	case WINDOWS:
-		cmdStr = "start"
-		args = []string{"", url}
+		cmdStr = "cmd"
+		args = []string{"/C", "start", "", url}
 	case LINUX:
 		cmdStr = "xdg-open"
 		args = []string{url}
