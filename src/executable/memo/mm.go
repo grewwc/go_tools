@@ -18,7 +18,8 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/executable/memo/helpers"
+
+	"github.com/grewwc/go_tools/src/executable/memo/_helpers"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
@@ -98,7 +99,7 @@ func init() {
 
 	// check if tags and memo collections exists
 	db := client.Database(dbName)
-	if !helpers.CollectionExists(db, ctx, tagCollectionName) {
+	if !_helpers.CollectionExists(db, ctx, tagCollectionName) {
 		db.Collection(tagCollectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
 			Keys:    bson.D{bson.DocElem{Name: "name", Value: "text"}}.Map(),
 			Options: options.Index().SetUnique(true),
@@ -721,7 +722,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			if !utilsW.IsExist(jsonOutputName) && helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
+			if !utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
 				if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
 					panic(err)
 				}
@@ -820,7 +821,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			if !utilsW.IsExist(jsonOutputName) && helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
+			if !utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
 				if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
 					panic(err)
 				}

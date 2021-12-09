@@ -1,4 +1,4 @@
-package helpers
+package _helpers
 
 import (
 	"bufio"
@@ -33,4 +33,8 @@ func PromptYesOrNo(msg string) bool {
 		return true
 	}
 	return false
+}
+
+func WriteUrls(titles []string) {
+
 }
