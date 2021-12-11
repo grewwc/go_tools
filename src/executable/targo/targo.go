@@ -21,14 +21,21 @@ var (
 	listOnly = false
 )
 
+// 控制打开文件数量
+var ch = make(chan interface{}, 50)
+
 func processTarGzFile(fname string, prefix string) {
 	if !listOnly {
 		fmt.Fprintf(color.Output, "untar \"%s\" to \"%s\"\n", color.GreenString(fname), color.YellowString(prefix))
 	}
+	ch <- nil
+	defer func(ch chan interface{}) {
+		<-ch
+	}(ch)
+
 	// first open the file
 	f, err := os.Open(fname)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 	defer f.Close()
@@ -94,7 +101,7 @@ func clean(fname string) {
 func main() {
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.String("ex", "", "exclude file/directory")
-	fs.String("exclude", "", "exclude file/directory")
+	fs.String("exclude", "", "exclude file/directory, (i.e.: ${somedir}/.git, NOT .git")
 	fs.Bool("v", false, "verbose")
 	fs.Bool("u", false, "untar")
 	fs.Bool("h", false, "print help info")

@@ -14,6 +14,8 @@ import (
 	"github.com/google/uuid"
 )
 
+var ch = make(chan interface{}, 1)
+
 // TarGz add all srcNames to outName as tar.gz file
 func TarGz(outName string, srcNames []string, verbose bool) error {
 	out, err := os.Create(outName)
@@ -47,13 +49,14 @@ func TarGz(outName string, srcNames []string, verbose bool) error {
 			if err != nil {
 				return err
 			}
-			defer src.Close()
 			if _, err = io.Copy(tw, src); err != nil {
+				src.Close()
 				return err
 			}
-		}
-		if verbose {
-			fmt.Println(filename)
+			src.Close()
+			if verbose {
+				fmt.Println(filename)
+			}
 		}
 	}
 	return nil
