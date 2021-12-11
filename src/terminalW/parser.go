@@ -67,6 +67,17 @@ func (r ParsedResults) GetFlagValueDefault(flagName string, defaultVal string) s
 	return defaultVal
 }
 
+func (r ParsedResults) GetMultiFlagValDefault(flagNames []string, defaultVal string) string {
+	var result string
+	var err error
+	for _, flagName := range flagNames {
+		if result, err = r.GetFlagVal(flagName); err == nil {
+			return result
+		}
+	}
+	return defaultVal
+}
+
 func (r ParsedResults) GetFlags() *containerW.OrderedSet {
 	res := containerW.NewOrderedSet()
 	for k := range r.Optional {
@@ -94,27 +105,11 @@ func (r ParsedResults) GetBooleanArgs() *containerW.OrderedSet {
 // "main.exe -force" ==> [ContainsFlag("-f") == true, ContainsFlag("-force") == true]
 func (r ParsedResults) ContainsFlag(flagName string) bool {
 	flagName = stringsW.StripPrefix(flagName, "-")
-	if len(flagName) > 1 {
-		return r.ContainsFlagStrict(flagName)
+	buf := bytes.NewBufferString("")
+	for option, _ := range r.Optional {
+		buf.WriteString(option)
 	}
-
-	if flagName[0] != '-' {
-		flagName = "-" + flagName
-	}
-	if _, exists := r.Optional[flagName]; exists {
-		return true
-	}
-	// fmt.Println(r.Optional)
-
-	flagName = stringsW.StripPrefix(flagName, "-")
-	s2 := containerW.FromString(flagName)
-	for k := range r.Optional {
-		s1 := containerW.FromString(k)
-		if !s2.MutualExclude(*s1) {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(buf.String(), flagName)
 }
 
 // ContainsFlagStrict checks if an optional flag is set
@@ -129,6 +124,36 @@ func (r ParsedResults) ContainsFlagStrict(flagName string) bool {
 	}
 
 	return false
+}
+
+func (r ParsedResults) ContainsAnyFlagStrict(flagNames ...string) bool {
+	for _, flagName := range flagNames {
+		if r.ContainsFlagStrict(flagName) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r ParsedResults) ContainsAllFlagStrict(flagNames ...string) bool {
+	for _, flagName := range flagNames {
+		if !r.ContainsFlagStrict(flagName) {
+			return false
+		}
+	}
+	return true
+}
+
+func (r ParsedResults) CoExists(f1, f2 string) bool {
+	if len(f1) > len(f2) {
+		f2, f1 = f1, f2
+	}
+	if strings.Contains(f2, f1) {
+		res := r.ContainsAllFlagStrict(f1, f2)
+		res = res || r.ContainsFlag(f1) && r.ContainsFlag(f2) && r.ContainsFlag(strings.ReplaceAll(f2, f1, ""))
+		return res
+	}
+	return r.ContainsFlag(f1) && r.ContainsFlag(f2)
 }
 
 // GetNumArgs return -1 to signal "there is NO num args (e.g.: -10)"

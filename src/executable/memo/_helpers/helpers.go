@@ -142,15 +142,16 @@ func OpenUrls() {
 	_print(urlsWithNo, hints)
 	fmt.Print("\ninput the number: ")
 	scanner = bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	text := strings.TrimSpace(scanner.Text())
-	for {
+	for scanner.Scan() {
+		text := strings.TrimSpace(scanner.Text())
 		if val, err := strconv.Atoi(text); err != nil {
-			_print(urlsWithNo, hints)
 			fmt.Printf("%s is not a valid choice\n", text)
-			scanner.Scan()
+			_print(urlsWithNo, hints)
+			fmt.Print("\ninput the number: ")
 		} else if val > len(urls) {
 			fmt.Printf("%d is too large\n", val)
+			_print(urlsWithNo, hints)
+			fmt.Print("\ninput the number: ")
 		} else {
 			utilsW.OpenUrlInBrowswer(urls[val-1])
 			return

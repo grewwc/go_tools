@@ -745,13 +745,13 @@ func main() {
 		return
 	}
 
-	if parsed.ContainsFlagStrict("i") {
-		insert(parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"))
+	if parsed.ContainsFlag("i") || parsed.CoExists("i", "e") {
+		insert(parsed.ContainsFlagStrict("file"), parsed.CoExists("i", "e"))
 		return
 	}
 
-	if parsed.ContainsFlagStrict("ct") {
-		changeTitle(parsed.ContainsFlagStrict("file"), parsed.ContainsFlag("e"), parsed.GetFlagValueDefault("ct", ""))
+	if parsed.ContainsFlagStrict("ct") || parsed.CoExists("ct", "e") {
+		changeTitle(parsed.ContainsFlagStrict("file"), parsed.CoExists("ct", "e"), parsed.GetMultiFlagValDefault([]string{"ct", "cte", "ect"}, ""))
 		return
 	}
 
