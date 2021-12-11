@@ -2,11 +2,13 @@ package utilsW
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
 )
@@ -25,7 +27,7 @@ func init() {
 func GetAllConfig() (m *containerW.OrderedMap) {
 	f, err := os.Open(fname)
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Printf("%s not found, ignored...", color.RedString(fname))
 	}
 	defer f.Close()
 	m = containerW.NewOrderedMap()

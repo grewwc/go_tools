@@ -35,6 +35,7 @@ const (
 	tagCollectionName = "tag"
 
 	localMongoConfigName = "mongo.local"
+	atlasMongoConfigName = "mongo.atlas"
 )
 
 const (
@@ -49,6 +50,11 @@ var (
 	clientOptions = &options.ClientOptions{}
 	ctx           context.Context
 	client        *mongo.Client
+	atlasClient   *mongo.Client
+)
+
+var (
+	remote bool
 )
 
 type record struct {
@@ -114,6 +120,34 @@ func init() {
 	// }
 }
 
+func initAtlas() {
+	if atlasClient != nil {
+		return
+	}
+	fmt.Println("connecting to Mongo Atlas...")
+	m := utilsW.GetAllConfig()
+	var err error
+	// mongo atlas init
+	atlasURI := m.GetOrDefault(atlasMongoConfigName, "").(string)
+	if atlasURI != "" {
+		clientOptions = options.Client().ApplyURI(atlasURI)
+		atlasClient, err = mongo.Connect(ctx, clientOptions)
+		if err != nil {
+			panic(err)
+		}
+	}
+	// check if tags and memo collections exists
+	db := atlasClient.Database(dbName)
+	if !_helpers.CollectionExists(db, ctx, tagCollectionName) {
+		db.Collection(tagCollectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys:    bson.D{bson.DocElem{Name: "name", Value: "text"}}.Map(),
+			Options: options.Index().SetUnique(true),
+		})
+	}
+	fmt.Println("connected")
+	// fmt.Println("init Atlas", atlasURI, atlasClient)
+}
+
 func (r record) String() string {
 	return utilsW.ToString(r, "AddDate", "ModifiedDate")
 }
@@ -145,7 +179,12 @@ func incrementTagCount(db *mongo.Database, tags []string, val int) {
 }
 
 func (r *record) exists() bool {
-	collection := client.Database(dbName).Collection(collectionName)
+	var collection *mongo.Collection
+	if !remote {
+		collection = client.Database(dbName).Collection(collectionName)
+	} else {
+		collection = atlasClient.Database(dbName).Collection(collectionName)
+	}
 	singleResults := collection.FindOne(context.Background(), bson.M{"_id": r.ID})
 	err := singleResults.Err()
 	if err == nil {
@@ -160,7 +199,12 @@ func (r *record) exists() bool {
 
 func (r *record) do(action string) {
 	var err error
-	db := client.Database(dbName)
+	var db *mongo.Database
+	if !remote {
+		db = client.Database(dbName)
+	} else {
+		db = atlasClient.Database(dbName)
+	}
 	collection := db.Collection(collectionName)
 	session, err := client.StartSession()
 	if err != nil {
@@ -245,7 +289,12 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	if reverse {
 		reverseNum = -1
 	}
-	collection := client.Database(dbName).Collection(collectionName)
+	var collection *mongo.Collection
+	if !remote {
+		collection = client.Database(dbName).Collection(collectionName)
+	} else {
+		collection = atlasClient.Database(dbName).Collection(collectionName)
+	}
 	modifiedDataOption := options.Find()
 	addDateOption := options.Find()
 	modifiedDataOption.SetLimit(limit)
@@ -609,6 +658,49 @@ func coloringRecord(r *record, p *regexp.Regexp) {
 	}
 }
 
+func syncByID(id string, push bool) {
+	remoteBackUp := remote
+	scanner := bufio.NewScanner(os.Stdin)
+	if id == "" {
+		fmt.Print("Input the ObjectID: ")
+		scanner.Scan()
+		id = strings.TrimSpace(scanner.Text())
+	}
+	hexID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		panic(err)
+	}
+	var r record
+	r.ID = hexID
+	localClient := client
+	remoteClient := atlasClient
+
+	if !push {
+		localClient, remoteClient = remoteClient, localClient
+		remote = true
+		r.loadByID()
+		remote = remoteBackUp
+	} else {
+		r.loadByID()
+	}
+
+	if err = remoteClient.Database(dbName).Collection(collectionName).FindOne(ctx, bson.M{"_id": hexID}).Err(); err != nil && err != mongo.ErrNoDocuments {
+		panic(err)
+	}
+
+	if push {
+		remote = true
+	}
+	if err == mongo.ErrNoDocuments {
+		r.save()
+	} else {
+		r.update()
+	}
+	if push {
+		remote = remoteBackUp
+	}
+}
+
 func main() {
 	defer func() {
 		if res := recover(); res != nil {
@@ -625,7 +717,8 @@ func main() {
 	fs.Bool("l", false, "list records")
 	fs.Int("n", 10, "# of records to list")
 	fs.Bool("h", false, "print help information")
-	fs.Bool("sync", false, "sync to remote db (may take a while)")
+	fs.String("push", "objectID to push", "push to remote db (may take a while)")
+	fs.String("pull", "objectID to pull", "pull from remote db (may take a while)")
 	fs.Bool("r", false, "reverse sort")
 	fs.Bool("all", false, "including all record")
 	fs.Bool("a", false, "shortcut for -all")
@@ -646,9 +739,10 @@ func main() {
 	fs.String("c", "", "content (alias for title)")
 	fs.Bool("json", false, "print output to json")
 	fs.Bool("my", false, "only list my problem")
+	fs.Bool("remote", false, "operate on the remote server")
 
-	parsed := terminalW.ParseArgsCmd("l", "h", "sync", "r", "all", "a",
-		"i", "include-finished", "tags", "and", "v", "file", "e", "json", "my")
+	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
+		"i", "include-finished", "tags", "and", "v", "file", "e", "json", "my", "remote")
 
 	if parsed == nil {
 		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true)
@@ -663,6 +757,11 @@ func main() {
 	positional := parsed.Positional
 	if positional.Size() > 1 {
 		panic(errors.New("too many positional arguments: " + strings.Join(positional.ToStringSlice(), " ")))
+	}
+
+	if parsed.ContainsFlagStrict("remote") {
+		initAtlas()
+		remote = true
 	}
 
 	if parsed.ContainsFlagStrict("h") {
@@ -770,8 +869,17 @@ func main() {
 		return
 	}
 
-	if parsed.ContainsFlagStrict("sync") {
-		fmt.Println("unsupported!!")
+	if parsed.ContainsFlagStrict("push") {
+		fmt.Println("pushing...")
+		initAtlas()
+		syncByID(parsed.GetFlagValueDefault("push", ""), true)
+		return
+	}
+
+	if parsed.ContainsFlagStrict("pull") {
+		fmt.Println("pulling...")
+		initAtlas()
+		syncByID(parsed.GetFlagValueDefault("pull", ""), false)
 		return
 	}
 
