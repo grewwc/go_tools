@@ -813,11 +813,12 @@ func main() {
 	tags := []string{}
 	toJSON := parsed.ContainsFlagStrict("json")
 
-	if parsed.ContainsFlagStrict("t") {
-		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetFlagValueDefault("t", "")), " ")
+	if parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a") {
+		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
-	if parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a") {
+	if (parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a")) &&
+		!parsed.ContainsAnyFlagStrict("add-tag", "del-tag", "tags") {
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") || !all)
 		ignoreFields := []string{"AddDate", "ModifiedDate"}
 		if verbose {
