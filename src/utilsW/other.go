@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -84,5 +85,19 @@ func OpenUrlInBrowswer(url string) {
 	cmd := exec.Command(cmdStr, args...)
 	if err := cmd.Run(); err != nil {
 		panic(err)
+	}
+}
+
+func TimeoutWait(wg *sync.WaitGroup, timeout time.Duration) {
+	c := make(chan interface{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return
+	case <-time.After(timeout):
+		return
 	}
 }

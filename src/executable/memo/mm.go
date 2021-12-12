@@ -14,6 +14,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
@@ -55,6 +56,7 @@ var (
 
 var (
 	remote bool
+	mu     sync.Mutex
 )
 
 type record struct {
@@ -121,7 +123,9 @@ func init() {
 }
 
 func initAtlas() {
+	mu.Lock()
 	if atlasClient != nil {
+		mu.Unlock()
 		return
 	}
 	fmt.Println("connecting to Mongo Atlas...")
@@ -145,6 +149,7 @@ func initAtlas() {
 		})
 	}
 	fmt.Println("connected")
+	mu.Unlock()
 	// fmt.Println("init Atlas", atlasURI, atlasClient)
 }
 
@@ -340,6 +345,10 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
 	var err error
 	var changed bool
+	var cli = client
+	if remote {
+		cli = atlasClient
+	}
 	scanner := bufio.NewScanner(os.Stdin)
 	id := parsed.GetFlagValueDefault("u", "")
 	newRecord := record{}
@@ -379,11 +388,11 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
 		newRecord.Tags = stringsW.SplitNoEmpty(tags, " ")
 		c := make(chan interface{}, 1)
 		go func(c chan interface{}) {
-			incrementTagCount(client.Database(dbName), oldTags, -1)
+			incrementTagCount(cli.Database(dbName), oldTags, -1)
 			c <- nil
 		}(c)
 		go func(c chan interface{}) {
-			incrementTagCount(client.Database(dbName), newRecord.Tags, 1)
+			incrementTagCount(cli.Database(dbName), newRecord.Tags, 1)
 			c <- nil
 		}(c)
 		<-c
@@ -441,6 +450,10 @@ func insert(fromFile, fromEditor bool) {
 func toggle(val bool, id string, name string) {
 	var err error
 	var r record
+	var cli = client
+	if remote {
+		cli = atlasClient
+	}
 	id = strings.TrimSpace(id)
 	if id == "" {
 		scanner := bufio.NewScanner(os.Stdin)
@@ -484,7 +497,7 @@ func toggle(val bool, id string, name string) {
 		if val {
 			inc = -1
 		}
-		incrementTagCount(client.Database(dbName), r.Tags, inc)
+		incrementTagCount(cli.Database(dbName), r.Tags, inc)
 	}(c)
 	<-c
 	r.update()
@@ -554,6 +567,10 @@ func changeTitle(fromFile, fromEditor bool, id string) {
 
 func addTag(add bool, id string) {
 	var err error
+	var cli = client
+	if remote {
+		cli = atlasClient
+	}
 	id = strings.TrimSpace(id)
 	scanner := bufio.NewScanner(os.Stdin)
 	if id == "" {
@@ -609,7 +626,7 @@ func addTag(add bool, id string) {
 		defer func() {
 			c <- nil
 		}()
-		incrementTagCount(client.Database(dbName), newTagSet.ToStringSlice(), incVal)
+		incrementTagCount(cli.Database(dbName), newTagSet.ToStringSlice(), incVal)
 	}(c)
 	<-c
 	go func(c chan interface{}) {
@@ -659,6 +676,7 @@ func coloringRecord(r *record, p *regexp.Regexp) {
 }
 
 func syncByID(id string, push bool) {
+	initAtlas()
 	remoteBackUp := remote
 	scanner := bufio.NewScanner(os.Stdin)
 	if id == "" {
@@ -780,11 +798,11 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("p") {
-		toggle(true, parsed.GetFlagValueDefault("p", ""), myproblem)
+		toggle(false, parsed.GetFlagValueDefault("p", ""), myproblem)
 	}
 
 	if parsed.ContainsFlagStrict("np") {
-		toggle(false, parsed.GetFlagValueDefault("np", ""), myproblem)
+		toggle(true, parsed.GetFlagValueDefault("np", ""), myproblem)
 	}
 
 	if parsed.GetNumArgs() != -1 {
@@ -815,6 +833,7 @@ func main() {
 		!parsed.ContainsFlagStrict("file") &&
 		!parsed.ContainsFlagStrict("title") {
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") || !all)
+
 		ignoreFields := []string{"AddDate", "ModifiedDate"}
 		if verbose {
 			ignoreFields = []string{}
@@ -837,6 +856,20 @@ func main() {
 				}
 			}
 		}
+		if parsed.ContainsAnyFlagStrict("push", "pull") {
+			wg := sync.WaitGroup{}
+			wg.Add(len(records))
+			for _, r := range records {
+				go func(r *record) {
+					fmt.Printf("begin to syncing %s...\n", r.ID.Hex())
+					syncByID(r.ID.Hex(), parsed.ContainsFlagStrict("push"))
+					fmt.Println("finished syncing")
+					wg.Done()
+				}(r)
+			}
+			utilsW.TimeoutWait(&wg, 30*time.Second)
+		}
+		return
 	}
 
 	if parsed.ContainsFlagStrict("u") {
@@ -871,14 +904,12 @@ func main() {
 
 	if parsed.ContainsFlagStrict("push") {
 		fmt.Println("pushing...")
-		initAtlas()
 		syncByID(parsed.GetFlagValueDefault("push", ""), true)
 		return
 	}
 
 	if parsed.ContainsFlagStrict("pull") {
 		fmt.Println("pulling...")
-		initAtlas()
 		syncByID(parsed.GetFlagValueDefault("pull", ""), false)
 		return
 	}
@@ -899,7 +930,11 @@ func main() {
 		} else {
 			op1.SetSort(bson.M{"count": -1})
 		}
-		cursor, err := client.Database(dbName).Collection(tagCollectionName).Find(ctx, bson.M{}, &op1)
+		cli := client
+		if remote {
+			cli = atlasClient
+		}
+		cursor, err := cli.Database(dbName).Collection(tagCollectionName).Find(ctx, bson.M{}, &op1)
 		if err != nil {
 			panic(err)
 		}

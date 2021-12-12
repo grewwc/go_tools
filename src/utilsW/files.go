@@ -102,15 +102,13 @@ func InputWithEditor(originalContent string) (res string) {
 	go func() {
 		for err := os.Remove(fname); err != nil; err = os.Remove(fname) {
 		}
-		ch <- nil
+		close(ch)
 	}()
 
-	for {
-		select {
-		case <-ch:
-			return
-		case <-t:
-			return
-		}
+	select {
+	case <-ch:
+		return
+	case <-t:
+		return
 	}
 }
