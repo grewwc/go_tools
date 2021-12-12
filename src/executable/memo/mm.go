@@ -228,6 +228,7 @@ func (r *record) do(action string) {
 		if r.exists() {
 			return
 		}
+		r.ModifiedDate = time.Now()
 		if _, err = collection.InsertOne(context.Background(), r); err != nil {
 			session.AbortTransaction(ctx)
 			panic(err)
@@ -261,7 +262,6 @@ func (r *record) do(action string) {
 }
 
 func (r *record) save() {
-	r.ModifiedDate = time.Now()
 	r.do("save")
 }
 
@@ -679,6 +679,7 @@ func syncByID(id string, push bool) {
 	initAtlas()
 	remoteBackUp := remote
 	scanner := bufio.NewScanner(os.Stdin)
+	var msg string
 	if id == "" {
 		fmt.Print("Input the ObjectID: ")
 		scanner.Scan()
@@ -690,15 +691,16 @@ func syncByID(id string, push bool) {
 	}
 	var r record
 	r.ID = hexID
-	localClient := client
 	remoteClient := atlasClient
 
 	if !push {
-		localClient, remoteClient = remoteClient, localClient
+		msg = "pull"
+		remoteClient = client
 		remote = true
 		r.loadByID()
 		remote = remoteBackUp
 	} else {
+		msg = "push"
 		r.loadByID()
 	}
 
@@ -717,6 +719,11 @@ func syncByID(id string, push bool) {
 	if push {
 		remote = remoteBackUp
 	}
+
+	fmt.Printf("finished %s: \n", msg)
+	printSeperator()
+	fmt.Println(r)
+	printSeperator()
 }
 
 func main() {
@@ -824,14 +831,12 @@ func main() {
 	tags := []string{}
 	toJSON := parsed.ContainsFlagStrict("json")
 
-	if parsed.ContainsFlagStrict("t") {
-		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetFlagValueDefault("t", "")), " ")
+	if parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a") {
+		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
-	if (parsed.ContainsFlag("l") || parsed.ContainsFlagStrict("t")) &&
-		!parsed.ContainsFlagStrict("del-tag") &&
-		!parsed.ContainsFlagStrict("file") &&
-		!parsed.ContainsFlagStrict("title") {
+	if (parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a")) &&
+		!parsed.ContainsAnyFlagStrict("add-tag", "del-tag", "tags") {
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") || !all)
 
 		ignoreFields := []string{"AddDate", "ModifiedDate"}
