@@ -951,7 +951,7 @@ func main() {
 				printSeperator()
 				fmt.Println(utilsW.ToString(tag))
 			} else {
-				fmt.Fprintf(color.Output, `%s/%d `, tag.Name, tag.Count)
+				fmt.Fprintf(color.Output, `%s[%d]  `, tag.Name, tag.Count)
 			}
 		}
 		if !verbose {
