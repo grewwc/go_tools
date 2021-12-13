@@ -298,6 +298,7 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	if !remote {
 		collection = client.Database(dbName).Collection(collectionName)
 	} else {
+		initAtlas()
 		collection = atlasClient.Database(dbName).Collection(collectionName)
 	}
 	modifiedDataOption := options.Find()
@@ -708,17 +709,19 @@ func syncByID(id string, push bool) {
 		panic(err)
 	}
 
+	// 保存的时候，remote需要重新设置
 	if push {
 		remote = true
+	} else {
+		remote = false
 	}
 	if err == mongo.ErrNoDocuments {
 		r.save()
 	} else {
 		r.update()
 	}
-	if push {
-		remote = remoteBackUp
-	}
+	// 恢复remote
+	remote = remoteBackUp
 
 	fmt.Printf("finished %s: \n", msg)
 	printSeperator()
@@ -837,31 +840,35 @@ func main() {
 
 	if (parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a")) &&
 		!parsed.ContainsAnyFlagStrict("add-tag", "del-tag", "tags") {
+		if parsed.ContainsFlagStrict("pull") {
+			remote = true
+		}
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") || !all)
 
-		ignoreFields := []string{"AddDate", "ModifiedDate"}
-		if verbose {
-			ignoreFields = []string{}
-		}
-		if !toJSON {
-			for _, record := range records {
-				printSeperator()
-				coloringRecord(record, nil)
-				fmt.Println(utilsW.ToString(record, ignoreFields...))
-				fmt.Println(color.HiRedString(record.ID.String()))
+		if !parsed.ContainsAnyFlagStrict("pull", "push") {
+			ignoreFields := []string{"AddDate", "ModifiedDate"}
+			if verbose {
+				ignoreFields = []string{}
 			}
-		} else {
-			data, err := json.MarshalIndent(records, "", "  ")
-			if err != nil {
-				panic(err)
-			}
-			if !utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
-				if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
+			if !toJSON {
+				for _, record := range records {
+					printSeperator()
+					coloringRecord(record, nil)
+					fmt.Println(utilsW.ToString(record, ignoreFields...))
+					fmt.Println(color.HiRedString(record.ID.String()))
+				}
+			} else {
+				data, err := json.MarshalIndent(records, "", "  ")
+				if err != nil {
 					panic(err)
 				}
+				if !utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
+					if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
+						panic(err)
+					}
+				}
 			}
-		}
-		if parsed.ContainsAnyFlagStrict("push", "pull") {
+		} else {
 			wg := sync.WaitGroup{}
 			wg.Add(len(records))
 			for _, r := range records {
