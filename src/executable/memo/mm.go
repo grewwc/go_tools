@@ -603,14 +603,15 @@ func addTag(add bool, id string) {
 	newTags := stringsW.SplitNoEmpty(strings.TrimSpace(scanner.Text()), " ")
 
 	s := (<-c).(*containerW.Set)
+	if s.Size() == 1 {
+		panic("can't delete the tag, because it's the only tag")
+	}
 	newTagSet := containerW.NewSet()
 	for _, newTag := range newTags {
 		if strings.TrimSpace(newTag) == "" {
 			continue
 		}
-		if !s.Contains(newTag) {
-			newTagSet.Add(newTag)
-		}
+		newTagSet.Add(newTag)
 		if add {
 			s.Add(newTag)
 		} else {
@@ -627,6 +628,7 @@ func addTag(add bool, id string) {
 		defer func() {
 			c <- nil
 		}()
+		// fmt.Println("here", incVal, newTagSet.ToStringSlice())
 		incrementTagCount(cli.Database(dbName), newTagSet.ToStringSlice(), incVal)
 	}(c)
 	<-c
@@ -756,8 +758,8 @@ func main() {
 	fs.String("np", "", "set a record NOT my problem")
 	fs.String("t", "", "search by tags")
 	fs.Bool("include-finished", false, "include finished record")
-	fs.String("add-tag", "", "add tags for a record")
-	fs.String("del-tag", "", "delete tags for a record")
+	fs.String("addtag", "", "add tags for a record")
+	fs.String("deltag", "", "delete tags for a record")
 	fs.Bool("tags", false, "list all tags")
 	fs.Bool("and", false, "use and logic to match tags")
 	fs.Bool("v", false, "verbose (show modify/add time)")
