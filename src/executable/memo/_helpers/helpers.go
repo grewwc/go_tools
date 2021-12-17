@@ -104,6 +104,7 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) {
 		title := titles[i]
 		objectID := objectIDs[i]
 		titleOneLine := strings.ReplaceAll(title, "\n", "")
+		titleOneLine = strings.ReplaceAll(titleOneLine, "\r", "")
 		buf := bytes.NewBufferString("")
 		for i, ch := range titleOneLine {
 			if i >= hintLen {
@@ -117,6 +118,7 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) {
 		for scanner.Scan() {
 			line := scanner.Text()
 			line = strings.TrimSpace(line)
+			line = strings.ReplaceAll(line, "\x00", "")
 			// write urls
 			// only when matched
 			if p.MatchString(line) {
