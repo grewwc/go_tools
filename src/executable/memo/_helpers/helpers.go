@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -13,13 +15,16 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/utilsW"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
 )
 
 const (
-	fname   = ".go_tools_urls.txt"
-	hintLen = 70
+	urlFileName    = ".go_tools_urls.txt"
+	commonFileName = ".go_tools_common.txt"
+	opFileName     = ".go_tools_previous_op.txt"
+	hintLen        = 120
 )
 
 var (
@@ -58,23 +63,46 @@ func PromptYesOrNo(msg string) bool {
 	return false
 }
 
-func WriteUrls(titles []string) {
+func WritePreviousOpration(op string) {
+	if err := ioutil.WriteFile(filepath.Join(homeDir, opFileName), []byte(op), 0666); err != nil {
+		panic(err)
+	}
+}
+
+func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) {
 	if len(titles) < 1 {
 		return
 	}
-	absName := filepath.Join(homeDir, fname)
-	var originalData string
+	if len(objectIDs) != len(titles) {
+		log.Println("objectIDs length doesn't equal to titles length")
+		return
+	}
+	absName := filepath.Join(homeDir, urlFileName)
+	absNameCommon := filepath.Join(homeDir, commonFileName)
+	var originalData, originalCommonData string
 	if utilsW.IsExist(absName) {
 		originalData = utilsW.ReadString(absName)
+	}
+	if utilsW.IsExist(absNameCommon) {
+		originalCommonData = utilsW.ReadString(absNameCommon)
 	}
 	f, err := os.OpenFile(absName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0666)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
+
+	commonF, err := os.OpenFile(absNameCommon, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0666)
+	if err != nil {
+		panic(err)
+	}
+	defer commonF.Close()
+
 	matched := 0
-	p := regexp.MustCompile(`(?i)^url[\s]*:`)
-	for _, title := range titles {
+	p := regexp.MustCompile(`(?i)^url[\s]*[:；]`)
+	for i := range titles {
+		title := titles[i]
+		objectID := objectIDs[i]
 		titleOneLine := strings.ReplaceAll(title, "\n", "")
 		buf := bytes.NewBufferString("")
 		for i, ch := range titleOneLine {
@@ -89,20 +117,31 @@ func WriteUrls(titles []string) {
 		for scanner.Scan() {
 			line := scanner.Text()
 			line = strings.TrimSpace(line)
+			// write urls
+			// only when matched
 			if p.MatchString(line) {
 				matched++
 				f.WriteString(p.ReplaceAllString(line, "") + "\x00" + titleOneLine)
 				f.WriteString("\n")
 			}
 		}
+		// write information all the time
+		commonF.WriteString(objectID.Hex() + "\x00" + titleOneLine)
+		commonF.WriteString("\n")
 	}
 	if matched < 1 && originalData != "" {
 		f.WriteString(originalData)
 	}
-
+	if len(titles) < 1 && originalCommonData != "" {
+		commonF.WriteString(originalCommonData)
+	}
 }
 
-func OpenUrls() {
+func ReadInfo(isURL bool) string {
+	fname := urlFileName
+	if !isURL {
+		fname = commonFileName
+	}
 	absName := filepath.Join(homeDir, fname)
 	f, err := os.Open(absName)
 	if err != nil {
@@ -110,6 +149,7 @@ func OpenUrls() {
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
+	// urls may not be url, they can be ObjectIDs
 	urls := make([]string, 0)
 	hints := make([]string, 0)
 	for scanner.Scan() {
@@ -121,12 +161,16 @@ func OpenUrls() {
 	}
 
 	if len(urls) == 0 {
-		fmt.Println(color.RedString("no urls are found"))
-		return
+		msg := "urls"
+		if !isURL {
+			msg = "ObjectIDs"
+		}
+		fmt.Println(color.RedString(fmt.Sprintf("no %s are found", msg)))
+		return ""
 	}
-	if len(urls) == 1 {
+	if len(urls) == 1 && isURL {
 		utilsW.OpenUrlInBrowswer(urls[0])
-		return
+		return ""
 	}
 	// more than one urls
 	urlsWithNo := make([]string, len(urls))
@@ -153,8 +197,13 @@ func OpenUrls() {
 			_print(urlsWithNo, hints)
 			fmt.Print("\ninput the number: ")
 		} else {
-			utilsW.OpenUrlInBrowswer(urls[val-1])
-			return
+			if isURL {
+				utilsW.OpenUrlInBrowswer(urls[val-1])
+				return ""
+			} else {
+				return urls[val-1]
+			}
 		}
 	}
+	return ""
 }

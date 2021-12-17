@@ -336,14 +336,17 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	}
 
 	recordTitles := make([]string, len(res))
+	recordIDs := make([]*primitive.ObjectID, len(res))
 	for i := range res {
 		recordTitles[i] = res[i].Title
+		recordIDs[i] = &res[i].ID
 	}
-	_helpers.WriteUrls(recordTitles)
+	// fmt.Println("here", recordIDs)
+	_helpers.WriteInfo(recordIDs, recordTitles)
 	return res
 }
 
-func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
+func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, prev bool) {
 	var err error
 	var changed bool
 	var cli = client
@@ -352,12 +355,17 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
 	}
 	scanner := bufio.NewScanner(os.Stdin)
 	id := parsed.GetFlagValueDefault("u", "")
-	newRecord := record{}
-	if id == "" {
+	if prev {
+		id = _helpers.ReadInfo(false)
+		if !fromFile {
+			fromEditor = true
+		}
+	} else if id == "" {
 		fmt.Print("input the Object ID: ")
 		scanner.Scan()
 		id = scanner.Text()
 	}
+	newRecord := record{}
 	if newRecord.ID, err = primitive.ObjectIDFromHex(id); err != nil {
 		panic(err)
 	}
@@ -366,12 +374,15 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
 	oldTitle := newRecord.Title
 	oldTags := newRecord.Tags
 	fmt.Print("input the title: ")
-	scanner.Scan()
 	var title string
 	if fromEditor {
 		newRecord.Title = utilsW.InputWithEditor(oldTitle)
+		if newRecord.Title != oldTitle {
+			changed = true
+		}
 		fmt.Println()
 	} else {
+		scanner.Scan()
 		title = strings.TrimSpace(scanner.Text())
 		if fromFile {
 			title = utilsW.ReadString(title)
@@ -384,6 +395,7 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
 	fmt.Print("input the tags: ")
 	scanner.Scan()
 	tags := strings.TrimSpace(scanner.Text())
+	tags = strings.ReplaceAll(tags, ",", " ")
 	if tags != "" {
 		changed = true
 		newRecord.Tags = stringsW.SplitNoEmpty(tags, " ")
@@ -402,36 +414,28 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool) {
 	if !changed {
 		return
 	}
-	fmt.Println("==> Changes: ")
-	fmt.Printf("title: %q -> %q\n", oldTitle, newRecord.Title)
-	fmt.Printf("tags: %q -> %q\n", oldTags, newRecord.Tags)
-	fmt.Print("Do you want to update the record? (y/n): ")
-	scanner.Scan()
-	ans := strings.ToLower(strings.TrimSpace(scanner.Text()))
-	if ans == "y" {
-		newRecord.update()
-	} else {
-		fmt.Println("Abort change")
-	}
+	newRecord.update()
 }
 
-func insert(fromFile, fromEditor bool) {
+func insert(fromEditor bool, filename string) {
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("input the title: ")
 	var title string
-	if fromEditor {
+	if filename != "" {
+		title = utilsW.ReadString(filename)
+	} else if fromEditor {
+		fmt.Print("input the title: ")
 		title = utilsW.InputWithEditor("")
 		fmt.Println()
 	} else {
+		fmt.Print("input the title: ")
 		scanner.Scan()
 		title = strings.TrimSpace(scanner.Text())
-		if fromFile {
-			title = utilsW.ReadString(title)
-		}
 	}
 	fmt.Print("input the tags: ")
 	scanner.Scan()
-	tags := stringsW.SplitNoEmpty(strings.TrimSpace(scanner.Text()), " ")
+	tagsStr := strings.TrimSpace(scanner.Text())
+	tagsStr = strings.ReplaceAll(tagsStr, ",", " ")
+	tags := stringsW.SplitNoEmpty(tagsStr, " ")
 	if len(tags) == 0 {
 		tags = []string{autoTag}
 	}
@@ -448,7 +452,7 @@ func insert(fromFile, fromEditor bool) {
 	fmt.Println(r)
 }
 
-func toggle(val bool, id string, name string) {
+func toggle(val bool, id string, name string, prev bool) {
 	var err error
 	var r record
 	var cli = client
@@ -456,19 +460,17 @@ func toggle(val bool, id string, name string) {
 		cli = atlasClient
 	}
 	id = strings.TrimSpace(id)
-	if id == "" {
+	if prev {
+		id = _helpers.ReadInfo(false)
+	} else if id == "" {
 		scanner := bufio.NewScanner(os.Stdin)
 		fmt.Print("input the Object ID: ")
 		scanner.Scan()
-		if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
-			panic(err)
-		}
-	} else {
-		if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
-			panic(err)
-		}
+		id = strings.TrimSpace(scanner.Text())
 	}
-
+	if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
+		panic(err)
+	}
 	r.loadByID()
 	c := make(chan interface{})
 
@@ -504,41 +506,39 @@ func toggle(val bool, id string, name string) {
 	r.update()
 }
 
-func delete(id string) {
+func delete(id string, prev bool) {
 	var err error
 	r := record{}
 	id = strings.TrimSpace(id)
-	if id == "" {
+	if prev {
+		id = _helpers.ReadInfo(false)
+	} else if id == "" {
 		scanner := bufio.NewScanner(os.Stdin)
 		fmt.Print("input the Object ID: ")
 		scanner.Scan()
-		if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
-			panic(err)
-		}
-	} else {
-		if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
-			panic(err)
-		}
+		id = strings.TrimSpace(scanner.Text())
+	}
+	if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
+		panic(err)
 	}
 	r.loadByID()
 	r.delete()
 }
 
-func changeTitle(fromFile, fromEditor bool, id string) {
+func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 	var err error
 	id = strings.TrimSpace(id)
 	r := record{}
 	scanner := bufio.NewScanner(os.Stdin)
-	if id == "" {
+	if prev {
+		id = _helpers.ReadInfo(false)
+	} else if id == "" {
 		fmt.Print("input the Object ID: ")
 		scanner.Scan()
-		if r.ID, err = primitive.ObjectIDFromHex(strings.TrimSpace(scanner.Text())); err != nil {
-			panic(err)
-		}
-	} else {
-		if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
-			panic(err)
-		}
+		id = strings.TrimSpace(scanner.Text())
+	}
+	if r.ID, err = primitive.ObjectIDFromHex(id); err != nil {
+		panic(err)
 	}
 	c := make(chan interface{})
 	go func(chan interface{}) {
@@ -566,7 +566,7 @@ func changeTitle(fromFile, fromEditor bool, id string) {
 	fmt.Println(r)
 }
 
-func addTag(add bool, id string) {
+func addTag(add bool, id string, prev bool) {
 	var err error
 	var cli = client
 	if remote {
@@ -574,7 +574,9 @@ func addTag(add bool, id string) {
 	}
 	id = strings.TrimSpace(id)
 	scanner := bufio.NewScanner(os.Stdin)
-	if id == "" {
+	if prev {
+		id = _helpers.ReadInfo(false)
+	} else if id == "" {
 		fmt.Print("input the Object ID: ")
 		scanner.Scan()
 		id = strings.TrimSpace(scanner.Text())
@@ -600,7 +602,7 @@ func addTag(add bool, id string) {
 	}(c)
 	fmt.Print("input the Tag: ")
 	scanner.Scan()
-	newTags := stringsW.SplitNoEmpty(strings.TrimSpace(scanner.Text()), " ")
+	newTags := stringsW.SplitNoEmpty(strings.ReplaceAll(strings.TrimSpace(scanner.Text()), ",", " "), " ")
 
 	s := (<-c).(*containerW.Set)
 	if s.Size() == 1 {
@@ -763,16 +765,17 @@ func main() {
 	fs.Bool("tags", false, "list all tags")
 	fs.Bool("and", false, "use and logic to match tags")
 	fs.Bool("v", false, "verbose (show modify/add time)")
-	fs.Bool("file", false, "read title from a file")
+	fs.String("file", "", "read title from a file")
 	fs.Bool("e", false, "read from editor")
 	fs.String("title", "", "search by title")
 	fs.String("c", "", "content (alias for title)")
 	fs.Bool("json", false, "print output to json")
 	fs.Bool("my", false, "only list my problem")
 	fs.Bool("remote", false, "operate on the remote server")
+	fs.Bool("prev", false, "operate based on the previous ObjectIDs")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
-		"i", "include-finished", "tags", "and", "v", "file", "e", "json", "my", "remote")
+		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev")
 
 	if parsed == nil {
 		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true)
@@ -800,21 +803,21 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("f") {
-		toggle(true, parsed.GetFlagValueDefault("f", ""), finish)
+		toggle(true, parsed.GetFlagValueDefault("f", ""), finish, parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("nf") {
-		toggle(false, parsed.GetFlagValueDefault("nf", ""), finish)
+		toggle(false, parsed.GetFlagValueDefault("nf", ""), finish, parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("p") {
-		toggle(false, parsed.GetFlagValueDefault("p", ""), myproblem)
+		toggle(false, parsed.GetFlagValueDefault("p", ""), myproblem, parsed.ContainsFlagStrict("prev"))
 	}
 
 	if parsed.ContainsFlagStrict("np") {
-		toggle(true, parsed.GetFlagValueDefault("np", ""), myproblem)
+		toggle(true, parsed.GetFlagValueDefault("np", ""), myproblem, parsed.ContainsFlagStrict("prev"))
 	}
 
 	if parsed.GetNumArgs() != -1 {
@@ -830,7 +833,7 @@ func main() {
 	if all {
 		n = math.MaxInt64
 	}
-	reverse := parsed.ContainsFlag("r")
+	reverse := parsed.ContainsFlag("r") && !parsed.ContainsAnyFlagStrict("prev", "remote")
 	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
 	verbose := parsed.ContainsFlagStrict("v")
 	tags := []string{}
@@ -887,32 +890,36 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("u") {
-		update(parsed, parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"))
+		update(parsed, parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"), true)
 		return
 	}
 
-	if parsed.ContainsFlag("i") || parsed.CoExists("i", "e") {
-		insert(parsed.ContainsFlagStrict("file"), parsed.CoExists("i", "e"))
+	if parsed.ContainsFlagStrict("i") || parsed.ContainsFlagStrict("e") {
+		insert(parsed.CoExists("i", "e") && !parsed.ContainsFlagStrict("file"),
+			parsed.GetFlagValueDefault("file", ""))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("ct") || parsed.CoExists("ct", "e") {
-		changeTitle(parsed.ContainsFlagStrict("file"), parsed.CoExists("ct", "e"), parsed.GetMultiFlagValDefault([]string{"ct", "cte", "ect"}, ""))
+		changeTitle(parsed.ContainsFlagStrict("file"),
+			parsed.CoExists("ct", "e"),
+			parsed.GetMultiFlagValDefault([]string{"ct", "cte", "ect"}, ""),
+			parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("d") {
-		delete(parsed.GetFlagValueDefault("d", ""))
+		delete(parsed.GetFlagValueDefault("d", ""), parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("add-tag") {
-		addTag(true, parsed.GetFlagValueDefault("add-tag", ""))
+		addTag(true, parsed.GetFlagValueDefault("add-tag", ""), parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("del-tag") {
-		addTag(false, parsed.GetFlagValueDefault("del-tag", ""))
+		addTag(false, parsed.GetFlagValueDefault("del-tag", ""), parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
@@ -928,6 +935,7 @@ func main() {
 		return
 	}
 
+	// list tags
 	if parsed.ContainsFlagStrict("tags") || positional.Contains("tags") {
 		all = parsed.ContainsFlagStrict("a")
 		if all {
@@ -969,6 +977,7 @@ func main() {
 		return
 	}
 
+	// list by title
 	if parsed.ContainsFlagStrict("title") || parsed.ContainsFlagStrict("c") {
 		title := parsed.GetFlagValueDefault("title", "")
 		if title == "" {
@@ -996,7 +1005,8 @@ func main() {
 		}
 	}
 	if positional.Contains("open") {
-		_helpers.OpenUrls()
+		_helpers.ReadInfo(true)
 		return
 	}
+
 }
