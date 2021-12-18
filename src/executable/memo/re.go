@@ -772,6 +772,7 @@ func main() {
 	fs.Bool("my", false, "only list my problem")
 	fs.Bool("remote", false, "operate on the remote server")
 	fs.Bool("prev", false, "operate based on the previous ObjectIDs")
+	fs.Bool("count", false, "only print the count, not the result")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev")
@@ -849,7 +850,10 @@ func main() {
 			remote = true
 		}
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") || !all)
-
+		if parsed.ContainsFlagStrict("count") {
+			fmt.Printf("%d records found\n", len(records))
+			return
+		}
 		if !parsed.ContainsAnyFlagStrict("pull", "push") {
 			ignoreFields := []string{"AddDate", "ModifiedDate"}
 			if verbose {
@@ -1003,6 +1007,10 @@ func main() {
 			title = parsed.GetFlagValueDefault("c", "")
 		}
 		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || !all)
+		if parsed.ContainsFlagStrict("count") {
+			fmt.Printf("%d records found\n", len(records))
+			return
+		}
 		if !toJSON {
 			for _, record := range records {
 				printSeperator()
