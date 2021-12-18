@@ -988,7 +988,7 @@ func main() {
 						idx := strings.Index(arr[i], "[")
 						changedArr[i] = color.HiBlueString(arr[i][:idx]) + arr[i][idx:]
 					}
-					fmt.Println(strings.Repeat(" ", terminalIndent) + strings.Join(changedArr, "  "))
+					fmt.Fprint(color.Output, strings.Repeat(" ", terminalIndent)+strings.Join(changedArr, "  "))
 				}
 			}
 			fmt.Println()
