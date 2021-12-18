@@ -496,7 +496,7 @@ func toggle(val bool, id string, name string, prev bool) {
 			return
 		}
 		inc := 1
-		if val {
+		if (val && name == finish) || (!val && name == myproblem) {
 			inc = -1
 		}
 		incrementTagCount(cli.Database(dbName), r.Tags, inc)
@@ -725,11 +725,11 @@ func syncByID(id string, push bool) {
 	}
 	// 恢复remote
 	remote = remoteBackUp
-
-	fmt.Printf("finished %s: \n", msg)
-	printSeperator()
-	fmt.Println(r)
-	printSeperator()
+	n := 70
+	fmt.Printf("finished %s %s: \n", msg, color.GreenString(stringsW.SubStringQuiet(r.Title, 0, n)))
+	// printSeperator()
+	// fmt.Println(r)
+	// printSeperator()
 }
 
 func main() {
@@ -775,7 +775,7 @@ func main() {
 	fs.Bool("count", false, "only print the count, not the result")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
-		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev")
+		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev", "count")
 
 	if parsed == nil {
 		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true)
@@ -813,12 +813,12 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("p") {
-		toggle(false, parsed.GetFlagValueDefault("p", ""), myproblem, parsed.ContainsFlagStrict("prev"))
+		toggle(true, parsed.GetFlagValueDefault("p", ""), myproblem, parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("np") {
-		toggle(true, parsed.GetFlagValueDefault("np", ""), myproblem, parsed.ContainsFlagStrict("prev"))
+		toggle(false, parsed.GetFlagValueDefault("np", ""), myproblem, parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
@@ -990,9 +990,9 @@ func main() {
 					changedArr := make([]string, len(arr))
 					for i := range arr {
 						idx := strings.Index(arr[i], "[")
-						changedArr[i] = color.HiBlueString(arr[i][:idx]) + arr[i][idx:]
+						changedArr[i] = fmt.Sprintf("%s%s", color.HiBlueString(arr[i][:idx]), arr[i][idx:])
 					}
-					fmt.Fprint(color.Output, strings.Repeat(" ", terminalIndent)+strings.Join(changedArr, "  "))
+					fmt.Fprintf(color.Output, "%s%s", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, "  "))
 				}
 			}
 			fmt.Println()

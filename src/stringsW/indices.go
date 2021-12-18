@@ -30,3 +30,12 @@ func StripPrefix(s, prefix string) string {
 	}
 	return s[len(prefix):]
 }
+
+// SubStringQuiet
+// beg include, end exclude
+func SubStringQuiet(s string, beg, end int) string {
+	if beg >= len(s) || end >= len(s) || beg >= end {
+		return s
+	}
+	return s[beg:end]
+}

@@ -150,7 +150,7 @@ func (r ParsedResults) CoExists(args ...string) bool {
 		for _, arg := range args {
 			newOptional := strings.Replace(optional, arg, "", 1)
 			if newOptional == optional {
-				return false
+				continue
 			}
 			optional = newOptional
 		}
