@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math"
 	"os"
 	"regexp"
@@ -102,7 +101,7 @@ func init() {
 	var err error
 	client, err = mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
 	// check if tags and memo collections exists
@@ -814,10 +813,12 @@ func main() {
 
 	if parsed.ContainsFlagStrict("p") {
 		toggle(false, parsed.GetFlagValueDefault("p", ""), myproblem, parsed.ContainsFlagStrict("prev"))
+		return
 	}
 
 	if parsed.ContainsFlagStrict("np") {
 		toggle(true, parsed.GetFlagValueDefault("np", ""), myproblem, parsed.ContainsFlagStrict("prev"))
+		return
 	}
 
 	if parsed.GetNumArgs() != -1 {
@@ -843,8 +844,7 @@ func main() {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
-	if (parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a")) &&
-		!parsed.ContainsAnyFlagStrict("add-tag", "del-tag", "tags") {
+	if parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a") {
 		if parsed.ContainsFlagStrict("pull") {
 			remote = true
 		}
@@ -889,13 +889,13 @@ func main() {
 		return
 	}
 
-	if parsed.ContainsFlagStrict("u") {
+	if parsed.ContainsFlagStrict("u") || positional.Contains("u") {
 		update(parsed, parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"), true)
 		return
 	}
 
 	if parsed.ContainsFlagStrict("i") || parsed.CoExists("i", "e") {
-		insert(parsed.CoExists("i", "e") && !parsed.ContainsFlagStrict("file"), parsed.GetFlagValueDefault("file", ""))
+		insert(parsed.CoExists("i", "e"), parsed.GetFlagValueDefault("file", ""))
 		return
 	}
 
@@ -934,8 +934,8 @@ func main() {
 		return
 	}
 
-	// list tags
-	if parsed.ContainsFlagStrict("tags") || positional.Contains("tags") {
+	// list tags, i stands for 'information'
+	if parsed.ContainsFlagStrict("tags") || positional.Contains("tags") || positional.Contains("i") || positional.Contains("t") {
 		all = parsed.ContainsFlagStrict("a")
 		if all {
 			n = math.MaxInt64
@@ -1022,10 +1022,10 @@ func main() {
 				}
 			}
 		}
+		return
 	}
 	if positional.Contains("open") {
 		_helpers.ReadInfo(true)
 		return
 	}
-
 }

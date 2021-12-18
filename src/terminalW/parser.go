@@ -148,7 +148,11 @@ func (r ParsedResults) CoExists(args ...string) bool {
 	for optional := range r.Optional {
 		optional = strings.TrimPrefix(optional, "-")
 		for _, arg := range args {
-			optional = strings.Replace(optional, arg, "", 1)
+			newOptional := strings.Replace(optional, arg, "", 1)
+			if newOptional == optional {
+				return false
+			}
+			optional = newOptional
 		}
 		if optional == "" {
 			return true
