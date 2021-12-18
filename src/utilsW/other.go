@@ -105,24 +105,21 @@ func TimeoutWait(wg *sync.WaitGroup, timeout time.Duration) {
 	}
 }
 
-func GetTerminalSize() (h, w int) {
-	if GetPlatform() == WINDOWS {
-		panic("windows is not supported!")
-	}
+func GetTerminalSize() (h, w int, err error) {
 	cmd := exec.Command("stty", "size")
 	cmd.Stdin = os.Stdin
 	out, err := cmd.Output()
 	if err != nil {
-		panic(err)
+		return
 	}
 	size := stringsW.SplitNoEmpty(strings.TrimSpace(string(out)), " ")
 	h, err = strconv.Atoi(size[0])
 	if err != nil {
-		panic(err)
+		return
 	}
 	w, err = strconv.Atoi(size[1])
 	if err != nil {
-		panic(err)
+		return
 	}
 	return
 }

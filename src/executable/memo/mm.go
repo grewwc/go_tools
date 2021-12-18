@@ -962,13 +962,14 @@ func main() {
 		var tags []tag
 		cursor.All(ctx, &tags)
 		buf := bytes.NewBufferString("")
+		_, w, err := utilsW.GetTerminalSize()
 		for _, tag := range tags {
 			if verbose {
 				tag.Name = color.HiBlueString(tag.Name)
 				printSeperator()
 				fmt.Println(utilsW.ToString(tag))
 			} else {
-				if utilsW.GetPlatform() == utilsW.WINDOWS {
+				if utilsW.GetPlatform() == utilsW.WINDOWS && err != nil {
 					tag.Name = color.HiBlueString(tag.Name)
 					fmt.Fprintf(color.Output, `%s[%d]  `, tag.Name, tag.Count)
 				} else {
@@ -977,15 +978,14 @@ func main() {
 			}
 		}
 		if !verbose {
-			if utilsW.GetPlatform() != utilsW.WINDOWS {
-				_, w := utilsW.GetTerminalSize()
+			if utilsW.GetPlatform() != utilsW.WINDOWS || err == nil {
 				terminalIndent := 2
 				raw := stringsW.Wrap(buf.String(), w-terminalIndent, terminalIndent, "  ")
 				for _, line := range stringsW.SplitNoEmpty(raw, "\n") {
 					arr := stringsW.SplitNoEmpty(line, " ")
 					changedArr := make([]string, len(arr))
 					for i := range arr {
-						idx := strings.IndexByte(arr[i], '[')
+						idx := strings.Index(arr[i], "[")
 						changedArr[i] = color.HiBlueString(arr[i][:idx]) + arr[i][idx:]
 					}
 					fmt.Println(strings.Repeat(" ", terminalIndent) + strings.Join(changedArr, "  "))
