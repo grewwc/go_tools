@@ -3,14 +3,17 @@ package utilsW
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 	"unsafe"
 
 	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/stringsW"
 )
 
 func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
@@ -100,4 +103,26 @@ func TimeoutWait(wg *sync.WaitGroup, timeout time.Duration) {
 	case <-time.After(timeout):
 		return
 	}
+}
+
+func GetTerminalSize() (h, w int) {
+	if GetPlatform() == WINDOWS {
+		panic("windows is not supported!")
+	}
+	cmd := exec.Command("stty", "size")
+	cmd.Stdin = os.Stdin
+	out, err := cmd.Output()
+	if err != nil {
+		panic(err)
+	}
+	size := stringsW.SplitNoEmpty(strings.TrimSpace(string(out)), " ")
+	h, err = strconv.Atoi(size[0])
+	if err != nil {
+		panic(err)
+	}
+	w, err = strconv.Atoi(size[1])
+	if err != nil {
+		panic(err)
+	}
+	return
 }

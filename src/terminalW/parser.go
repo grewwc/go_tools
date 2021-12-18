@@ -144,16 +144,17 @@ func (r ParsedResults) ContainsAllFlagStrict(flagNames ...string) bool {
 	return true
 }
 
-func (r ParsedResults) CoExists(f1, f2 string) bool {
-	if len(f1) > len(f2) {
-		f2, f1 = f1, f2
+func (r ParsedResults) CoExists(args ...string) bool {
+	for optional := range r.Optional {
+		optional = strings.TrimPrefix(optional, "-")
+		for _, arg := range args {
+			optional = strings.Replace(optional, arg, "", 1)
+		}
+		if optional == "" {
+			return true
+		}
 	}
-	if strings.Contains(f2, f1) {
-		res := r.ContainsAllFlagStrict(f1, f2)
-		res = res || r.ContainsFlag(f1) && r.ContainsFlag(f2) && r.ContainsFlag(strings.ReplaceAll(f2, f1, ""))
-		return res
-	}
-	return r.ContainsFlag(f1) && r.ContainsFlag(f2)
+	return false
 }
 
 // GetNumArgs return -1 to signal "there is NO num args (e.g.: -10)"

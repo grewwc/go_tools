@@ -21,19 +21,21 @@ func wrapSingleLine(s string, width, indent int, delimiter string) string {
 
 	for _, word := range words {
 		word = strings.TrimSpace(word)
+		wordLen := getNumChars(word)
+
 		if cursor+len(word) > width {
 			// fmt.Println("what", len(strings.Join(curLine, dilimiter)), cursor, width)
 			lines = append(lines, strings.TrimRight(strings.Join(curLine, ""), " "))
 			curLine = curLine[:0]
-			if len(word) > width {
+			if wordLen > width {
 				cursor = 0
 				lines = append(lines, word)
 				continue
 			}
-			cursor = len(word) + len(delimiter)
+			cursor = wordLen + len(delimiter)
 			curLine = []string{word + delimiter}
 		} else {
-			cursor += len(word) + len(delimiter)
+			cursor += wordLen + len(delimiter)
 			curLine = append(curLine, word+delimiter)
 		}
 	}
@@ -46,6 +48,17 @@ func wrapSingleLine(s string, width, indent int, delimiter string) string {
 		res += strings.Repeat(" ", indent) + line + "\n"
 	}
 	return strings.TrimRight(res, "\n")
+}
+
+func getNumChars(word string) int {
+	n := 0
+	for _, ch := range word {
+		n++
+		if ch > 128 {
+			n++
+		}
+	}
+	return n
 }
 
 func FormatInt64(val int64) string {

@@ -106,13 +106,13 @@ func init() {
 	}
 
 	// check if tags and memo collections exists
-	db := client.Database(dbName)
-	if !_helpers.CollectionExists(db, ctx, tagCollectionName) {
-		db.Collection(tagCollectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
-			Keys:    bson.D{bson.DocElem{Name: "name", Value: "text"}}.Map(),
-			Options: options.Index().SetUnique(true),
-		})
-	}
+	// db := client.Database(dbName)
+	// if !_helpers.CollectionExists(db, ctx, tagCollectionName) {
+	// 	db.Collection(tagCollectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
+	// 		Keys:    bson.D{bson.DocElem{Name: "name", Value: "text"}}.Map(),
+	// 		Options: options.Index().SetUnique(true),
+	// 	})
+	// }
 
 	// if !helpers.CollectionExists(db, ctx, collectionName) {
 	// 	db.Collection(collectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -894,9 +894,8 @@ func main() {
 		return
 	}
 
-	if parsed.ContainsFlagStrict("i") || parsed.ContainsFlagStrict("e") {
-		insert(parsed.CoExists("i", "e") && !parsed.ContainsFlagStrict("file"),
-			parsed.GetFlagValueDefault("file", ""))
+	if parsed.ContainsFlagStrict("i") || parsed.CoExists("i", "e") {
+		insert(parsed.CoExists("i", "e") && !parsed.ContainsFlagStrict("file"), parsed.GetFlagValueDefault("file", ""))
 		return
 	}
 
@@ -962,16 +961,36 @@ func main() {
 		}
 		var tags []tag
 		cursor.All(ctx, &tags)
+		buf := bytes.NewBufferString("")
 		for _, tag := range tags {
-			tag.Name = color.HiBlueString(tag.Name)
 			if verbose {
+				tag.Name = color.HiBlueString(tag.Name)
 				printSeperator()
 				fmt.Println(utilsW.ToString(tag))
 			} else {
-				fmt.Fprintf(color.Output, `%s[%d]  `, tag.Name, tag.Count)
+				if utilsW.GetPlatform() == utilsW.WINDOWS {
+					tag.Name = color.HiBlueString(tag.Name)
+					fmt.Fprintf(color.Output, `%s[%d]  `, tag.Name, tag.Count)
+				} else {
+					fmt.Fprintf(buf, `%s[%d]  `, tag.Name, tag.Count)
+				}
 			}
 		}
 		if !verbose {
+			if utilsW.GetPlatform() != utilsW.WINDOWS {
+				_, w := utilsW.GetTerminalSize()
+				terminalIndent := 2
+				raw := stringsW.Wrap(buf.String(), w-terminalIndent, terminalIndent, "  ")
+				for _, line := range stringsW.SplitNoEmpty(raw, "\n") {
+					arr := stringsW.SplitNoEmpty(line, " ")
+					changedArr := make([]string, len(arr))
+					for i := range arr {
+						idx := strings.IndexByte(arr[i], '[')
+						changedArr[i] = color.HiBlueString(arr[i][:idx]) + arr[i][idx:]
+					}
+					fmt.Println(strings.Repeat(" ", terminalIndent) + strings.Join(changedArr, "  "))
+				}
+			}
 			fmt.Println()
 		}
 		return
