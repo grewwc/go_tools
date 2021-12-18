@@ -145,12 +145,13 @@ func (r ParsedResults) ContainsAllFlagStrict(flagNames ...string) bool {
 }
 
 func (r ParsedResults) CoExists(args ...string) bool {
+outer:
 	for optional := range r.Optional {
 		optional = strings.TrimPrefix(optional, "-")
 		for _, arg := range args {
 			newOptional := strings.Replace(optional, arg, "", 1)
 			if newOptional == optional {
-				continue
+				continue outer
 			}
 			optional = newOptional
 		}
