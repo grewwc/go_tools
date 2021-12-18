@@ -272,8 +272,10 @@ func (r *record) deleteByID() {
 	r.do("deleteByID")
 }
 
-func (r *record) update() {
-	r.ModifiedDate = time.Now()
+func (r *record) update(changeModifiedDate bool) {
+	if changeModifiedDate {
+		r.ModifiedDate = time.Now()
+	}
 	r.do("update")
 }
 
@@ -413,7 +415,7 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, pre
 	if !changed {
 		return
 	}
-	newRecord.update()
+	newRecord.update(true)
 }
 
 func insert(fromEditor bool, filename string) {
@@ -477,8 +479,8 @@ func toggle(val bool, id string, name string, prev bool) {
 	switch name {
 	case finish:
 		if r.Finished != val {
-			changed = true
 			r.Finished = val
+			changed = true
 		}
 	case myproblem:
 		if r.MyProblem != val {
@@ -495,14 +497,17 @@ func toggle(val bool, id string, name string, prev bool) {
 		if !changed {
 			return
 		}
-		inc := 1
-		if (val && name == finish) || (!val && name == myproblem) {
+
+		inc := 0
+		if r.MyProblem && !r.Finished {
+			inc = 1
+		} else if !r.MyProblem && r.Finished {
 			inc = -1
 		}
 		incrementTagCount(cli.Database(dbName), r.Tags, inc)
 	}(c)
 	<-c
-	r.update()
+	r.update(false)
 }
 
 func delete(id string, prev bool) {
@@ -547,17 +552,32 @@ func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 	<-c
 	fmt.Print("input the New Title: ")
 	if fromEditor {
-		r.Title = utilsW.InputWithEditor(r.Title)
+		newTitle := utilsW.InputWithEditor(r.Title)
+		if newTitle == r.Title {
+			fmt.Println("content not changed ")
+			return
+		}
+		r.Title = newTitle
 		fmt.Println()
 	} else {
 		scanner.Scan()
-		r.Title = strings.TrimSpace(scanner.Text())
+		newTitle := strings.TrimSpace(scanner.Text())
+		if newTitle == r.Title {
+			fmt.Println("content not changed")
+			return
+		}
+		r.Title = newTitle
 		if fromFile {
-			r.Title = utilsW.ReadString(r.Title)
+			newTitle = utilsW.ReadString(r.Title)
+			if newTitle == r.Title {
+				fmt.Println("content not changed")
+				return
+			}
+			r.Title = newTitle
 		}
 	}
 	go func(c chan interface{}) {
-		r.update()
+		r.update(true)
 		c <- nil
 	}(c)
 	<-c
@@ -638,7 +658,7 @@ func addTag(add bool, id string, prev bool) {
 			c <- nil
 		}()
 		r.Tags = s.ToStringSlice()
-		r.update()
+		r.update(false)
 	}(c)
 	<-c
 	fmt.Println("New Record: ")
@@ -721,7 +741,7 @@ func syncByID(id string, push bool) {
 	if err == mongo.ErrNoDocuments {
 		r.save()
 	} else {
-		r.update()
+		r.update(false)
 	}
 	// 恢复remote
 	remote = remoteBackUp
