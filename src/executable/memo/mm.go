@@ -1012,7 +1012,7 @@ func main() {
 						idx := strings.Index(arr[i], "[")
 						changedArr[i] = fmt.Sprintf("%s%s", color.HiBlueString(arr[i][:idx]), arr[i][idx:])
 					}
-					fmt.Fprintf(color.Output, "%s%s", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, "  "))
+					fmt.Fprintf(color.Output, "%s%s\n", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, "  "))
 				}
 			}
 			fmt.Println()
