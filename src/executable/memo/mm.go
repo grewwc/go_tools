@@ -1005,17 +1005,20 @@ func main() {
 			if utilsW.GetPlatform() != utilsW.WINDOWS || err == nil {
 				terminalIndent := 2
 				raw := stringsW.Wrap(buf.String(), w-terminalIndent, terminalIndent, "  ")
-				for _, line := range stringsW.SplitNoEmpty(raw, "\n") {
-					arr := stringsW.SplitNoEmpty(line, " ")
-					changedArr := make([]string, len(arr))
-					for i := range arr {
-						idx := strings.Index(arr[i], "[")
-						changedArr[i] = fmt.Sprintf("%s%s", color.HiBlueString(arr[i][:idx]), arr[i][idx:])
+				if utilsW.GetPlatform() == utilsW.WINDOWS {
+					fmt.Println(raw)
+				} else {
+					for _, line := range stringsW.SplitNoEmpty(raw, "\n") {
+						arr := stringsW.SplitNoEmpty(line, " ")
+						changedArr := make([]string, len(arr))
+						for i := range arr {
+							idx := strings.Index(arr[i], "[")
+							changedArr[i] = fmt.Sprintf("%s%s", color.HiBlueString(arr[i][:idx]), arr[i][idx:])
+						}
+						fmt.Fprintf(color.Output, "%s%s\n", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, "  "))
 					}
-					fmt.Fprintf(color.Output, "%s%s\n", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, "  "))
 				}
 			}
-			fmt.Println()
 		}
 		return
 	}

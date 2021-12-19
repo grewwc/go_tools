@@ -106,7 +106,7 @@ func (r ParsedResults) GetBooleanArgs() *containerW.OrderedSet {
 func (r ParsedResults) ContainsFlag(flagName string) bool {
 	flagName = stringsW.StripPrefix(flagName, "-")
 	buf := bytes.NewBufferString("")
-	for option, _ := range r.Optional {
+	for option := range r.Optional {
 		buf.WriteString(option)
 	}
 	return strings.Contains(buf.String(), flagName)

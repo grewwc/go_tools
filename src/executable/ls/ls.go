@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"math"
@@ -219,7 +220,7 @@ func main() {
 	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h", "G")
 
 	coloredStrings := containerW.NewSet()
-	indent := 6
+	indent := 4
 	delimiter := "  "
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)
 
@@ -340,9 +341,9 @@ skipTo:
 			// fmt.Println("file: ===>", files)
 			var toPrint string = files
 			if !l {
-				toPrint = stringsW.Wrap(files, w-indent*2, indent, delimiter)
+				toPrint = stringsW.Wrap(files, w-indent, indent, delimiter)
 			}
-			boldCyan := color.New(color.FgHiCyan, color.Bold)
+			// boldCyan := color.New(color.FgHiCyan, color.Bold)
 			cnt := 0
 
 			for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
@@ -358,20 +359,25 @@ skipTo:
 					}
 				} else {
 					fmt.Printf("%s", strings.Repeat(" ", indent))
+					buf := bytes.NewBufferString("")
 					for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
 						word = strings.ReplaceAll(word, "\x00", " ")
 						if coloredStrings.Contains(word) {
-							boldCyan.Printf("%s%s", word, delimiter)
+							if utilsW.GetPlatform() == utilsW.WINDOWS {
+								fmt.Fprintf(buf, `%s%s`, word, delimiter)
+							} else {
+								fmt.Fprintf(buf, `%s%s`, color.HiCyanString(word), delimiter)
+							}
 						} else {
-							fmt.Printf("%s%s", word, delimiter)
+							fmt.Fprintf(buf, "%s%s", word, delimiter)
 						}
 						cnt++
 						if cnt >= numFileToPrint {
-							fmt.Println()
+							fmt.Println(buf.String())
 							goto outerLoop
 						}
 					}
-					fmt.Println()
+					fmt.Println(buf.String())
 				}
 			}
 		outerLoop:
