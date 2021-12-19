@@ -343,13 +343,11 @@ skipTo:
 			if !l {
 				toPrint = stringsW.Wrap(files, w-indent, indent, delimiter)
 			}
-			// boldCyan := color.New(color.FgHiCyan, color.Bold)
+			boldCyan := color.New(color.FgHiCyan, color.Bold)
 			cnt := 0
-
 			for _, line := range stringsW.SplitNoEmpty(toPrint, "\n") {
 				if strings.Contains(line, "\x01") { // \x01 means ls -l
 					line = strings.ReplaceAll(line, "\x01", "")
-					// fmt.Println("here", line)
 					fmt.Fprintln(tw, line)
 
 					cnt++
@@ -364,20 +362,28 @@ skipTo:
 						word = strings.ReplaceAll(word, "\x00", " ")
 						if coloredStrings.Contains(word) {
 							if utilsW.GetPlatform() == utilsW.WINDOWS {
-								fmt.Fprintf(buf, `%s%s`, word, delimiter)
+								fmt.Fprintf(buf, "%s%s", word, delimiter)
 							} else {
-								fmt.Fprintf(buf, `%s%s`, color.HiCyanString(word), delimiter)
+								boldCyan.Fprintf(buf, `%s%s`, word, delimiter)
 							}
 						} else {
 							fmt.Fprintf(buf, "%s%s", word, delimiter)
 						}
 						cnt++
 						if cnt >= numFileToPrint {
-							fmt.Println(buf.String())
+							if utilsW.GetPlatform() == utilsW.WINDOWS {
+								fmt.Println(buf.String())
+							} else {
+								fmt.Println(buf.String())
+							}
 							goto outerLoop
 						}
 					}
-					fmt.Println(buf.String())
+					if utilsW.GetPlatform() == utilsW.WINDOWS {
+						fmt.Println(buf.String())
+					} else {
+						fmt.Println(buf.String())
+					}
 				}
 			}
 		outerLoop:
