@@ -216,7 +216,7 @@ func main() {
 	fs.Bool("f", false, "only list normal files")
 	fs.String("re", "", "use regular expression to parse files to be listed")
 
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h")
+	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h", "G")
 
 	coloredStrings := containerW.NewSet()
 	indent := 6
@@ -231,13 +231,6 @@ func main() {
 
 	numFileToPrint = parsedResults.GetNumArgs()
 
-	// ls -G default in mac
-	if parsedResults.ContainsFlagStrict("G") {
-		val := parsedResults.GetFlagValueDefault("G", "")
-		if val != "" {
-			parsedResults.Positional.Add(val)
-		}
-	}
 	args = parsedResults.Positional.ToStringSlice()
 	// fmt.Println(parsedResults)
 
