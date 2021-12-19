@@ -99,7 +99,7 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) {
 	defer commonF.Close()
 
 	matched := 0
-	p := regexp.MustCompile(`(?i)^url[\s]*[:；]`)
+	p := regexp.MustCompile(`(?i)url[\s]*[:：]`)
 	for i := range titles {
 		title := titles[i]
 		objectID := objectIDs[i]
