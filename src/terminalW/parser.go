@@ -314,6 +314,7 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	if len(os.Args) <= 1 {
 		return nil
 	}
+
 	args := make([]string, len(os.Args))
 	for i, arg := range os.Args {
 		args[i] = fmt.Sprintf("%q", arg)
@@ -336,7 +337,6 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 // cmd contains the Programs itself
 func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	cmd = stringsW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
-
 	cmdSlice := stringsW.SplitNoEmptyKeepQuote(cmd, ' ')
 	if len(cmdSlice) <= 1 {
 		return nil

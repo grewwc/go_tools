@@ -16,8 +16,6 @@ import (
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
-	"github.com/grewwc/go_tools/src/windowsW"
-	"golang.org/x/sys/windows"
 )
 
 var w int
@@ -32,12 +30,17 @@ var errMsgs = containerW.NewQueue()
 var fileCnt int64
 
 func init() {
-	windowsW.EnableVirtualTerminal()
-	var info windows.ConsoleScreenBufferInfo
-	stdout := windows.Handle(os.Stdout.Fd())
+	// windowsW.EnableVirtualTerminal()
+	// var info windows.ConsoleScreenBufferInfo
+	// stdout := windows.Handle(os.Stdout.Fd())
 
-	windows.GetConsoleScreenBufferInfo(stdout, &info)
-	w = int(info.Size.X)
+	// windows.GetConsoleScreenBufferInfo(stdout, &info)
+	// w = int(info.Size.X)
+	var err error
+	_, w, err = utilsW.GetTerminalSize()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func formatFileStat(filename string, realSize bool) string {
@@ -215,21 +218,28 @@ func main() {
 
 	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h")
 
-	// fmt.Println(parsedResults)
 	coloredStrings := containerW.NewSet()
 	indent := 6
 	delimiter := "  "
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)
 
 	var args []string
-
 	if parsedResults == nil {
 		args = []string{"./"}
 		goto skipTo
 	}
-	args = parsedResults.Positional.ToStringSlice()
 
 	numFileToPrint = parsedResults.GetNumArgs()
+
+	// ls -G default in mac
+	if parsedResults.ContainsFlagStrict("G") {
+		val := parsedResults.GetFlagValueDefault("G", "")
+		if val != "" {
+			parsedResults.Positional.Add(val)
+		}
+	}
+	args = parsedResults.Positional.ToStringSlice()
+	// fmt.Println(parsedResults)
 
 	if numFileToPrint == -1 {
 		numFileToPrint = math.MaxInt32
@@ -311,7 +321,6 @@ skipTo:
 		args = []string{"./"}
 	}
 
-	// fmt.Println("args", args)
 	for _, rootDir := range args {
 		if len(args) > 1 {
 			fmt.Printf("%s:\n", color.HiCyanString(rootDir))
@@ -334,7 +343,7 @@ skipTo:
 				fmt.Printf("%d\n", fileCnt)
 				continue
 			}
-			fmt.Println()
+			// fmt.Println()
 			// fmt.Println("file: ===>", files)
 			var toPrint string = files
 			if !l {

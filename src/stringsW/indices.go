@@ -22,13 +22,11 @@ func FindAll(str, substr string) []int {
 }
 
 func StripPrefix(s, prefix string) string {
-	for idx, ch := range prefix {
-		chStr := string(ch)
-		if chStr != s[idx:idx+len(chStr)] {
-			return s
-		}
+	idx := strings.LastIndex(s, prefix)
+	if idx < 0 {
+		return s
 	}
-	return s[len(prefix):]
+	return s[idx+len(prefix):]
 }
 
 // SubStringQuiet
