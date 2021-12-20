@@ -476,11 +476,17 @@ func toggle(val bool, id string, name string, prev bool) {
 	c := make(chan interface{})
 
 	var changed bool
+	inc := 0
 	switch name {
 	case finish:
 		if r.Finished != val {
 			r.Finished = val
 			changed = true
+			if val {
+				inc = -1
+			} else {
+				inc = 1
+			}
 		}
 	case myproblem:
 		if r.MyProblem != val {
@@ -490,22 +496,15 @@ func toggle(val bool, id string, name string, prev bool) {
 	default:
 		panic("unknown name")
 	}
-	go func(c chan interface{}) {
+	go func(c chan interface{}, inc int) {
 		defer func() {
 			c <- nil
 		}()
 		if !changed {
 			return
 		}
-
-		inc := 0
-		if r.MyProblem && !r.Finished {
-			inc = 1
-		} else if !r.MyProblem && r.Finished {
-			inc = -1
-		}
 		incrementTagCount(cli.Database(dbName), r.Tags, inc)
-	}(c)
+	}(c, inc)
 	<-c
 	r.update(false)
 }
