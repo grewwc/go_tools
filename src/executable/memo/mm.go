@@ -864,11 +864,12 @@ func main() {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
+	// list by tag name
 	if parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a") {
 		if parsed.ContainsFlagStrict("pull") {
 			remote = true
 		}
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") || !all)
+		records := listRecords(n, reverse, includeFinished || all, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all)
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
 			return
