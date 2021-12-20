@@ -21,8 +21,6 @@ func FindAll(str, substr string) []int {
 	return result
 }
 
-// StripPrefix strips all prefix of the s
-// StripPrefix("--a", "-")  == "a"
 func StripPrefix(s, prefix string) string {
 	idx := strings.LastIndex(s, prefix)
 	if idx < 0 {

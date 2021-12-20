@@ -220,7 +220,7 @@ func main() {
 	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h", "G")
 
 	coloredStrings := containerW.NewSet()
-	indent := 2
+	indent := 4
 	delimiter := "  "
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)
 
@@ -341,7 +341,7 @@ skipTo:
 			// fmt.Println("file: ===>", files)
 			var toPrint string = files
 			if !l {
-				toPrint = stringsW.Wrap(files, w-indent*2, indent, delimiter)
+				toPrint = stringsW.Wrap(files, w-indent, indent, delimiter)
 			}
 			boldCyan := color.New(color.FgHiCyan, color.Bold)
 			cnt := 0
@@ -364,18 +364,26 @@ skipTo:
 							if utilsW.GetPlatform() == utilsW.WINDOWS {
 								fmt.Fprintf(buf, "%s%s", word, delimiter)
 							} else {
-								boldCyan.Fprintf(buf, `%s%s`, strings.TrimSuffix(word, "/"), delimiter)
+								boldCyan.Fprintf(buf, `%s%s`, word, delimiter)
 							}
 						} else {
 							fmt.Fprintf(buf, "%s%s", word, delimiter)
 						}
 						cnt++
 						if cnt >= numFileToPrint {
-							fmt.Println(buf.String())
+							if utilsW.GetPlatform() == utilsW.WINDOWS {
+								fmt.Println(buf.String())
+							} else {
+								fmt.Println(buf.String())
+							}
 							goto outerLoop
 						}
 					}
-					fmt.Println(buf.String())
+					if utilsW.GetPlatform() == utilsW.WINDOWS {
+						fmt.Println(buf.String())
+					} else {
+						fmt.Println(buf.String())
+					}
 				}
 			}
 		outerLoop:
