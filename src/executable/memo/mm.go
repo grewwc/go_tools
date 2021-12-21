@@ -1004,7 +1004,8 @@ func main() {
 		if !verbose {
 			if utilsW.GetPlatform() != utilsW.WINDOWS || err == nil {
 				terminalIndent := 2
-				raw := stringsW.Wrap(buf.String(), w-terminalIndent, terminalIndent, "  ")
+				delimiter := "   "
+				raw := stringsW.Wrap(buf.String(), w-terminalIndent, terminalIndent, delimiter)
 				if utilsW.GetPlatform() == utilsW.WINDOWS {
 					fmt.Println(raw)
 				} else {
@@ -1015,7 +1016,7 @@ func main() {
 							idx := strings.Index(arr[i], "[")
 							changedArr[i] = fmt.Sprintf("%s%s", color.HiBlueString(arr[i][:idx]), arr[i][idx:])
 						}
-						fmt.Fprintf(color.Output, "%s%s\n", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, "  "))
+						fmt.Fprintf(color.Output, "%s%s\n", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, delimiter))
 					}
 				}
 			}
