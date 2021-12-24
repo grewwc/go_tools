@@ -684,15 +684,16 @@ func coloringRecord(r *record, p *regexp.Regexp) {
 		for !beg.Empty() {
 			i := beg.Dequeue().(int)
 			j := end.Dequeue().(int)
-			all.WriteString(color.YellowString(string(bt[idx:i])))
+			all.WriteString(color.HiYellowString(string(bt[idx:i])))
 			all.WriteString(color.RedString(string(bt[i:j])))
 			idx = j
 		}
-		all.WriteString(color.YellowString(string(bt[idx:])))
+		all.WriteString(color.HiYellowString(string(bt[idx:])))
 		r.Title = all.String()
 	} else {
-		r.Title = color.YellowString(r.Title)
+		r.Title = color.HiYellowString(r.Title)
 	}
+	r.Title = "\n" + r.Title
 	for i := range r.Tags {
 		r.Tags[i] = color.HiBlueString(r.Tags[i])
 	}
