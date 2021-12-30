@@ -284,7 +284,7 @@ func (r *record) loadByID() {
 }
 
 func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool, title string,
-	onlyMyproblem bool) []*record {
+	onlyMyproblem bool, prefix bool) []*record {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -320,7 +320,15 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 		if useAnd {
 			m["tags"] = bson.M{"$all": tags}
 		} else {
-			m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tags}}
+			if prefix {
+				tagsReg := make([]primitive.Regex, len(tags))
+				for i := range tags {
+					tagsReg[i] = primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", tags[i])}
+				}
+				m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tagsReg}}
+			} else {
+				m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tags}}
+			}
 		}
 	}
 	if title != "" {
@@ -793,12 +801,13 @@ func main() {
 	fs.Bool("remote", false, "operate on the remote server")
 	fs.Bool("prev", false, "operate based on the previous ObjectIDs")
 	fs.Bool("count", false, "only print the count, not the result")
+	fs.Bool("prefix", true, "tag prefix")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
-		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev", "count")
+		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev", "count", "prefix")
 
 	if parsed == nil {
-		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true)
+		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true, true)
 		for _, record := range records {
 			printSeperator()
 			coloringRecord(record, nil)
@@ -870,7 +879,7 @@ func main() {
 		if parsed.ContainsFlagStrict("pull") {
 			remote = true
 		}
-		records := listRecords(n, reverse, includeFinished || all, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all)
+		records := listRecords(n, reverse, includeFinished || all, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all, parsed.ContainsFlagStrict("prefix"))
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
 			return
@@ -971,10 +980,11 @@ func main() {
 		}
 		op1 := options.FindOptions{}
 		op1.SetLimit(n)
+		var sortBy = "name"
 		if reverse {
-			op1.SetSort(bson.M{"count": 1})
+			op1.SetSort(bson.M{sortBy: 1})
 		} else {
-			op1.SetSort(bson.M{"count": -1})
+			op1.SetSort(bson.M{sortBy: -1})
 		}
 		cli := client
 		if remote {
@@ -1031,7 +1041,8 @@ func main() {
 		if title == "" {
 			title = parsed.GetFlagValueDefault("c", "")
 		}
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || !all)
+		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || !all,
+			parsed.ContainsFlagStrict("prefix"))
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
 			return
