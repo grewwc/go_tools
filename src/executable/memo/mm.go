@@ -801,7 +801,7 @@ func main() {
 	fs.Bool("remote", false, "operate on the remote server")
 	fs.Bool("prev", false, "operate based on the previous ObjectIDs")
 	fs.Bool("count", false, "only print the count, not the result")
-	fs.Bool("prefix", true, "tag prefix")
+	fs.Bool("prefix", false, "tag prefix")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev", "count", "prefix")
