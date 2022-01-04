@@ -901,7 +901,8 @@ func main() {
 				if err != nil {
 					panic(err)
 				}
-				if !utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
+				if (utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName))) ||
+					!utilsW.IsExist(jsonOutputName) {
 					if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
 						panic(err)
 					}
@@ -1060,7 +1061,8 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			if !utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)) {
+			if (utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName))) ||
+				!utilsW.IsExist(jsonOutputName) {
 				if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
 					panic(err)
 				}
