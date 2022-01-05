@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -432,10 +433,20 @@ func insert(fromEditor bool, filename string) {
 	scanner := bufio.NewScanner(os.Stdin)
 	var title string
 	var titleSlice []string
+	var err error
 	if filename != "" {
-		title = utilsW.ReadString(filename)
-		title = strings.ReplaceAll(title, ",", " ")
+		title = strings.ReplaceAll(filename, ",", " ")
 		titleSlice = stringsW.SplitNoEmpty(title, " ")
+		if len(titleSlice) == 1 {
+			titleSlice, err = filepath.Glob(title)
+			// fmt.Println("here", titleSlice)
+			if err != nil {
+				panic(err)
+			}
+		}
+		for i := range titleSlice {
+			titleSlice[i] = filename + "\n" + utilsW.ReadString(titleSlice[i])
+		}
 	} else if fromEditor {
 		fmt.Print("input the title: ")
 		title = utilsW.InputWithEditor("")
@@ -805,7 +816,7 @@ func main() {
 	fs.Bool("tags", false, "list all tags")
 	fs.Bool("and", false, "use and logic to match tags")
 	fs.Bool("v", false, "verbose (show modify/add time)")
-	fs.String("file", "", "read title from a file")
+	fs.String("file", "", "read title from a file, for '-u' & '-ct', file serve as bool, for '-i', needs to pass filename")
 	fs.Bool("e", false, "read from editor")
 	fs.String("title", "", "search by title")
 	fs.String("c", "", "content (alias for title)")
@@ -912,9 +923,13 @@ func main() {
 					fmt.Println(color.HiRedString(record.ID.String()))
 				}
 			} else if toBinary {
-				if !utilsW.IsExist(outputName) || (utilsW.IsExist(outputName) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)))) {
-					for i := range records {
-						if err := ioutil.WriteFile(fmt.Sprintf("%s_%d.%s", outputName, i, records[i].Tags[0]), []byte(records[i].Title), 0666); err != nil {
+				for i := range records {
+					content := records[i].Title
+					idx := strings.IndexByte(content, '\n')
+					filename := content[:idx]
+					title := content[idx+1:]
+					if !utilsW.IsExist(filename) || (utilsW.IsExist(filename) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) {
+						if err := ioutil.WriteFile(filename, []byte(title), 0666); err != nil {
 							panic(err)
 						}
 					}
@@ -1078,14 +1093,6 @@ func main() {
 				coloringRecord(record, p)
 				fmt.Println(record)
 				fmt.Println(color.HiRedString(record.ID.String()))
-			}
-		} else if toBinary {
-			if !utilsW.IsExist(outputName) || (utilsW.IsExist(outputName) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)))) {
-				for i := range records {
-					if err := ioutil.WriteFile(fmt.Sprintf("%s_%d.%s", outputName, i, records[i].Tags[0]), []byte(records[i].Title), 0666); err != nil {
-						panic(err)
-					}
-				}
 			}
 		} else {
 			data, err := json.MarshalIndent(records, "", "  ")
