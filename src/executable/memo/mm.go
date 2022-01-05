@@ -987,9 +987,9 @@ func main() {
 		op1.SetLimit(n)
 		var sortBy = "name"
 		if reverse {
-			op1.SetSort(bson.M{sortBy: 1})
-		} else {
 			op1.SetSort(bson.M{sortBy: -1})
+		} else {
+			op1.SetSort(bson.M{sortBy: 1})
 		}
 		cli := client
 		if remote {
