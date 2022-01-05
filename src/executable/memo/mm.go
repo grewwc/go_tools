@@ -445,7 +445,7 @@ func insert(fromEditor bool, filename string) {
 			}
 		}
 		for i := range titleSlice {
-			titleSlice[i] = filename + "\n" + utilsW.ReadString(titleSlice[i])
+			titleSlice[i] = titleSlice[i] + "\n" + utilsW.ReadString(titleSlice[i])
 		}
 	} else if fromEditor {
 		fmt.Print("input the title: ")
