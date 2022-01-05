@@ -950,7 +950,9 @@ func main() {
 					idx := strings.IndexByte(content, '\n')
 					filename := content[:idx]
 					title := content[idx+1:]
-					if !utilsW.IsExist(filename) || (utilsW.IsExist(filename) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) {
+					if !utilsW.IsExist(filename) ||
+						(utilsW.IsExist(filename) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) ||
+						(utilsW.IsExist(filename) && parsed.ContainsFlagStrict("f")) {
 						if err := ioutil.WriteFile(filename, []byte(title), 0666); err != nil {
 							panic(err)
 						}
