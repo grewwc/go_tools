@@ -431,8 +431,11 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, pre
 func insert(fromEditor bool, filename string) {
 	scanner := bufio.NewScanner(os.Stdin)
 	var title string
+	var titleSlice []string
 	if filename != "" {
 		title = utilsW.ReadString(filename)
+		title = strings.ReplaceAll(title, ",", " ")
+		titleSlice = stringsW.SplitNoEmpty(title, " ")
 	} else if fromEditor {
 		fmt.Print("input the title: ")
 		title = utilsW.InputWithEditor("")
@@ -450,18 +453,23 @@ func insert(fromEditor bool, filename string) {
 	if len(tags) == 0 {
 		tags = []string{autoTag}
 	}
-	r := newRecord(title, tags...)
-	c := make(chan interface{})
-	go func(chan interface{}) {
-		defer func() {
-			c <- nil
-		}()
-		r.save()
-	}(c)
-	<-c
-	fmt.Println("Inserted: ")
-	fmt.Println("\tTags:", r.Tags)
-	fmt.Println("\tTitle:", stringsW.SubStringQuiet(r.Title, 0, titleLen))
+	if titleSlice == nil {
+		titleSlice = []string{title}
+	}
+	for _, title = range titleSlice {
+		r := newRecord(title, tags...)
+		c := make(chan interface{})
+		go func(chan interface{}) {
+			defer func() {
+				c <- nil
+			}()
+			r.save()
+		}(c)
+		<-c
+		fmt.Println("Inserted: ")
+		fmt.Println("\tTags:", r.Tags)
+		fmt.Println("\tTitle:", stringsW.SubStringQuiet(r.Title, 0, titleLen))
+	}
 }
 
 func toggle(val bool, id string, name string, prev bool) {
@@ -905,11 +913,10 @@ func main() {
 				}
 			} else if toBinary {
 				if !utilsW.IsExist(outputName) || (utilsW.IsExist(outputName) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)))) {
-					if len(records) > 1 {
-						fmt.Println("ONLY choose the first value!")
-					}
-					if err := ioutil.WriteFile(outputName, []byte(records[0].Title), 0666); err != nil {
-						panic(err)
+					for i := range records {
+						if err := ioutil.WriteFile(fmt.Sprintf("%s_%d.%s", outputName, i, records[i].Tags[0]), []byte(records[i].Title), 0666); err != nil {
+							panic(err)
+						}
 					}
 				}
 			} else {
@@ -1074,11 +1081,10 @@ func main() {
 			}
 		} else if toBinary {
 			if !utilsW.IsExist(outputName) || (utilsW.IsExist(outputName) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)))) {
-				if len(records) > 1 {
-					fmt.Println("ONLY choose the first value!")
-				}
-				if err := ioutil.WriteFile(outputName, []byte(records[0].Title), 0666); err != nil {
-					panic(err)
+				for i := range records {
+					if err := ioutil.WriteFile(fmt.Sprintf("%s_%d.%s", outputName, i, records[i].Tags[0]), []byte(records[i].Title), 0666); err != nil {
+						panic(err)
+					}
 				}
 			}
 		} else {
