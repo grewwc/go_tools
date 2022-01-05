@@ -41,6 +41,7 @@ const (
 const (
 	autoTag        = "auto"
 	jsonOutputName = "output.json"
+	outputName     = "output_binary"
 	finish         = "finish"
 	myproblem      = "myproblem"
 	titleLen       = 200
@@ -806,6 +807,7 @@ func main() {
 	fs.Bool("prev", false, "operate based on the previous ObjectIDs")
 	fs.Bool("count", false, "only print the count, not the result")
 	fs.Bool("prefix", false, "tag prefix")
+	fs.Bool("binary", false, "if the title is binary file")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev", "count", "prefix")
@@ -864,7 +866,7 @@ func main() {
 
 	all := parsed.ContainsFlagStrict("all") || (parsed.ContainsFlag("a") &&
 		!parsed.ContainsFlagStrict("add-tag") && !parsed.ContainsFlagStrict("del-tag") &&
-		!parsed.ContainsFlagStrict("tags"))
+		!parsed.ContainsFlagStrict("tags")) && !parsed.ContainsFlagStrict("binary")
 	if all {
 		n = math.MaxInt64
 	}
@@ -873,6 +875,7 @@ func main() {
 	verbose := parsed.ContainsFlagStrict("v")
 	tags := []string{}
 	toJSON := parsed.ContainsFlagStrict("json")
+	toBinary := parsed.ContainsFlagStrict("binary")
 
 	if parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a") {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
@@ -893,12 +896,21 @@ func main() {
 			if verbose {
 				ignoreFields = []string{}
 			}
-			if !toJSON {
+			if !toJSON && !toBinary {
 				for _, record := range records {
 					printSeperator()
 					coloringRecord(record, nil)
 					fmt.Println(utilsW.ToString(record, ignoreFields...))
 					fmt.Println(color.HiRedString(record.ID.String()))
+				}
+			} else if toBinary {
+				if !utilsW.IsExist(outputName) || (utilsW.IsExist(outputName) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)))) {
+					if len(records) > 1 {
+						fmt.Println("ONLY choose the first value!")
+					}
+					if err := ioutil.WriteFile(outputName, []byte(records[0].Title), 0666); err != nil {
+						panic(err)
+					}
 				}
 			} else {
 				data, err := json.MarshalIndent(records, "", "  ")
@@ -1052,13 +1064,22 @@ func main() {
 			fmt.Printf("%d records found\n", len(records))
 			return
 		}
-		if !toJSON {
+		if !toJSON && !toBinary {
 			for _, record := range records {
 				printSeperator()
 				p := regexp.MustCompile(`(?i)` + title)
 				coloringRecord(record, p)
 				fmt.Println(record)
 				fmt.Println(color.HiRedString(record.ID.String()))
+			}
+		} else if toBinary {
+			if !utilsW.IsExist(outputName) || (utilsW.IsExist(outputName) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName)))) {
+				if len(records) > 1 {
+					fmt.Println("ONLY choose the first value!")
+				}
+				if err := ioutil.WriteFile(outputName, []byte(records[0].Title), 0666); err != nil {
+					panic(err)
+				}
 			}
 		} else {
 			data, err := json.MarshalIndent(records, "", "  ")
