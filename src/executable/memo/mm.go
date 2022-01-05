@@ -898,7 +898,7 @@ func main() {
 	verbose := parsed.ContainsFlagStrict("v")
 	tags := []string{}
 	toJSON := parsed.ContainsFlagStrict("json")
-	toBinary := parsed.ContainsFlagStrict("binary")
+	toBinary := parsed.ContainsAnyFlagStrict("binary", "b")
 
 	if parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a") {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
