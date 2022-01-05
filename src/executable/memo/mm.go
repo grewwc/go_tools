@@ -43,6 +43,7 @@ const (
 	jsonOutputName = "output.json"
 	finish         = "finish"
 	myproblem      = "myproblem"
+	titleLen       = 200
 )
 
 var (
@@ -458,7 +459,8 @@ func insert(fromEditor bool, filename string) {
 	}(c)
 	<-c
 	fmt.Println("Inserted: ")
-	fmt.Println(r)
+	fmt.Println("\tTags:", r.Tags)
+	fmt.Println("\tTitle:", stringsW.SubStringQuiet(r.Title, 0, titleLen))
 }
 
 func toggle(val bool, id string, name string, prev bool) {
@@ -589,7 +591,8 @@ func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 	}(c)
 	<-c
 	fmt.Println("New Record: ")
-	fmt.Println(r)
+	fmt.Println("\tTags:", r.Tags)
+	fmt.Println("\tTitle:", stringsW.SubStringQuiet(r.Title, 0, titleLen))
 }
 
 func addTag(add bool, id string, prev bool) {
@@ -669,7 +672,8 @@ func addTag(add bool, id string, prev bool) {
 	}(c)
 	<-c
 	fmt.Println("New Record: ")
-	fmt.Println(r)
+	fmt.Println("\tTags:", r.Tags)
+	fmt.Println("\tTitle:", stringsW.SubStringQuiet(r.Title, 0, titleLen))
 }
 
 func printSeperator() {
