@@ -828,9 +828,12 @@ func main() {
 	fs.Bool("count", false, "only print the count, not the result")
 	fs.Bool("prefix", false, "tag prefix")
 	fs.Bool("binary", false, "if the title is binary file")
+	fs.Bool("b", false, "shortcut for -binary")
+	fs.Bool("force", false, "force overwrite")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
-		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev", "count", "prefix")
+		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev", "count", "prefix", "binary",
+		"b")
 
 	if parsed == nil {
 		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true, true)
@@ -952,7 +955,7 @@ func main() {
 					title := content[idx+1:]
 					if !utilsW.IsExist(filename) ||
 						(utilsW.IsExist(filename) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) ||
-						(utilsW.IsExist(filename) && parsed.ContainsFlagStrict("f")) {
+						(utilsW.IsExist(filename) && parsed.ContainsFlagStrict("force")) {
 						if err := ioutil.WriteFile(filename, []byte(title), 0666); err != nil {
 							panic(err)
 						}
