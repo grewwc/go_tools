@@ -813,6 +813,7 @@ func main() {
 	fs.Bool("include-finished", false, "include finished record")
 	fs.String("add-tag", "", "add tags for a record")
 	fs.String("del-tag", "", "delete tags for a record")
+	fs.String("clean-tag", "", "clean all the records having the tag")
 	fs.Bool("tags", false, "list all tags")
 	fs.Bool("and", false, "use and logic to match tags")
 	fs.Bool("v", false, "verbose (show modify/add time)")
@@ -898,6 +899,27 @@ func main() {
 
 	if parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a") {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
+	}
+
+	if parsed.ContainsFlagStrict("clean-tag") {
+		t := parsed.GetFlagValueDefault("clean-tag", "")
+		t = strings.ReplaceAll(t, ",", " ")
+		tags = stringsW.SplitNoEmpty(t, " ")
+		coloredTags := make([]string, len(tags))
+		if len(tags) == 0 {
+			fmt.Println("empty tags")
+			return
+		}
+		for i := range tags {
+			coloredTags[i] = color.HiRedString(tags[i])
+		}
+		fmt.Println("cleaning tags:", coloredTags)
+		records := listRecords(-1, reverse, true, tags, true, "", false, false)
+		// fmt.Println("here", records)
+		for _, record := range records {
+			record.delete()
+		}
+		return
 	}
 
 	// list by tag name
