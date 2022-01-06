@@ -787,7 +787,7 @@ func syncByID(id string, push bool) {
 func main() {
 	defer func() {
 		if res := recover(); res != nil {
-			fmt.Println(res)
+			fmt.Println("recovered:", res)
 		}
 	}()
 	var n int64 = 10
