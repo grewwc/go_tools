@@ -654,7 +654,7 @@ func addTag(add bool, id string, prev bool) {
 	newTags := stringsW.SplitNoEmpty(strings.ReplaceAll(strings.TrimSpace(scanner.Text()), ",", " "), " ")
 
 	s := (<-c).(*containerW.Set)
-	if s.Size() == 1 {
+	if s.Size() == 1 && !add {
 		panic("can't delete the tag, because it's the only tag")
 	}
 	newTagSet := containerW.NewSet()
