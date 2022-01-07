@@ -69,13 +69,13 @@ func WritePreviousOpration(op string) {
 	}
 }
 
-func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) {
+func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) bool {
 	if len(titles) < 1 {
-		return
+		return false
 	}
 	if len(objectIDs) != len(titles) {
 		log.Println("objectIDs length doesn't equal to titles length")
-		return
+		return false
 	}
 	absName := filepath.Join(homeDir, urlFileName)
 	absNameCommon := filepath.Join(homeDir, commonFileName)
@@ -131,12 +131,16 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) {
 		commonF.WriteString(objectID.Hex() + "\x00" + titleOneLine)
 		commonF.WriteString("\n")
 	}
+	written := true
 	if matched < 1 && originalData != "" {
 		f.WriteString(originalData)
+		written = false
 	}
 	if len(titles) < 1 && originalCommonData != "" {
 		commonF.WriteString(originalCommonData)
+		written = false
 	}
+	return written
 }
 
 func ReadInfo(isURL bool) string {

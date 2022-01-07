@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -287,7 +286,7 @@ func (r *record) loadByID() {
 }
 
 func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool, title string,
-	onlyMyproblem bool, prefix bool) []*record {
+	onlyMyproblem bool, prefix bool) ([]*record, bool) {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -354,8 +353,8 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 		recordIDs[i] = &res[i].ID
 	}
 	// fmt.Println("here", recordIDs)
-	_helpers.WriteInfo(recordIDs, recordTitles)
-	return res
+	written := _helpers.WriteInfo(recordIDs, recordTitles)
+	return res, written
 }
 
 func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, prev bool) {
@@ -836,7 +835,7 @@ func main() {
 		"b")
 
 	if parsed == nil {
-		records := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true, true)
+		records, _ := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true, true)
 		for _, record := range records {
 			printSeperator()
 			coloringRecord(record, nil)
@@ -846,9 +845,6 @@ func main() {
 		return
 	}
 	positional := parsed.Positional
-	if positional.Size() > 1 {
-		panic(errors.New("too many positional arguments: " + strings.Join(positional.ToStringSlice(), " ")))
-	}
 
 	if parsed.ContainsFlagStrict("remote") {
 		initAtlas()
@@ -917,7 +913,7 @@ func main() {
 			coloredTags[i] = color.HiRedString(tags[i])
 		}
 		fmt.Println("cleaning tags:", coloredTags)
-		records := listRecords(-1, reverse, true, tags, true, "", false, false)
+		records, _ := listRecords(-1, reverse, true, tags, true, "", false, false)
 		// fmt.Println("here", records)
 		for _, record := range records {
 			record.delete()
@@ -930,7 +926,7 @@ func main() {
 		if parsed.ContainsFlagStrict("pull") {
 			remote = true
 		}
-		records := listRecords(n, reverse, includeFinished || all, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all, parsed.ContainsFlagStrict("prefix"))
+		records, _ := listRecords(n, reverse, includeFinished || all, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all, parsed.ContainsFlagStrict("prefix"))
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
 			return
@@ -1107,7 +1103,7 @@ func main() {
 		if title == "" {
 			title = parsed.GetFlagValueDefault("c", "")
 		}
-		records := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || !all,
+		records, _ := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || !all,
 			parsed.ContainsFlagStrict("prefix"))
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
@@ -1136,6 +1132,15 @@ func main() {
 		return
 	}
 	if positional.Contains("open") {
+		positional.Delete("open")
+		tags := positional.ToStringSlice()
+		if len(tags) > 0 {
+			if _, written := listRecords(-1, true, false, tags, false, "", true, false); !written {
+				fmt.Printf("there are NO urls associated with tags: %v\n", tags)
+				return
+			}
+		}
+
 		_helpers.ReadInfo(true)
 		return
 	}
