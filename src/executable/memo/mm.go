@@ -778,7 +778,7 @@ func syncByID(id string, push, quiet bool) {
 	remote = remoteBackUp
 	n := 70
 	if quiet {
-		n = 5
+		n = 20
 	}
 	fmt.Printf("finished %s %s: \n", msg, color.GreenString(stringsW.SubStringQuiet(r.Title, 0, n)))
 	// printSeperator()
