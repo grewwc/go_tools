@@ -132,13 +132,14 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) bool {
 		commonF.WriteString("\n")
 	}
 	written := true
+	if matched < 1 {
+		written = false
+	}
 	if matched < 1 && originalData != "" {
 		f.WriteString(originalData)
-		written = false
 	}
 	if len(titles) < 1 && originalCommonData != "" {
 		commonF.WriteString(originalCommonData)
-		written = false
 	}
 	return written
 }

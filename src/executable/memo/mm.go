@@ -1135,8 +1135,9 @@ func main() {
 		positional.Delete("open")
 		tags := positional.ToStringSlice()
 		if len(tags) > 0 {
-			if _, written := listRecords(-1, true, false, tags, false, "", true, false); !written {
-				fmt.Printf("there are NO urls associated with tags: %v\n", tags)
+			prefix := parsed.ContainsFlagStrict("prefix")
+			if _, written := listRecords(-1, true, false, tags, false, "", true, prefix); !written {
+				fmt.Printf("there are NO urls associated with tags: %v (prefix: %v)\n", tags, prefix)
 				return
 			}
 		}
