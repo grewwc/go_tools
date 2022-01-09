@@ -144,6 +144,7 @@ func (r ParsedResults) ContainsAllFlagStrict(flagNames ...string) bool {
 	return true
 }
 
+// CoExists “-lrt”， args = ["l", "r", "t"]，return true
 func (r ParsedResults) CoExists(args ...string) bool {
 outer:
 	for optional := range r.Optional {
