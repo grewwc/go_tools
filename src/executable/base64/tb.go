@@ -45,13 +45,30 @@ func transferImgToBase64(url string, isUrl bool) {
 	}
 }
 
+func base64ToImage(fname, outName string){
+	imgBytes, err := ioutil.ReadFile(fname)
+	if err != nil{
+		panic(err)
+	}
+	img := string(imgBytes)
+	b, err := base64.StdEncoding.DecodeString(img)
+	if err != nil{
+		panic(err)
+	}
+
+	if err = ioutil.WriteFile(outName, b, 0666); err != nil{
+		panic(err)
+	}
+}
+
 func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("f", true, "pass file ")
-	fs.String("out", "", "output the base64 to file")
+	fs.String("out", "", "output file name")
+	fs.Bool("toimg", false, "")
 
-	parsed := terminalW.ParseArgsCmd("f")
-	if parsed == nil {
+	parsed := terminalW.ParseArgsCmd("f", "toimg")
+	if parsed == nil || parsed.ContainsAnyFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
@@ -64,7 +81,17 @@ func main() {
 	}
 	pos := parsed.Positional.ToStringSlice()
 	if len(pos) > 1 {
-		fmt.Println("only 1 positional arg")
+		fmt.Println("only 1 positional arg allowed")
+		return
+	}
+	if parsed.ContainsFlagStrict("toimg"){
+		if isURL{
+			panic("must pass file name")
+		}
+		if outName == "image-base64.txt"{
+			outName = "output.jpg"
+		}
+		base64ToImage(pos[0], outName)
 		return
 	}
 	transferImgToBase64(pos[0], isURL)
