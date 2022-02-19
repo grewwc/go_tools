@@ -10,15 +10,21 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 var (
 	listOnly = false
+)
+
+var (
+	fileExtension = containerW.NewTrie()
 )
 
 // 控制打开文件数量
@@ -107,13 +113,26 @@ func main() {
 	fs.Bool("h", false, "print help info")
 	fs.Bool("clean", true, "clean the zipped file if error occurs")
 	fs.Bool("l", false, "only list files in the tar.gz")
+	fs.String("nt", "", "exclude type")
 
 	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean", "l")
+	// fmt.Println(parsedResults)
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		fmt.Println(color.GreenString("targo thesis.tar.gz thesis_folder"))
 		return
 	}
+
+	nt := parsedResults.GetFlagValueDefault("nt", "")
+	nt = strings.ReplaceAll(nt, ",", "")
+	for _, val := range stringsW.SplitNoEmpty(nt, " ") {
+		if val[0] != '.' {
+			val = "." + val
+		}
+		// fmt.Println("here", val)
+		fileExtension.Insert(val)
+	}
+	// fmt.Println("here", fileExtension.LooseSearch(".pdf"))
 
 	// create tar files
 	exclude, err := parsedResults.GetFlagVal("ex")
@@ -165,11 +184,12 @@ func main() {
 
 		args := parsedResults.Positional.ToStringSlice()
 		var src, prefix string
+
 		src = args[0]
+
 		if !parsedResults.ContainsFlagStrict("l") {
 			prefix = args[1]
 		}
-
 		processTarGzFile(src, prefix)
 		os.Exit(0)
 	}
@@ -198,7 +218,8 @@ func main() {
 				return err
 			}
 			absPath := utilsW.Abs(path)
-			if !excludeSet.Contains(absPath) {
+
+			if !excludeSet.Contains(absPath) && (filepath.Ext(absPath) == "" || !fileExtension.LooseSearch(filepath.Ext(absPath))) {
 				allFiles = append(allFiles, path)
 			} else if verbose {
 				fmt.Println("exclude: ", color.YellowString(path))
