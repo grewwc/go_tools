@@ -52,16 +52,6 @@ func CollectionExists(db *mongo.Database, ctx context.Context, collectionName st
 	return false
 }
 
-func PromptYesOrNo(msg string) bool {
-	fmt.Print(msg)
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	ans := strings.TrimSpace(scanner.Text())
-	if strings.ToLower(ans) == "y" {
-		return true
-	}
-	return false
-}
 
 func WritePreviousOpration(op string) {
 	if err := ioutil.WriteFile(filepath.Join(homeDir, opFileName), []byte(op), 0666); err != nil {

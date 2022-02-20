@@ -954,7 +954,7 @@ func main() {
 					title := content[idx+1:]
 					if !utilsW.IsExist(filename) ||
 						(utilsW.IsExist(filename) && parsed.ContainsFlagStrict("force")) ||
-						(utilsW.IsExist(filename) && _helpers.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) {
+						(utilsW.IsExist(filename) && utilsW.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) {
 						if err := ioutil.WriteFile(filename, []byte(title), 0666); err != nil {
 							panic(err)
 						}
@@ -965,7 +965,7 @@ func main() {
 				if err != nil {
 					panic(err)
 				}
-				if (utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName))) ||
+				if (utilsW.IsExist(jsonOutputName) && utilsW.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName))) ||
 					!utilsW.IsExist(jsonOutputName) {
 					if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
 						panic(err)
@@ -1125,7 +1125,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			if (utilsW.IsExist(jsonOutputName) && _helpers.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName))) ||
+			if (utilsW.IsExist(jsonOutputName) && utilsW.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName))) ||
 				!utilsW.IsExist(jsonOutputName) {
 				if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
 					panic(err)

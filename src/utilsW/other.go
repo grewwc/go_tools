@@ -1,6 +1,7 @@
 package utilsW
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -122,4 +123,15 @@ func GetTerminalSize() (h, w int, err error) {
 		return
 	}
 	return
+}
+
+func PromptYesOrNo(msg string) bool {
+	fmt.Print(msg)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	ans := strings.TrimSpace(scanner.Text())
+	if strings.ToLower(ans) == "y" {
+		return true
+	}
+	return false
 }
