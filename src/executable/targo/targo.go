@@ -24,6 +24,7 @@ var (
 )
 
 var (
+	excludeFileExtension = containerW.NewTrie()
 	fileExtension = containerW.NewTrie()
 )
 
@@ -104,6 +105,7 @@ func clean(fname string) {
 	}
 }
 
+
 func main() {
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.String("ex", "", "exclude file/directory")
@@ -113,7 +115,8 @@ func main() {
 	fs.Bool("h", false, "print help info")
 	fs.Bool("clean", true, "clean the zipped file if error occurs")
 	fs.Bool("l", false, "only list files in the tar.gz")
-	fs.String("nt", "", "exclude type")
+	fs.String("nt", "", "exclude file type")
+	fs.String("t", "", "only include file type, if set, ignore -nt & -ex")
 
 	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean", "l")
 	// fmt.Println(parsedResults)
@@ -125,14 +128,21 @@ func main() {
 
 	nt := parsedResults.GetFlagValueDefault("nt", "")
 	nt = strings.ReplaceAll(nt, ",", "")
+	t := parsedResults.GetFlagValueDefault("t", "")
+	t = strings.ReplaceAll(t, ",", "")
 	for _, val := range stringsW.SplitNoEmpty(nt, " ") {
 		if val[0] != '.' {
 			val = "." + val
 		}
 		// fmt.Println("here", val)
+		excludeFileExtension.Insert(val)
+	}
+	for _, val := range stringsW.SplitNoEmpty(t, " "){
+		if val[0] != '.'{
+			val = "." + val
+		}
 		fileExtension.Insert(val)
 	}
-	// fmt.Println("here", fileExtension.LooseSearch(".pdf"))
 
 	// create tar files
 	exclude, err := parsedResults.GetFlagVal("ex")
@@ -166,17 +176,26 @@ func main() {
 	}
 	// fmt.Println("excludeset", excludeSet)
 	args := parsedResults.Positional.ToStringSlice()
+	// fmt.Println("here", args)
 	srcNames := []string{}
 	var srcName string
 	outName := args[0]
 
 	if filepath.Ext(outName) != ".gz" {
 		msg := color.RedString(fmt.Sprintf("%q is not a valid outname", outName))
-		log.Fatalln(msg)
+		panic(msg)
 	}
 
 	if parsedResults.ContainsFlagStrict("l") {
 		listOnly = true
+	} else if utilsW.IsExist(outName){
+		ans := utilsW.PromptYesOrNo(fmt.Sprintf("%s exists, overwrite? (y/n) ", color.HiRedString(outName)))
+		if ans{
+			fmt.Printf("overrite %s!", color.RedString(outName))
+		}else {
+			fmt.Println("quit")
+			return
+		}
 	}
 	// extract tar files
 	if parsedResults.ContainsFlagStrict("u") || listOnly {
@@ -196,6 +215,9 @@ func main() {
 
 	if len(args) > 2 {
 		srcNames = args[1:]
+	} else if len(args) <= 1{
+		fs.PrintDefaults()
+		return
 	} else {
 		srcName = args[1]
 	}
@@ -218,8 +240,13 @@ func main() {
 				return err
 			}
 			absPath := utilsW.Abs(path)
-
-			if !excludeSet.Contains(absPath) && (filepath.Ext(absPath) == "" || !fileExtension.LooseSearch(filepath.Ext(absPath))) {
+			ext := filepath.Ext(path)
+			if t != "" {
+				// 没有文件后缀的也忽略
+				if fileExtension.Search(ext) && ext != ""{
+					allFiles = append(allFiles, path)
+				}
+			} else if !excludeSet.Contains(absPath) && (ext == "" || !excludeFileExtension.Search(ext)) {
 				allFiles = append(allFiles, path)
 			} else if verbose {
 				fmt.Println("exclude: ", color.YellowString(path))
