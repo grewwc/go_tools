@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/terminalW"
 )
 
@@ -28,7 +29,7 @@ func main() {
 	}
 	if escape{
 		res = url.QueryEscape(pos[0])
-		fmt.Println(res)
+		fmt.Println(color.HiBlueString(res))
 		return 
 	}
 	// unescape 
@@ -36,5 +37,5 @@ func main() {
 	if err != nil{
 		panic(err)
 	}
-	fmt.Println(res)
+	fmt.Println(color.HiBlueString(res))
 }
