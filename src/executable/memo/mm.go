@@ -976,6 +976,7 @@ func main() {
 					for _, r := range records {
 						buf.WriteString(fmt.Sprintf("%s %v %s\n", strings.Repeat("-", 10), r.Tags, strings.Repeat("-", 10)))
 						buf.WriteString(r.Title)
+						buf.WriteString("\n")
 					}
 					if err = ioutil.WriteFile(txtOutputName, buf.Bytes(), 0666); err != nil {
 						panic(err)
@@ -987,7 +988,7 @@ func main() {
 			wg.Add(len(records))
 			for _, r := range records {
 				go func(r *record) {
-					fmt.Printf("begin to syncing %s...\n", r.ID.Hex())
+					fmt.Printf("begin to sync %s...\n", r.ID.Hex())
 					syncByID(r.ID.Hex(), parsed.ContainsFlagStrict("push"), true)
 					fmt.Println("finished syncing")
 					wg.Done()
@@ -1154,6 +1155,7 @@ func main() {
 				for _, r := range records {
 					buf.WriteString(fmt.Sprintf("%s %v %s\n", strings.Repeat("-", 10), r.Tags, strings.Repeat("-", 10)))
 					buf.WriteString(r.Title)
+					buf.WriteString("\n")
 				}
 				if err = ioutil.WriteFile(txtOutputName, buf.Bytes(), 0666); err != nil {
 					panic(err)
