@@ -369,7 +369,7 @@ skipTo:
 					buf := bytes.NewBufferString("")
 					for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
 						word = strings.ReplaceAll(word, "\x00", " ")
-						if coloredStrings.Contains(word) {
+						if coloredStrings.Contains(word) && utilsW.GetPlatform() != utilsW.WINDOWS {
 							if coloredStrings.Get(word).(string) == "d" {
 								boldCyan.Fprintf(buf, `%s%s`, word, delimiter)
 							} else if coloredStrings.Get(word).(string) == "e" {
