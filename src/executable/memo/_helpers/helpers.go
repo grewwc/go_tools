@@ -39,6 +39,12 @@ func init() {
 	}
 }
 
+func _print(urlsWithNo, info []string) {
+	for i := range urlsWithNo {
+		fmt.Println(urlsWithNo[i])
+	}
+}
+
 func CollectionExists(db *mongo.Database, ctx context.Context, collectionName string) bool {
 	names, err := db.ListCollectionNames(ctx, bson.M{})
 	if err != nil {
@@ -51,7 +57,6 @@ func CollectionExists(db *mongo.Database, ctx context.Context, collectionName st
 	}
 	return false
 }
-
 
 func WritePreviousOpration(op string) {
 	if err := ioutil.WriteFile(filepath.Join(homeDir, opFileName), []byte(op), 0666); err != nil {
@@ -134,6 +139,8 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) bool {
 	return written
 }
 
+// ReadInfo   如果isURL=true，返回空字符串
+// 如果isURL=false，返回查询到的 ObjectID
 func ReadInfo(isURL bool) string {
 	fname := urlFileName
 	if !isURL {
@@ -165,20 +172,18 @@ func ReadInfo(isURL bool) string {
 		fmt.Println(color.RedString(fmt.Sprintf("no %s are found", msg)))
 		return ""
 	}
-	if len(urls) == 1 && isURL {
-		utilsW.OpenUrlInBrowswer(urls[0])
-		return ""
+	if len(urls) == 1 {
+		if isURL {
+			utilsW.OpenUrlInBrowswer(urls[0])
+			return ""
+		}
+		return urls[0]
 	}
 	// more than one urls
 	urlsWithNo := make([]string, len(urls))
 	for i := range urls {
 		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.GreenString(urls[i]),
 			color.HiBlueString(hints[i]))
-	}
-	_print := func(urlsWithNo, info []string) {
-		for i := range urlsWithNo {
-			fmt.Println(urlsWithNo[i])
-		}
 	}
 	_print(urlsWithNo, hints)
 	fmt.Print("\ninput the number: ")

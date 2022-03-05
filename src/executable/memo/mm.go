@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -39,12 +38,16 @@ const (
 )
 
 const (
-	autoTag        = "auto"
-	jsonOutputName = "output.json"
-	outputName     = "output_binary"
-	finish         = "finish"
-	myproblem      = "myproblem"
-	titleLen       = 200
+	autoTag              = "auto"
+	defaultTxtOutputName = "output.txt"
+	outputName           = "output_binary"
+	finish               = "finish"
+	myproblem            = "myproblem"
+	titleLen             = 200
+)
+
+var (
+	txtOutputName = "output.txt"
 )
 
 var (
@@ -823,7 +826,7 @@ func main() {
 	fs.Bool("e", false, "read from editor")
 	fs.String("title", "", "search by title")
 	fs.String("c", "", "content (alias for title)")
-	fs.Bool("json", false, "print output to json")
+	fs.String("out", "", fmt.Sprintf("output to text file (default is %s)", defaultTxtOutputName))
 	fs.Bool("my", false, "only list my problem")
 	fs.Bool("remote", false, "operate on the remote server")
 	fs.Bool("prev", false, "operate based on the previous ObjectIDs")
@@ -834,8 +837,7 @@ func main() {
 	fs.Bool("force", false, "force overwrite")
 
 	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
-		"i", "include-finished", "tags", "and", "v", "e", "json", "my", "remote", "prev", "count", "prefix", "binary",
-		"b")
+		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b")
 
 	if parsed == nil {
 		records, _ := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true, true)
@@ -848,6 +850,7 @@ func main() {
 		return
 	}
 	positional := parsed.Positional
+	prefix := parsed.ContainsFlagStrict("prefix")
 
 	if parsed.ContainsFlagStrict("remote") {
 		initAtlas()
@@ -896,7 +899,12 @@ func main() {
 	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
 	verbose := parsed.ContainsFlagStrict("v")
 	tags := []string{}
-	toJSON := parsed.ContainsFlagStrict("json")
+	if parsed.ContainsFlagStrict("out") {
+		txtOutputName, _ = parsed.GetFlagVal("out")
+		if txtOutputName == "" {
+			txtOutputName = defaultTxtOutputName
+		}
+	}
 	toBinary := parsed.ContainsAnyFlagStrict("binary", "b")
 
 	if parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a") {
@@ -939,7 +947,7 @@ func main() {
 			if verbose {
 				ignoreFields = []string{}
 			}
-			if !toJSON && !toBinary {
+			if !parsed.ContainsFlagStrict("out") && !toBinary {
 				for _, record := range records {
 					printSeperator()
 					coloringRecord(record, nil)
@@ -960,14 +968,16 @@ func main() {
 						}
 					}
 				}
-			} else {
-				data, err := json.MarshalIndent(records, "", "  ")
-				if err != nil {
-					panic(err)
-				}
-				if (utilsW.IsExist(jsonOutputName) && utilsW.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName))) ||
-					!utilsW.IsExist(jsonOutputName) {
-					if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
+			} else { // to file
+				var err error
+				if (utilsW.IsExist(txtOutputName) && utilsW.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", txtOutputName))) ||
+					!utilsW.IsExist(txtOutputName) {
+					buf := bytes.NewBufferString("")
+					for _, r := range records {
+						buf.WriteString(fmt.Sprintf("%s %v %s\n", strings.Repeat("-", 10), r.Tags, strings.Repeat("-", 10)))
+						buf.WriteString(r.Title)
+					}
+					if err = ioutil.WriteFile(txtOutputName, buf.Bytes(), 0666); err != nil {
 						panic(err)
 					}
 				}
@@ -989,7 +999,21 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("u") || positional.Contains("u") {
-		update(parsed, parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"), true)
+		positional.Delete("u")
+		tags := positional.ToStringSlice()
+		var id string
+		if len(tags) > 0 {
+			if _, written := listRecords(-1, true, false, tags, false, "", true, prefix); !written {
+				fmt.Printf("there are NO data associated with tags: %v (prefix: %v)\n", tags, prefix)
+				return
+			}
+		}
+		id = _helpers.ReadInfo(false)
+		parsed.Optional["-u"] = id
+		if id != "" {
+			parsed.Optional["-e"] = ""
+		}
+		update(parsed, parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"), id == "")
 		return
 	}
 
@@ -1112,7 +1136,7 @@ func main() {
 			fmt.Printf("%d records found\n", len(records))
 			return
 		}
-		if !toJSON && !toBinary {
+		if !parsed.ContainsFlagStrict("out") && !toBinary {
 			for _, record := range records {
 				printSeperator()
 				p := regexp.MustCompile(`(?i)` + title)
@@ -1120,14 +1144,18 @@ func main() {
 				fmt.Println(record)
 				fmt.Println(color.HiRedString(record.ID.String()))
 			}
+		} else if toBinary {
+			panic("not supported")
 		} else {
-			data, err := json.MarshalIndent(records, "", "  ")
-			if err != nil {
-				panic(err)
-			}
-			if (utilsW.IsExist(jsonOutputName) && utilsW.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", jsonOutputName))) ||
-				!utilsW.IsExist(jsonOutputName) {
-				if err = ioutil.WriteFile(jsonOutputName, data, 0666); err != nil {
+			var err error
+			if (utilsW.IsExist(txtOutputName) && utilsW.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", txtOutputName))) ||
+				!utilsW.IsExist(txtOutputName) {
+				buf := bytes.NewBufferString("")
+				for _, r := range records {
+					buf.WriteString(fmt.Sprintf("%s %v %s\n", strings.Repeat("-", 10), r.Tags, strings.Repeat("-", 10)))
+					buf.WriteString(r.Title)
+				}
+				if err = ioutil.WriteFile(txtOutputName, buf.Bytes(), 0666); err != nil {
 					panic(err)
 				}
 			}
@@ -1138,7 +1166,6 @@ func main() {
 		positional.Delete("open")
 		tags := positional.ToStringSlice()
 		if len(tags) > 0 {
-			prefix := parsed.ContainsFlagStrict("prefix")
 			if _, written := listRecords(-1, true, false, tags, false, "", true, prefix); !written {
 				fmt.Printf("there are NO urls associated with tags: %v (prefix: %v)\n", tags, prefix)
 				return
