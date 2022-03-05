@@ -79,6 +79,39 @@ func IsRegular(fname string) bool {
 	return finfo.Mode().IsRegular()
 }
 
+func IsExecutableOwner(fname string) bool {
+	if IsDir(fname) {
+		return false
+	}
+	finfo, err := os.Stat(fname)
+	if err != nil {
+		return false
+	}
+	return finfo.Mode()&0100 != 0
+}
+
+func IsExecutableGroup(fname string) bool {
+	if IsDir(fname) {
+		return false
+	}
+	finfo, err := os.Stat(fname)
+	if err != nil {
+		return false
+	}
+	return finfo.Mode()&0010 != 0
+}
+
+func IsExecutableOther(fname string) bool {
+	if IsDir(fname) {
+		return false
+	}
+	finfo, err := os.Stat(fname)
+	if err != nil {
+		return false
+	}
+	return finfo.Mode()&0001 != 0
+}
+
 func IsExist(fname string) bool {
 	_, err := os.Stat(fname)
 	return os.IsExist(err) || err == nil

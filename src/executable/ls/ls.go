@@ -75,6 +75,9 @@ func formatFileStat(filename string, realSize bool) string {
 	if utilsW.IsDir(filename) {
 		filename = color.HiCyanString(filename + "/")
 	}
+	if utilsW.IsExecutableOwner(filename) {
+		filename = color.HiGreenString(filename)
+	}
 
 	return fmt.Sprintf("%s\t%s\t%s", modTimeStr, sizeStr, filepath.ToSlash(filename))
 }
@@ -93,7 +96,7 @@ func printErrors() {
 }
 
 func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, sortType int,
-	coloredStrings *containerW.Set) string {
+	dirStrings *containerW.OrderedMap) string {
 	fileCnt = 0
 
 	// if sortType != _lsW.Unsort
@@ -155,7 +158,10 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			if rootDir[len(rootDir)-1] != '/' {
 				rootDir += "/"
 			}
-			coloredStrings.Add(stringsW.StripPrefix(file, rootDir))
+			dirStrings.Put(stringsW.StripPrefix(file, rootDir), "d")
+		}
+		if utilsW.IsExecutableOwner(file) {
+			dirStrings.Put(filepath.Base(file), "e")
 		}
 		if strings.Contains(file, " ") {
 			if rootDir[len(rootDir)-1] != '/' {
@@ -164,7 +170,10 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			file = stringsW.StripPrefix(file, rootDir)
 			fileWithQuote := fmt.Sprintf("\"%s\"", file)
 			if utilsW.IsDir(file) {
-				coloredStrings.Add(fileWithQuote)
+				dirStrings.Put(fileWithQuote, "d")
+			}
+			if utilsW.IsExecutableOwner(file) {
+				dirStrings.Put(filepath.Base(fileWithQuote), "e")
 			}
 
 			// later on, string will be seperated by space, we
@@ -219,7 +228,7 @@ func main() {
 
 	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h", "G")
 
-	coloredStrings := containerW.NewSet()
+	coloredStrings := containerW.NewOrderedMap()
 	indent := 4
 	delimiter := "  "
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)
@@ -361,29 +370,21 @@ skipTo:
 					for _, word := range stringsW.SplitNoEmpty(line, delimiter) {
 						word = strings.ReplaceAll(word, "\x00", " ")
 						if coloredStrings.Contains(word) {
-							if utilsW.GetPlatform() == utilsW.WINDOWS {
-								fmt.Fprintf(buf, "%s%s", word, delimiter)
-							} else {
+							if coloredStrings.Get(word).(string) == "d" {
 								boldCyan.Fprintf(buf, `%s%s`, word, delimiter)
+							} else if coloredStrings.Get(word).(string) == "e" {
+								fmt.Print(color.HiGreenString(`%s%s`, word, delimiter))
 							}
 						} else {
 							fmt.Fprintf(buf, "%s%s", word, delimiter)
 						}
 						cnt++
 						if cnt >= numFileToPrint {
-							if utilsW.GetPlatform() == utilsW.WINDOWS {
-								fmt.Println(buf.String())
-							} else {
-								fmt.Println(buf.String())
-							}
+							fmt.Println(buf.String())
 							goto outerLoop
 						}
 					}
-					if utilsW.GetPlatform() == utilsW.WINDOWS {
-						fmt.Println(buf.String())
-					} else {
-						fmt.Println(buf.String())
-					}
+					fmt.Println(buf.String())
 				}
 			}
 		outerLoop:
