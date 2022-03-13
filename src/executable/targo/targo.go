@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -29,14 +28,14 @@ var (
 )
 
 // 控制打开文件数量
-var ch = make(chan interface{}, 50)
+var ch = make(chan struct{}, 50)
 
 func processTarGzFile(fname string, prefix string) {
 	if !listOnly {
 		fmt.Fprintf(color.Output, "untar \"%s\" to \"%s\"\n", color.GreenString(fname), color.YellowString(prefix))
 	}
-	ch <- nil
-	defer func(ch chan interface{}) {
+	ch <- struct{}{}
+	defer func(ch <-chan struct{}) {
 		<-ch
 	}(ch)
 
@@ -51,7 +50,7 @@ func processTarGzFile(fname string, prefix string) {
 	gf, err := gzip.NewReader(f)
 
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
 	defer gf.Close()
@@ -83,15 +82,15 @@ func processTarGzFile(fname string, prefix string) {
 				fmt.Println(header.Name)
 				continue
 			}
-			buf := make([]byte, int(header.Size))
-			_, err = tf.Read(buf)
-			if err != io.EOF && err != nil {
-				log.Println(err)
-				os.Exit(1)
+			outFile, err := os.Create(filepath.Join(prefix, header.Name))
+			if err != nil {
+				panic(err)
 			}
-			if err = ioutil.WriteFile(filepath.Join(prefix, header.Name), buf, 0755); err != nil {
-				log.Fatalln(err)
+			if _, err = io.Copy(outFile, tf); err != nil {
+				panic(err)
 			}
+		default:
+			panic(fmt.Sprintf("wrong,%v,%s", header.Typeflag, color.RedString(header.Name)))
 		}
 	}
 }
