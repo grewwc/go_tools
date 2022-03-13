@@ -25,7 +25,7 @@ var (
 
 var (
 	excludeFileExtension = containerW.NewTrie()
-	fileExtension = containerW.NewTrie()
+	fileExtension        = containerW.NewTrie()
 )
 
 // 控制打开文件数量
@@ -105,7 +105,6 @@ func clean(fname string) {
 	}
 }
 
-
 func main() {
 	fs := flag.NewFlagSet("parser", flag.ExitOnError)
 	fs.String("ex", "", "exclude file/directory")
@@ -137,8 +136,8 @@ func main() {
 		// fmt.Println("here", val)
 		excludeFileExtension.Insert(val)
 	}
-	for _, val := range stringsW.SplitNoEmpty(t, " "){
-		if val[0] != '.'{
+	for _, val := range stringsW.SplitNoEmpty(t, " ") {
+		if val[0] != '.' {
 			val = "." + val
 		}
 		fileExtension.Insert(val)
@@ -188,14 +187,6 @@ func main() {
 
 	if parsedResults.ContainsFlagStrict("l") {
 		listOnly = true
-	} else if utilsW.IsExist(outName){
-		ans := utilsW.PromptYesOrNo(fmt.Sprintf("%s exists, overwrite? (y/n) ", color.HiRedString(outName)))
-		if ans{
-			fmt.Printf("overrite %s!", color.RedString(outName))
-		}else {
-			fmt.Println("quit")
-			return
-		}
 	}
 	// extract tar files
 	if parsedResults.ContainsFlagStrict("u") || listOnly {
@@ -212,10 +203,20 @@ func main() {
 		processTarGzFile(src, prefix)
 		os.Exit(0)
 	}
+	// to tar files
+	if utilsW.IsExist(outName) {
+		ans := utilsW.PromptYesOrNo(fmt.Sprintf("%s exists, overwrite? (y/n) ", color.HiRedString(outName)))
+		if ans {
+			fmt.Printf("overrite %s!\n", color.RedString(outName))
+		} else {
+			fmt.Println("quit")
+			return
+		}
+	}
 
 	if len(args) > 2 {
 		srcNames = args[1:]
-	} else if len(args) <= 1{
+	} else if len(args) <= 1 {
 		fs.PrintDefaults()
 		return
 	} else {
@@ -243,7 +244,7 @@ func main() {
 			ext := filepath.Ext(path)
 			if t != "" {
 				// 没有文件后缀的也忽略
-				if fileExtension.Search(ext) && ext != ""{
+				if fileExtension.Search(ext) && ext != "" {
 					allFiles = append(allFiles, path)
 				}
 			} else if !excludeSet.Contains(absPath) && (ext == "" || !excludeFileExtension.Search(ext)) {
