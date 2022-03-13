@@ -112,3 +112,11 @@ func InputWithEditor(originalContent string) (res string) {
 		return
 	}
 }
+
+func GetFileMode(fname string) os.FileMode {
+	info, err := os.Stat(fname)
+	if err != nil {
+		panic(err)
+	}
+	return info.Mode()
+}
