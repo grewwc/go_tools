@@ -1029,7 +1029,10 @@ func main() {
 		tags := positional.ToStringSlice()
 		var id string
 		if len(tags) > 0 {
-			listRecords(-1, true, false, tags, false, "", true, prefix)
+			if r, _ := listRecords(-1, true, false, tags, false, "", true, prefix); len(r) < 1 {
+				fmt.Println(color.YellowString("no records associated with the tags (%v: prefix: %v) found", tags, prefix))
+				return
+			}
 		}
 		id = _helpers.ReadInfo(false)
 		parsed.Optional["-u"] = id
