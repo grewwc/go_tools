@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -789,6 +790,30 @@ func syncByID(id string, push, quiet bool) {
 	// printSeperator()
 }
 
+func getObjectIdByTags(tags []string) string {
+	if len(tags) > 0 {
+		listRecords(-1, true, false, tags, false, "", true, false)
+	}
+	id := _helpers.ReadInfo(false)
+	return id
+}
+
+type tagSlice []tag
+
+func (l tagSlice) Len() int {
+	return len([]tag(l))
+}
+
+func (l tagSlice) Swap(i, j int) {
+	ll := []tag(l)
+	ll[i], ll[j] = ll[j], ll[i]
+}
+
+func (l tagSlice) Less(i, j int) bool {
+	ll := []tag(l)
+	return strings.Compare(ll[i].Name, ll[j].Name) < 0
+}
+
 func main() {
 	defer func() {
 		if res := recover(); res != nil {
@@ -863,22 +888,22 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("f") {
-		toggle(true, parsed.GetFlagValueDefault("f", ""), finish, parsed.ContainsFlagStrict("prev"))
+		toggle(true, getObjectIdByTags([]string{parsed.GetFlagValueDefault("f", "")}), finish, parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("nf") {
-		toggle(false, parsed.GetFlagValueDefault("nf", ""), finish, parsed.ContainsFlagStrict("prev"))
+		toggle(false, getObjectIdByTags([]string{parsed.GetFlagValueDefault("nf", "")}), finish, parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("p") {
-		toggle(true, parsed.GetFlagValueDefault("p", ""), myproblem, parsed.ContainsFlagStrict("prev"))
+		toggle(true, getObjectIdByTags([]string{parsed.GetFlagValueDefault("p", "")}), myproblem, parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
 	if parsed.ContainsFlagStrict("np") {
-		toggle(false, parsed.GetFlagValueDefault("np", ""), myproblem, parsed.ContainsFlagStrict("prev"))
+		toggle(false, getObjectIdByTags([]string{parsed.GetFlagValueDefault("np", "")}), myproblem, parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
@@ -1004,10 +1029,7 @@ func main() {
 		tags := positional.ToStringSlice()
 		var id string
 		if len(tags) > 0 {
-			if _, written := listRecords(-1, true, false, tags, false, "", true, prefix); !written {
-				fmt.Printf("there are NO data associated with tags: %v (prefix: %v)\n", tags, prefix)
-				return
-			}
+			listRecords(-1, true, false, tags, false, "", true, prefix)
 		}
 		id = _helpers.ReadInfo(false)
 		parsed.Optional["-u"] = id
@@ -1060,34 +1082,54 @@ func main() {
 
 	// list tags, i stands for 'information'
 	if parsed.ContainsFlagStrict("tags") || positional.Contains("tags") || positional.Contains("i") || positional.Contains("t") {
-		all = parsed.ContainsFlagStrict("a")
+		all = parsed.ContainsAnyFlagStrict("a", "all")
+		var tags []tag
+		var w int
+		var err error
+		buf := bytes.NewBufferString("")
+		var cursor *mongo.Cursor
+		var cli *mongo.Client
+		var sortBy = "name"
+		op1 := options.FindOptions{}
+
 		if all {
-			n = math.MaxInt64
-		} else if parsed.GetNumArgs() != -1 {
+			allRecords, _ := listRecords(-1, false, true, nil, false, "", false, false)
+			testTags := containerW.NewOrderedMap()
+			for _, r := range allRecords {
+				for _, t := range r.Tags {
+					testTags.Put(t, testTags.GetOrDefault(t, 0).(int)+1)
+				}
+			}
+			for it := range testTags.Iterate() {
+				v := it.Val().(int)
+				t := tag{Name: it.Key().(string), Count: int64(v)}
+				tags = append(tags, t)
+			}
+			sort.Sort(tagSlice(tags))
+			goto print
+		}
+		if parsed.GetNumArgs() != -1 {
 			n = int64(parsed.GetNumArgs())
 		} else {
 			n = 100
 		}
-		op1 := options.FindOptions{}
 		op1.SetLimit(n)
-		var sortBy = "name"
 		if reverse {
 			op1.SetSort(bson.M{sortBy: -1})
 		} else {
 			op1.SetSort(bson.M{sortBy: 1})
 		}
-		cli := client
+		cli = client
 		if remote.Get().(bool) {
 			cli = atlasClient
 		}
-		cursor, err := cli.Database(dbName).Collection(tagCollectionName).Find(ctx, bson.M{}, &op1)
+		cursor, err = cli.Database(dbName).Collection(tagCollectionName).Find(ctx, bson.M{}, &op1)
 		if err != nil {
 			panic(err)
 		}
-		var tags []tag
 		cursor.All(ctx, &tags)
-		buf := bytes.NewBufferString("")
-		_, w, err := utilsW.GetTerminalSize()
+	print:
+		_, w, err = utilsW.GetTerminalSize()
 		for _, tag := range tags {
 			if verbose {
 				tag.Name = color.HiBlueString(tag.Name)
