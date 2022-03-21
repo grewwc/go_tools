@@ -791,6 +791,13 @@ func syncByID(id string, push, quiet bool) {
 }
 
 func getObjectIdByTags(tags []string) string {
+	// check if the tags are objectid
+	if len(tags) == 1 {
+		tag := tags[0]
+		if bson.IsObjectIdHex(tag) {
+			return tag
+		}
+	}
 	if len(tags) > 0 {
 		listRecords(-1, true, false, tags, false, "", true, false)
 	}
