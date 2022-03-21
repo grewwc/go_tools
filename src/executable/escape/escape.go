@@ -12,29 +12,29 @@ import (
 func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("un", false, "unescape the url string")
-	parsed := terminalW.ParseArgsCmd()
+	parsed := terminalW.ParseArgsCmd("un")
 	escape := true
-	if parsed == nil || parsed.ContainsFlagStrict("h"){
+	if parsed == nil || parsed.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
-	if parsed != nil || parsed.ContainsFlag("un"){
+	if parsed != nil || parsed.ContainsFlag("un") {
 		escape = false
 	}
 	var res string
 	var err error
 	pos := parsed.Positional.ToStringSlice()
-	if len(pos) != 1{
+	if len(pos) != 1 {
 		panic("must have 1 positional argument")
 	}
-	if escape{
+	if escape {
 		res = url.QueryEscape(pos[0])
 		fmt.Println(color.HiBlueString(res))
-		return 
+		return
 	}
-	// unescape 
+	// unescape
 	res, err = url.QueryUnescape(pos[0])
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 	fmt.Println(color.HiBlueString(res))
