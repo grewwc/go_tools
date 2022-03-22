@@ -107,7 +107,7 @@ func TimeoutWait(wg *sync.WaitGroup, timeout time.Duration) {
 }
 
 func GetTerminalSize() (h, w int, err error) {
-	cmd := exec.Command("stty", "size")
+	cmd := exec.Command("/bin/stty", "size")
 	cmd.Stdin = os.Stdin
 	out, err := cmd.Output()
 	if err != nil {
