@@ -1183,8 +1183,10 @@ func main() {
 		if title == "" {
 			title = parsed.GetFlagValueDefault("c", "")
 		}
-		records, _ := listRecords(n, reverse, includeFinished, tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || !all,
+		records, _ := listRecords(n, reverse, includeFinished || all,
+			tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || all,
 			parsed.ContainsFlagStrict("prefix"))
+
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
 			return
