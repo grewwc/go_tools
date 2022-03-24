@@ -1,9 +1,10 @@
 package test
 
 import (
-	"github.com/grewwc/go_tools/src/containerW"
 	"log"
 	"testing"
+
+	"github.com/grewwc/go_tools/src/containerW"
 )
 
 var s *containerW.Set
@@ -46,5 +47,16 @@ func TestSetDelete(t *testing.T) {
 	if !s.Empty() {
 		t.Fatal("delete wrong")
 	}
+}
 
+func BenchmarkAdd(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		s.Add(12)
+	}
+}
+
+func BenchmarkContains(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		s.Contains("123")
+	}
 }
