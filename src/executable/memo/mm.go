@@ -853,7 +853,7 @@ func main() {
 	fs.String("clean-tag", "", "clean all the records having the tag")
 	fs.Bool("tags", false, "list all tags")
 	fs.Bool("and", false, "use and logic to match tags")
-	fs.Bool("v", false, "verbose (show modify/add time)")
+	fs.Bool("v", false, "verbose (show modify/add time, verbose)")
 	fs.String("file", "", "read title from a file, for '-u' & '-ct', file serve as bool, for '-i', needs to pass filename")
 	fs.Bool("e", false, "read from editor")
 	fs.String("title", "", "search by title")
@@ -1195,6 +1195,9 @@ func main() {
 			for _, record := range records {
 				printSeperator()
 				p := regexp.MustCompile(`(?i)` + title)
+				if !verbose {
+					record.Title = "<hidden>"
+				}
 				coloringRecord(record, p)
 				fmt.Println(record)
 				fmt.Println(color.HiRedString(record.ID.String()))
