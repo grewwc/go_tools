@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -1115,7 +1114,7 @@ func main() {
 				t := tag{Name: it.Key().(string), Count: int64(v)}
 				tags = append(tags, t)
 			}
-			sort.Sort(tagSlice(tags))
+			// sort.Sort(tagSlice(tags))
 			goto print
 		}
 		if parsed.GetNumArgs() != -1 {
