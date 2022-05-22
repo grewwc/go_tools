@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -208,4 +209,20 @@ func ReadInfo(isURL bool) string {
 		}
 	}
 	return ""
+}
+
+func OrderByTime(parsed *terminalW.ParsedResults) bool {
+	if parsed == nil {
+		return false
+	}
+	if parsed.ContainsFlagStrict("t") && parsed.MustGetFlagVal("t") == "" {
+		return true
+	}
+	if parsed.ContainsAnyFlagStrict("ti", "it") {
+		return true
+	}
+	if parsed.Positional.Contains("it") || parsed.Positional.Contains("ti") {
+		return true
+	}
+	return false
 }

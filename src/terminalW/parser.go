@@ -78,6 +78,14 @@ func (r ParsedResults) GetMultiFlagValDefault(flagNames []string, defaultVal str
 	return defaultVal
 }
 
+func (r ParsedResults) MustGetFlagVal(flagName string) string {
+	res, err := r.GetFlagVal(flagName)
+	if err != nil {
+		panic(err)
+	}
+	return res
+}
+
 func (r ParsedResults) GetFlags() *containerW.OrderedSet {
 	res := containerW.NewOrderedSet()
 	for k := range r.Optional {

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -74,9 +75,10 @@ type record struct {
 }
 
 type tag struct {
-	ID    primitive.ObjectID `bson:"_id,ignoreempty"`
-	Name  string             `bson:"name,ignoreempty"`
-	Count int64              `bson:"count,ignoreempty"`
+	ID           primitive.ObjectID `bson:"_id,ignoreempty"`
+	Name         string             `bson:"name,ignoreempty"`
+	Count        int64              `bson:"count,ignoreempty"`
+	modifiedDate time.Time
 }
 
 func newRecord(title string, tags ...string) *record {
@@ -429,6 +431,18 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, pre
 		return
 	}
 	newRecord.update(true)
+}
+
+func getAllTagsModifiedDate(records []*record) map[string]time.Time {
+	m := make(map[string]time.Time)
+	for _, r := range records {
+		for _, t := range r.Tags {
+			if mt, ok := m[t]; !ok || r.ModifiedDate.After(mt) {
+				m[t] = r.ModifiedDate
+			}
+		}
+	}
+	return m
 }
 
 func insert(fromEditor bool, filename string) {
@@ -817,7 +831,7 @@ func (l tagSlice) Swap(i, j int) {
 
 func (l tagSlice) Less(i, j int) bool {
 	ll := []tag(l)
-	return strings.Compare(ll[i].Name, ll[j].Name) < 0
+	return ll[i].modifiedDate.Before(ll[j].modifiedDate)
 }
 
 func main() {
@@ -930,6 +944,7 @@ func main() {
 	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
 	verbose := parsed.ContainsFlagStrict("v")
 	tags := []string{}
+	orderByTime := _helpers.OrderByTime(parsed)
 	if parsed.ContainsFlagStrict("out") {
 		txtOutputName, _ = parsed.GetFlagVal("out")
 		if txtOutputName == "" {
@@ -938,7 +953,7 @@ func main() {
 	}
 	toBinary := parsed.ContainsAnyFlagStrict("binary", "b")
 
-	if parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a") {
+	if (parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a")) && !orderByTime {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
@@ -964,7 +979,7 @@ func main() {
 	}
 
 	// list by tag name
-	if parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a") {
+	if (parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a")) && !orderByTime {
 		if parsed.ContainsFlagStrict("pull") {
 			remote.Set(true)
 		}
@@ -1090,7 +1105,7 @@ func main() {
 	}
 
 	// list tags, i stands for 'information'
-	if parsed.ContainsFlagStrict("tags") || positional.Contains("tags") || positional.Contains("i") || positional.Contains("t") {
+	if orderByTime || parsed.ContainsFlagStrict("tags") || positional.Contains("tags") || positional.Contains("i") || positional.Contains("t") {
 		all = parsed.ContainsAnyFlagStrict("a", "all")
 		var tags []tag
 		var w int
@@ -1101,8 +1116,10 @@ func main() {
 		var sortBy = "name"
 		op1 := options.FindOptions{}
 
-		if all {
-			allRecords, _ := listRecords(-1, false, true, nil, false, "", false, false)
+		if all || orderByTime {
+			allRecords, _ := listRecords(-1, false, !orderByTime, nil, false, "", false, false)
+			// modified date map
+			mtMap := getAllTagsModifiedDate(allRecords)
 			testTags := containerW.NewOrderedMap()
 			for _, r := range allRecords {
 				for _, t := range r.Tags {
@@ -1111,10 +1128,14 @@ func main() {
 			}
 			for it := range testTags.Iterate() {
 				v := it.Val().(int)
-				t := tag{Name: it.Key().(string), Count: int64(v)}
+				t := tag{Name: it.Key().(string), Count: int64(v), modifiedDate: mtMap[it.Key().(string)]}
+				// fmt.Println("here", it.Key().(string), mtMap[it.Key().(string)])
 				tags = append(tags, t)
 			}
-			// sort.Sort(tagSlice(tags))
+			if orderByTime {
+				sort.Sort(tagSlice(tags))
+			}
+			// fmt.Println("tags", tags)
 			goto print
 		}
 		if parsed.GetNumArgs() != -1 {
