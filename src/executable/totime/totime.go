@@ -24,7 +24,7 @@ func main() {
 		return
 	}
 	if parsed.ContainsFlagStrict("ts") {
-		fmt.Println(time.Now().Unix())
+		fmt.Printf("%v (ms)\n", (time.Now().Local().UnixNano())/int64(1e6))
 		return
 	}
 	posArr := parsed.Positional.ToStringSlice()
@@ -37,7 +37,7 @@ func main() {
 	}
 	res := time.Unix(int64(unixTime), 0)
 	if res.After(time.Date(2500, time.January, 1, 0, 0, 0, 0, time.Local)) {
-		res = time.Unix(int64(unixTime/1000), 0).UTC()
+		res = time.Unix(int64(unixTime/1000), 0)
 	}
 	fmt.Println(res)
 }
