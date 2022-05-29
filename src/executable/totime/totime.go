@@ -1,10 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"strconv"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/terminalW"
 )
 
@@ -13,9 +15,17 @@ const (
 )
 
 func main() {
+	fs := flag.NewFlagSet("fs", flag.ExitOnError)
+	fs.Bool("ts", false, "get current timestamp")
 	parsed := terminalW.ParseArgsCmd()
-	if parsed == nil {
-		panic(helpMsg)
+	if parsed == nil || parsed.ContainsFlagStrict("-h") {
+		fs.PrintDefaults()
+		fmt.Println(color.GreenString(helpMsg))
+		return
+	}
+	if parsed.ContainsFlagStrict("ts") {
+		fmt.Printf("%v (ms)\n", (time.Now().Local().UnixNano())/int64(1e6))
+		return
 	}
 	posArr := parsed.Positional.ToStringSlice()
 	if len(posArr) != 1 {
@@ -27,7 +37,7 @@ func main() {
 	}
 	res := time.Unix(int64(unixTime), 0)
 	if res.After(time.Date(2500, time.January, 1, 0, 0, 0, 0, time.Local)) {
-		res = time.Unix(int64(unixTime/1000), 0).UTC()
+		res = time.Unix(int64(unixTime/1000), 0)
 	}
 	fmt.Println(res)
 }
