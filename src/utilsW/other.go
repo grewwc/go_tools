@@ -107,13 +107,20 @@ func TimeoutWait(wg *sync.WaitGroup, timeout time.Duration) {
 }
 
 func GetTerminalSize() (h, w int, err error) {
-	cmd := exec.Command("/bin/stty", "size")
+	var cmd *exec.Cmd
+	if GetPlatform() == WINDOWS {
+		// cmd = exec.Command("powershell", "-command", "&{$H=get-host;$H.ui.rawui.WindowSize;}")
+		cmd = exec.Command("sh", "-c", "/bin/stty size")
+	} else {
+		cmd = exec.Command("/bin/stty", "size")
+	}
 	cmd.Stdin = os.Stdin
 	out, err := cmd.Output()
 	if err != nil {
 		return
 	}
-	size := stringsW.SplitNoEmpty(strings.TrimSpace(string(out)), " ")
+	var size []string
+	size = stringsW.SplitNoEmpty(strings.TrimSpace(string(out)), " ")
 	h, err = strconv.Atoi(size[0])
 	if err != nil {
 		return
@@ -130,8 +137,12 @@ func PromptYesOrNo(msg string) bool {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	ans := strings.TrimSpace(scanner.Text())
-	if strings.ToLower(ans) == "y" {
-		return true
-	}
-	return false
+	return strings.ToLower(ans) == "y"
+}
+
+func kill(cmd *exec.Cmd) error {
+	kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(cmd.Process.Pid))
+	kill.Stderr = os.Stderr
+	kill.Stdout = os.Stdout
+	return kill.Run()
 }

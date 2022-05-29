@@ -840,7 +840,7 @@ func main() {
 			fmt.Println("recovered:", res)
 		}
 	}()
-	var n int64 = 10
+	var n int64 = 50
 
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("i", false, "insert a record")
@@ -896,6 +896,7 @@ func main() {
 	}
 	positional := parsed.Positional
 	prefix := parsed.ContainsFlagStrict("prefix")
+	isWindows := utilsW.WINDOWS == utilsW.GetPlatform()
 
 	if parsed.ContainsFlagStrict("remote") {
 		initAtlas()
@@ -1166,32 +1167,29 @@ func main() {
 				printSeperator()
 				fmt.Println(utilsW.ToString(tag))
 			} else {
-				if utilsW.GetPlatform() == utilsW.WINDOWS && err != nil {
-					tag.Name = color.HiBlueString(tag.Name)
-					fmt.Fprintf(color.Output, `%s[%d]  `, tag.Name, tag.Count)
-				} else {
-					fmt.Fprintf(buf, `%s[%d]  `, tag.Name, tag.Count)
-				}
+				fmt.Fprintf(buf, `%s[%d]  `, tag.Name, tag.Count)
 			}
 		}
 		if !verbose {
-			if utilsW.GetPlatform() != utilsW.WINDOWS || err == nil {
+			if err == nil {
 				terminalIndent := 2
 				delimiter := "   "
 				raw := stringsW.Wrap(buf.String(), w-terminalIndent, terminalIndent, delimiter)
-				if utilsW.GetPlatform() == utilsW.WINDOWS {
-					fmt.Println(raw)
-				} else {
-					for _, line := range stringsW.SplitNoEmpty(raw, "\n") {
-						arr := stringsW.SplitNoEmpty(line, " ")
-						changedArr := make([]string, len(arr))
-						for i := range arr {
-							idx := strings.Index(arr[i], "[")
+				for _, line := range stringsW.SplitNoEmpty(raw, "\n") {
+					arr := stringsW.SplitNoEmpty(line, " ")
+					changedArr := make([]string, len(arr))
+					for i := range arr {
+						idx := strings.Index(arr[i], "[")
+						if !isWindows {
 							changedArr[i] = fmt.Sprintf("%s%s", color.HiBlueString(arr[i][:idx]), arr[i][idx:])
+						} else { //windows color不能用
+							changedArr[i] = arr[i]
 						}
-						fmt.Fprintf(color.Output, "%s%s\n", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, delimiter))
 					}
+					fmt.Fprintf(color.Output, "%s%s\n", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, delimiter))
 				}
+			} else {
+				panic(err)
 			}
 		}
 		return
