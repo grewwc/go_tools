@@ -1118,7 +1118,7 @@ func main() {
 		op1 := options.FindOptions{}
 
 		if all || orderByTime {
-			allRecords, _ := listRecords(-1, false, !orderByTime, nil, false, "", false, false)
+			allRecords, _ := listRecords(-1, false, !orderByTime || all, nil, false, "", false, false)
 			// modified date map
 			mtMap := getAllTagsModifiedDate(allRecords)
 			testTags := containerW.NewOrderedMap()
