@@ -944,7 +944,7 @@ func main() {
 	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
 	verbose := parsed.ContainsFlagStrict("v")
 	tags := []string{}
-	orderByTime := _helpers.OrderByTime(parsed)
+	listTagsAndOrderByTime := _helpers.OrderByTime(parsed)
 	if parsed.ContainsFlagStrict("out") {
 		txtOutputName, _ = parsed.GetFlagVal("out")
 		if txtOutputName == "" {
@@ -953,7 +953,7 @@ func main() {
 	}
 	toBinary := parsed.ContainsAnyFlagStrict("binary", "b")
 
-	if (parsed.ContainsAnyFlagStrict("t") || parsed.CoExists("t", "a")) && !orderByTime {
+	if (parsed.ContainsAnyFlagStrict("t") || parsed.CoExists("t", "a")) && !listTagsAndOrderByTime {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
@@ -979,7 +979,7 @@ func main() {
 	}
 
 	// list by tag name
-	if (parsed.ContainsAnyFlagStrict("t") || parsed.CoExists("t", "a")) && !orderByTime {
+	if (parsed.ContainsAnyFlagStrict("t") || parsed.CoExists("t", "a")) && !listTagsAndOrderByTime {
 		if parsed.ContainsFlagStrict("pull") {
 			remote.Set(true)
 		}
@@ -1103,9 +1103,8 @@ func main() {
 		syncByID(parsed.GetFlagValueDefault("pull", ""), false, true)
 		return
 	}
-
 	// list tags, i stands for 'information'
-	if orderByTime || parsed.ContainsFlagStrict("tags") || positional.Contains("tags") || positional.Contains("i") || positional.Contains("t") {
+	if listTagsAndOrderByTime || parsed.ContainsFlagStrict("tags") || positional.Contains("tags") || positional.Contains("i") || positional.Contains("t") {
 		all = parsed.ContainsAnyFlagStrict("a", "all")
 		var tags []tag
 		var w int
@@ -1116,8 +1115,8 @@ func main() {
 		var sortBy = "name"
 		op1 := options.FindOptions{}
 
-		if all || orderByTime {
-			allRecords, _ := listRecords(-1, false, !orderByTime || all, nil, false, "", false, false)
+		if all || listTagsAndOrderByTime {
+			allRecords, _ := listRecords(-1, false, !listTagsAndOrderByTime || all, nil, false, "", false, false)
 			// modified date map
 			mtMap := getAllTagsModifiedDate(allRecords)
 			testTags := containerW.NewOrderedMap()
@@ -1132,7 +1131,7 @@ func main() {
 				// fmt.Println("here", it.Key().(string), mtMap[it.Key().(string)])
 				tags = append(tags, t)
 			}
-			if orderByTime {
+			if listTagsAndOrderByTime {
 				sort.Sort(tagSlice(tags))
 			}
 			// fmt.Println("tags", tags)
