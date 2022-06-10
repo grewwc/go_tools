@@ -847,7 +847,6 @@ func main() {
 	fs.String("ct", "", "change a record title")
 	fs.String("u", "", "update a record")
 	fs.String("d", "", "delete a record")
-	fs.Bool("l", false, "list records")
 	fs.Int("n", 10, "# of records to list")
 	fs.Bool("h", false, "print help information")
 	fs.String("push", "objectID to push", "push to remote db (may take a while)")
@@ -881,7 +880,7 @@ func main() {
 	fs.Bool("b", false, "shortcut for -binary")
 	fs.Bool("force", false, "force overwrite")
 
-	parsed := terminalW.ParseArgsCmd("l", "h", "r", "all", "a",
+	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b")
 
 	if parsed == nil {
@@ -954,7 +953,7 @@ func main() {
 	}
 	toBinary := parsed.ContainsAnyFlagStrict("binary", "b")
 
-	if (parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a")) && !orderByTime {
+	if (parsed.ContainsAnyFlagStrict("t") || parsed.CoExists("t", "a")) && !orderByTime {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
@@ -980,7 +979,7 @@ func main() {
 	}
 
 	// list by tag name
-	if (parsed.ContainsAnyFlagStrict("l", "t") || parsed.CoExists("t", "a") || parsed.CoExists("l", "a")) && !orderByTime {
+	if (parsed.ContainsAnyFlagStrict("t") || parsed.CoExists("t", "a")) && !orderByTime {
 		if parsed.ContainsFlagStrict("pull") {
 			remote.Set(true)
 		}

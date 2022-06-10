@@ -153,6 +153,7 @@ func (r ParsedResults) ContainsAllFlagStrict(flagNames ...string) bool {
 }
 
 // CoExists “-lrt”， args = ["l", "r", "t"]，return true
+// args 的顺序无关
 func (r ParsedResults) CoExists(args ...string) bool {
 outer:
 	for optional := range r.Optional {
