@@ -1242,7 +1242,15 @@ func main() {
 	if positional.Contains("open") {
 		positional.Delete("open")
 		tags := positional.ToStringSlice()
-		if len(tags) > 0 {
+		isObjectID := _helpers.IsObjectID(tags[0])
+		// tags 里面可能是 objectid
+		if len(tags) == 1 && isObjectID {
+			objectID, _ := primitive.ObjectIDFromHex(tags[0])
+			r := &record{ID: objectID}
+			r.loadByID()
+			_helpers.WriteInfo([]*primitive.ObjectID{&r.ID}, []string{r.Title})
+		}
+		if !isObjectID && len(tags) > 0 {
 			if _, written := listRecords(-1, true, false, tags, false, "", true, prefix); !written {
 				fmt.Printf("there are NO urls associated with tags: %v (prefix: %v)\n", tags, prefix)
 				return

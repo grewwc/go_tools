@@ -226,3 +226,11 @@ func OrderByTime(parsed *terminalW.ParsedResults) bool {
 	}
 	return false
 }
+
+// IsObjectID 返回是否是有效的mongodb objectid
+func IsObjectID(id string) bool {
+	if _, err := primitive.ObjectIDFromHex(id); err != nil {
+		return false
+	}
+	return true
+}
