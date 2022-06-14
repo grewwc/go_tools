@@ -1240,7 +1240,10 @@ func main() {
 	if positional.Contains("open") {
 		positional.Delete("open")
 		tags := positional.ToStringSlice()
-		isObjectID := _helpers.IsObjectID(tags[0])
+		isObjectID := false
+		if positional.Size() > 0 {
+			isObjectID = _helpers.IsObjectID(tags[0])
+		}
 		// tags 里面可能是 objectid
 		if len(tags) == 1 && isObjectID {
 			objectID, _ := primitive.ObjectIDFromHex(tags[0])
