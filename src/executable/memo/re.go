@@ -445,11 +445,13 @@ func getAllTagsModifiedDate(records []*record) map[string]time.Time {
 	return m
 }
 
-func insert(fromEditor bool, filename string) {
+func insert(fromEditor bool, filename, tagName string) {
 	scanner := bufio.NewScanner(os.Stdin)
 	var title string
+	var tagsStr string
 	var titleSlice []string
 	var err error
+	tagName = strings.TrimSpace(tagName)
 	if filename != "" {
 		title = strings.ReplaceAll(filename, ",", " ")
 		titleSlice = stringsW.SplitNoEmpty(title, " ")
@@ -472,9 +474,13 @@ func insert(fromEditor bool, filename string) {
 		scanner.Scan()
 		title = strings.TrimSpace(scanner.Text())
 	}
-	fmt.Print("input the tags: ")
-	scanner.Scan()
-	tagsStr := strings.TrimSpace(scanner.Text())
+	if len(tagName) == 0 {
+		fmt.Print("input the tags: ")
+		scanner.Scan()
+		tagsStr = strings.TrimSpace(scanner.Text())
+	} else {
+		tagsStr = tagName
+	}
 	tagsStr = strings.ReplaceAll(tagsStr, ",", " ")
 	tags := stringsW.SplitNoEmpty(tagsStr, " ")
 	if len(tags) == 0 {
@@ -1047,8 +1053,18 @@ func main() {
 
 	if parsed.ContainsFlagStrict("u") || positional.Contains("u") {
 		positional.Delete("u")
-		tags := positional.ToStringSlice()
 		var id string
+		tags := positional.ToStringSlice()
+		isObjectID := false
+		if positional.Size() > 0 {
+			isObjectID = _helpers.IsObjectID(tags[0])
+		}
+		// tags 里面可能是 objectid
+		if len(tags) == 1 && isObjectID {
+			id = tags[0]
+			goto tagIsId
+		}
+
 		if len(tags) > 0 {
 			if r, _ := listRecords(-1, true, false, tags, false, "", true, prefix); len(r) < 1 {
 				fmt.Println(color.YellowString("no records associated with the tags (%v: prefix: %v) found", tags, prefix))
@@ -1056,6 +1072,7 @@ func main() {
 			}
 		}
 		id = _helpers.ReadInfo(false)
+	tagIsId:
 		parsed.Optional["-u"] = id
 		if id != "" {
 			parsed.Optional["-e"] = ""
@@ -1065,7 +1082,7 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("i") || parsed.CoExists("i", "e") {
-		insert(parsed.CoExists("i", "e"), parsed.GetFlagValueDefault("file", ""))
+		insert(parsed.CoExists("i", "e"), parsed.GetFlagValueDefault("file", ""), "")
 		return
 	}
 
@@ -1259,6 +1276,22 @@ func main() {
 		}
 
 		_helpers.ReadInfo(true)
+		return
+	}
+
+	if positional.Contains("today") {
+		positional.Delete("today")
+		tag := time.Now().Format(fmt.Sprintf("%s.2006-01-02", "log"))
+		rs, _ := listRecords(-1, true, true, []string{tag}, false, "", false, false)
+		if len(rs) > 1 {
+			panic("today failed: ")
+		}
+		if len(rs) == 0 {
+			insert(true, "", tag)
+		} else {
+			parsed.Optional["-u"] = rs[0].ID.Hex()
+			update(parsed, false, true, false)
+		}
 		return
 	}
 }
