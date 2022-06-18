@@ -111,7 +111,7 @@ func init() {
 	// get the uri
 	m := utilsW.GetAllConfig()
 	uriFromConfig := m.GetOrDefault(localMongoConfigName, "")
-	if uriFromConfig != nil {
+	if uriFromConfig != "" {
 		uri = uriFromConfig.(string)
 	}
 
