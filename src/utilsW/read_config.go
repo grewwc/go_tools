@@ -38,10 +38,14 @@ func GetAllConfig() (m *containerW.OrderedMap) {
 			continue
 		}
 		res := stringsW.SplitNoEmptyKeepQuote(line, '=')
+		var key, val string
 		// fmt.Println(res)
-		key, val := res[0], res[1]
+		key = res[0]
 		key = strings.TrimSpace(key)
-		val = strings.TrimSpace(val)
+		if len(res) > 1 {
+			val = res[1]
+			val = strings.TrimSpace(val)
+		}
 		m.Put(key, val)
 	}
 	return

@@ -236,7 +236,7 @@ func IsObjectID(id string) bool {
 	return true
 }
 
-func BuildRegularExp(specialPattern *containerW.Set) string {
+func BuildMongoRegularExpExclude(specialPattern *containerW.Set) string {
 	if specialPattern.Size() == 1 {
 		return fmt.Sprintf("^(?!%s).*", specialPattern.ToSlice()[0].(string))
 	}
@@ -248,4 +248,13 @@ func BuildRegularExp(specialPattern *containerW.Set) string {
 	res.Truncate(res.Len() - 1)
 	res.WriteString(")).*")
 	return res.String()
+}
+
+func SearchTrie(trie *containerW.Trie, specialPattern *containerW.Set) bool {
+	for val := range specialPattern.Iterate() {
+		if trie.StartsWith(val.(string)) {
+			return true
+		}
+	}
+	return false
 }

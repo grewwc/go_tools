@@ -104,9 +104,6 @@ func newRecord(title string, tags ...string) *record {
 }
 
 func init() {
-	defer func() {
-		recover()
-	}()
 	// var cancel context.CancelFunc
 	// get the uri
 	m := utilsW.GetAllConfig()
@@ -341,17 +338,6 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 			}
 		}
 	}
-	var special bson.M
-	if m["tags"] != nil {
-		special = m["tags"].(bson.M)
-	}
-	if !listSpecial {
-		if special != nil {
-			m["tags"] = bson.M{"$and": []bson.M{special, {"$regex": _helpers.BuildRegularExp(specialTagPatterns)}}}
-		} else {
-			m["tags"] = bson.M{"$regex": _helpers.BuildRegularExp(specialTagPatterns)}
-		}
-	}
 	if title != "" {
 		m["title"] = bson.M{"$regex": primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", title), Options: "i"}}
 	}
@@ -364,7 +350,21 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	if err = cursor.All(ctx, &res); err != nil {
 		panic(err)
 	}
-
+	// filter by special tags
+	if !listSpecial {
+		resCopy := make([]*record, 0, len(res))
+		for _, r := range res {
+			trie := containerW.NewTrie()
+			tags := r.Tags
+			for _, t := range tags {
+				trie.Insert(t)
+			}
+			if !_helpers.SearchTrie(trie, specialTagPatterns) {
+				resCopy = append(resCopy, r)
+			}
+		}
+		res = resCopy
+	}
 	recordTitles := make([]string, len(res))
 	recordIDs := make([]*primitive.ObjectID, len(res))
 	for i := range res {
@@ -855,11 +855,11 @@ func (l tagSlice) Less(i, j int) bool {
 }
 
 func main() {
-	defer func() {
-		if res := recover(); res != nil {
-			fmt.Println("recovered:", res)
-		}
-	}()
+	// defer func() {
+	// 	if res := recover(); res != nil {
+	// 		fmt.Println("recovered:", res)
+	// 	}
+	// }()
 	var n int64 = 50
 
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
@@ -899,11 +899,11 @@ func main() {
 	fs.Bool("binary", false, "if the title is binary file")
 	fs.Bool("b", false, "shortcut for -binary")
 	fs.Bool("force", false, "force overwrite")
-	fs.Bool("special", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tag)", specialTagPatterns.ToSlice()))
+	fs.Bool("sp", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tag)", specialTagPatterns.ToSlice()))
 
 	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"special")
+		"sp")
 
 	if parsed == nil {
 		records, _ := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true, true)
@@ -915,7 +915,6 @@ func main() {
 		}
 		return
 	}
-	listSpecial = parsed.ContainsFlagStrict("special")
 	positional := parsed.Positional
 	prefix := parsed.ContainsFlagStrict("prefix")
 	isWindows := utilsW.WINDOWS == utilsW.GetPlatform()
@@ -963,6 +962,7 @@ func main() {
 	if all {
 		n = math.MaxInt64
 	}
+	listSpecial = parsed.ContainsFlagStrict("sp") || all
 	reverse := parsed.ContainsFlag("r") && !parsed.ContainsAnyFlagStrict("prev", "remote", "prefix")
 	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
 	verbose := parsed.ContainsFlagStrict("v")
@@ -1016,10 +1016,14 @@ func main() {
 			if verbose {
 				ignoreFields = []string{}
 			}
+			// to stdout
 			if !parsed.ContainsFlagStrict("out") && !toBinary {
 				for _, record := range records {
 					printSeperator()
 					coloringRecord(record, nil)
+					if !utilsW.IsText([]byte(record.Title)) {
+						record.Title = color.HiYellowString("<binary>")
+					}
 					fmt.Println(utilsW.ToString(record, ignoreFields...))
 					fmt.Println(color.HiRedString(record.ID.String()))
 				}
@@ -1188,7 +1192,7 @@ func main() {
 			cli = atlasClient
 		}
 		if !listSpecial {
-			m["name"] = bson.M{"$regex": primitive.Regex{Pattern: _helpers.BuildRegularExp(specialTagPatterns)}}
+			m["name"] = bson.M{"$regex": primitive.Regex{Pattern: _helpers.BuildMongoRegularExpExclude(specialTagPatterns)}}
 		}
 		cursor, err = cli.Database(dbName).Collection(tagCollectionName).Find(ctx, m, &op1)
 		if err != nil {
@@ -1231,7 +1235,7 @@ func main() {
 		return
 	}
 
-	// list by title
+	// list by title search
 	if parsed.ContainsFlagStrict("title") || parsed.ContainsFlagStrict("c") {
 		title := parsed.GetFlagValueDefault("title", "")
 		if title == "" {

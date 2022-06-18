@@ -11,3 +11,9 @@ func Contains(slice []string, target string) bool {
 
 	return false
 }
+
+func CopySlice(original []string) []string {
+	res := make([]string, 0, len(original))
+	res = append(res, original...)
+	return res
+}

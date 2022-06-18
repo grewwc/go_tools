@@ -1,6 +1,7 @@
 package utilsW
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -167,8 +168,7 @@ func TrimFileExt(filename string) string {
 
 func isTextFile(filename string) bool {
 	buf, _ := ioutil.ReadFile(filename)
-	t := http.DetectContentType(buf)
-	return strings.HasPrefix(t, "text")
+	return IsText(buf)
 }
 
 func IsTextFile(filename string) bool {
@@ -188,6 +188,12 @@ func IsTextFile(filename string) bool {
 		return false
 	}
 	return isTextFile(filename)
+}
+
+func IsText(data []byte) bool {
+	t := http.DetectContentType(data)
+	fmt.Println(t)
+	return strings.HasPrefix(t, "text")
 }
 
 func GetDirSize(dirname string) (int64, error) {
