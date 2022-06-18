@@ -1006,7 +1006,19 @@ func main() {
 		if parsed.ContainsFlagStrict("pull") {
 			remote.Set(true)
 		}
-		records, _ := listRecords(n, reverse, includeFinished || all, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all, parsed.ContainsFlagStrict("prefix"))
+		var records []*record
+		// 如果是 id，特殊处理
+		if _helpers.IsObjectID(parsed.GetFlagValueDefault("t", "")) {
+			id, err := primitive.ObjectIDFromHex(parsed.GetFlagValueDefault("t", ""))
+			if err != nil {
+				panic(err)
+			}
+			r := &record{ID: id}
+			r.loadByID()
+			records = []*record{r}
+		} else {
+			records, _ = listRecords(n, reverse, includeFinished || all, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all, parsed.ContainsFlagStrict("prefix"))
+		}
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
 			return
