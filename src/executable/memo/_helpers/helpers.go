@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -233,4 +234,18 @@ func IsObjectID(id string) bool {
 		return false
 	}
 	return true
+}
+
+func BuildRegularExp(specialPattern *containerW.Set) string {
+	if specialPattern.Size() == 1 {
+		return fmt.Sprintf("^(?!%s).*", specialPattern.ToSlice()[0].(string))
+	}
+	res := bytes.NewBufferString("^(?!(")
+	for val := range specialPattern.Iterate() {
+		res.WriteString(val.(string))
+		res.WriteString("|")
+	}
+	res.Truncate(res.Len() - 1)
+	res.WriteString(")).*")
+	return res.String()
 }

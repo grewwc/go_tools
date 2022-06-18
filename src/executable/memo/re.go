@@ -33,9 +33,14 @@ const (
 	dbName            = "daily"
 	collectionName    = "memo"
 	tagCollectionName = "tag"
+)
 
+// config key settings
+// .configW
+const (
 	localMongoConfigName = "mongo.local"
 	atlasMongoConfigName = "mongo.atlas"
+	specialTagConfigname = "special.tags"
 )
 
 const (
@@ -48,7 +53,8 @@ const (
 )
 
 var (
-	txtOutputName = "output.txt"
+	txtOutputName      = "output.txt"
+	specialTagPatterns = containerW.NewSet("learn")
 )
 
 var (
@@ -62,6 +68,10 @@ var (
 var (
 	remote = utilsW.NewThreadSafeVal(false)
 	mu     sync.Mutex
+)
+
+var (
+	listSpecial = false
 )
 
 type record struct {
@@ -94,11 +104,14 @@ func newRecord(title string, tags ...string) *record {
 }
 
 func init() {
+	defer func() {
+		recover()
+	}()
 	// var cancel context.CancelFunc
 	// get the uri
 	m := utilsW.GetAllConfig()
 	uriFromConfig := m.GetOrDefault(localMongoConfigName, "")
-	if uriFromConfig != "" {
+	if uriFromConfig != nil {
 		uri = uriFromConfig.(string)
 	}
 
@@ -111,21 +124,11 @@ func init() {
 		panic(err)
 	}
 
-	// check if tags and memo collections exists
-	// db := client.Database(dbName)
-	// if !_helpers.CollectionExists(db, ctx, tagCollectionName) {
-	// 	db.Collection(tagCollectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
-	// 		Keys:    bson.D{bson.DocElem{Name: "name", Value: "text"}}.Map(),
-	// 		Options: options.Index().SetUnique(true),
-	// 	})
-	// }
+	// read the special tag patters from .configW
+	for _, val := range stringsW.SplitNoEmpty(m.GetOrDefault(specialTagConfigname, "").(string), ",") {
+		specialTagPatterns.Add(val)
+	}
 
-	// if !helpers.CollectionExists(db, ctx, collectionName) {
-	// 	db.Collection(collectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
-	// 		Keys:    bson.D{bson.DocElem{Name: "title", Value: "text"}}.Map(),
-	// 		Options: options.Index().SetUnique(true),
-	// 	})
-	// }
 }
 
 func initAtlas() {
@@ -336,6 +339,17 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 			} else {
 				m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tags}}
 			}
+		}
+	}
+	var special bson.M
+	if m["tags"] != nil {
+		special = m["tags"].(bson.M)
+	}
+	if !listSpecial {
+		if special != nil {
+			m["tags"] = bson.M{"$and": []bson.M{special, {"$regex": _helpers.BuildRegularExp(specialTagPatterns)}}}
+		} else {
+			m["tags"] = bson.M{"$regex": _helpers.BuildRegularExp(specialTagPatterns)}
 		}
 	}
 	if title != "" {
@@ -885,9 +899,11 @@ func main() {
 	fs.Bool("binary", false, "if the title is binary file")
 	fs.Bool("b", false, "shortcut for -binary")
 	fs.Bool("force", false, "force overwrite")
+	fs.Bool("special", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tag)", specialTagPatterns.ToSlice()))
 
 	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
-		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b")
+		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
+		"special")
 
 	if parsed == nil {
 		records, _ := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true, true)
@@ -899,6 +915,7 @@ func main() {
 		}
 		return
 	}
+	listSpecial = parsed.ContainsFlagStrict("special")
 	positional := parsed.Positional
 	prefix := parsed.ContainsFlagStrict("prefix")
 	isWindows := utilsW.WINDOWS == utilsW.GetPlatform()
@@ -1131,6 +1148,7 @@ func main() {
 		var cli *mongo.Client
 		var sortBy = "name"
 		op1 := options.FindOptions{}
+		var m bson.M = bson.M{}
 
 		if all || listTagsAndOrderByTime {
 			allRecords, _ := listRecords(-1, false, !listTagsAndOrderByTime || all, nil, false, "", false, false)
@@ -1169,7 +1187,10 @@ func main() {
 		if remote.Get().(bool) {
 			cli = atlasClient
 		}
-		cursor, err = cli.Database(dbName).Collection(tagCollectionName).Find(ctx, bson.M{}, &op1)
+		if !listSpecial {
+			m["name"] = bson.M{"$regex": primitive.Regex{Pattern: _helpers.BuildRegularExp(specialTagPatterns)}}
+		}
+		cursor, err = cli.Database(dbName).Collection(tagCollectionName).Find(ctx, m, &op1)
 		if err != nil {
 			panic(err)
 		}
