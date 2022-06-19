@@ -899,7 +899,7 @@ func main() {
 	fs.Bool("binary", false, "if the title is binary file")
 	fs.Bool("b", false, "shortcut for -binary")
 	fs.Bool("force", false, "force overwrite")
-	fs.Bool("sp", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tag)", specialTagPatterns.ToSlice()))
+	fs.Bool("sp", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tags)", specialTagPatterns.ToSlice()))
 
 	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
