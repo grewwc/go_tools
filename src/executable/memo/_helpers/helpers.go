@@ -184,7 +184,7 @@ func ReadInfo(isURL bool) string {
 	// more than one urls
 	urlsWithNo := make([]string, len(urls))
 	for i := range urls {
-		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.GreenString(urls[i]),
+		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.HiWhiteString(urls[i]),
 			color.HiBlueString(hints[i]))
 	}
 	_print(urlsWithNo, hints)
