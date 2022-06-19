@@ -733,7 +733,7 @@ func addTag(add bool, id string, prev bool) {
 }
 
 func printSeperator() {
-	fmt.Println(color.GreenString(strings.Repeat("~", 10)))
+	fmt.Println(color.BlueString(strings.Repeat("~", 20)))
 }
 
 func coloringRecord(r *record, p *regexp.Regexp) {
@@ -763,7 +763,7 @@ func coloringRecord(r *record, p *regexp.Regexp) {
 	}
 	r.Title = "\n" + r.Title
 	for i := range r.Tags {
-		r.Tags[i] = color.HiBlueString(r.Tags[i])
+		r.Tags[i] = color.HiGreenString(r.Tags[i])
 	}
 }
 
@@ -1215,7 +1215,7 @@ func main() {
 		_, w, err = utilsW.GetTerminalSize()
 		for _, tag := range tags {
 			if verbose {
-				tag.Name = color.HiBlueString(tag.Name)
+				tag.Name = color.HiGreenString(tag.Name)
 				printSeperator()
 				fmt.Println(utilsW.ToString(tag))
 			} else {
@@ -1233,7 +1233,7 @@ func main() {
 					for i := range arr {
 						idx := strings.Index(arr[i], "[")
 						if !isWindows {
-							changedArr[i] = fmt.Sprintf("%s%s", color.HiBlueString(arr[i][:idx]), arr[i][idx:])
+							changedArr[i] = fmt.Sprintf("%s%s", color.HiGreenString(arr[i][:idx]), arr[i][idx:])
 						} else { //windows color不能用
 							changedArr[i] = arr[i]
 						}
