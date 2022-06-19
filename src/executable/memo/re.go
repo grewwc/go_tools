@@ -208,7 +208,7 @@ func (r *record) exists() bool {
 	panic(err)
 }
 
-func (r *record) do(action string) {
+func (r *record) do(action string, options ...string) {
 	var err error
 	var db *mongo.Database
 	if !remote.Get().(bool) {
@@ -234,7 +234,19 @@ func (r *record) do(action string) {
 		if r.exists() {
 			return
 		}
-		r.ModifiedDate = time.Now()
+		noUpdateModifiedDate := false
+		if len(options) > 0 {
+			s := containerW.NewSet()
+			for _, option := range options {
+				s.Add(option)
+			}
+			if s.Contains("noUpdateModifiedDate") {
+				noUpdateModifiedDate = true
+			}
+		}
+		if !noUpdateModifiedDate {
+			r.ModifiedDate = time.Now()
+		}
 		if _, err = collection.InsertOne(context.Background(), r); err != nil {
 			session.AbortTransaction(ctx)
 			panic(err)
@@ -267,8 +279,12 @@ func (r *record) do(action string) {
 	}
 }
 
-func (r *record) save() {
-	r.do("save")
+func (r *record) save(noUpdateModifiedDate bool) {
+	if noUpdateModifiedDate {
+		r.do("save", "noUpdateModifiedDate")
+	} else {
+		r.do("save")
+	}
 }
 
 func (r *record) delete() {
@@ -510,7 +526,7 @@ func insert(fromEditor bool, filename, tagName string) {
 			defer func() {
 				c <- nil
 			}()
-			r.save()
+			r.save(true)
 		}(c)
 		<-c
 		fmt.Println("Inserted: ")
@@ -807,7 +823,7 @@ func syncByID(id string, push, quiet bool) {
 		remote.Set(false)
 	}
 	if err == mongo.ErrNoDocuments {
-		r.save()
+		r.save(true)
 	} else {
 		r.update(false)
 	}
