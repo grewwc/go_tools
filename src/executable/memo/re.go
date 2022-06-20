@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1316,12 +1317,20 @@ func main() {
 		return
 	}
 
-	if positional.Contains("today") {
-		positional.Delete("today")
-		tag := time.Now().Format(fmt.Sprintf("%s.2006-01-02", "log"))
+	if positional.Contains("log") {
+		positional.Delete("log")
+		nextDay := 0
+		var err error
+		if positional.Size() == 1 {
+			if nextDay, err = strconv.Atoi(positional.ToStringSlice()[0]); err != nil {
+				nextDay = 0
+			}
+		}
+
+		tag := time.Now().Add(time.Duration(nextDay * int(time.Hour) * 24)).Format(fmt.Sprintf("%s.2006-01-02", "log"))
 		rs, _ := listRecords(-1, true, true, []string{tag}, false, "", false, false)
 		if len(rs) > 1 {
-			panic("today failed: ")
+			panic("log failed: ")
 		}
 		if len(rs) == 0 {
 			insert(true, "", tag)
