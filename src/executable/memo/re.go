@@ -1323,7 +1323,7 @@ func main() {
 			_helpers.WriteInfo([]*primitive.ObjectID{&r.ID}, []string{r.Title})
 		}
 		if !isObjectID && len(tags) > 0 {
-			if _, written := listRecords(-1, true, false, tags, false, "", true, prefix); !written {
+			if _, written := listRecords(-1, true, true, tags, false, "", false, prefix); !written {
 				fmt.Printf("there are NO urls associated with tags: %v (prefix: %v)\n", tags, prefix)
 				return
 			}
