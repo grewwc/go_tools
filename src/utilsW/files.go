@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/google/uuid"
 )
 
@@ -55,7 +56,7 @@ func TarGz(outName string, srcNames []string, verbose bool) error {
 			}
 			src.Close()
 			if verbose {
-				fmt.Println(filename)
+				fmt.Println(color.GreenString(filename))
 			}
 		}
 	}

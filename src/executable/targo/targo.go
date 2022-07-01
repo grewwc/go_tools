@@ -144,17 +144,24 @@ func main() {
 
 	// create tar files
 	exclude, err := parsedResults.GetFlagVal("ex")
+	excludeSlice := make([]string, 0)
 	if err != nil || exclude == "" {
 		exclude, _ = parsedResults.GetFlagVal("exclude")
 	}
 	if exclude != "" {
-		exclude = utilsW.Abs(exclude)
+		for _, ex := range stringsW.SplitNoEmptyKeepQuote(exclude, ',') {
+			ex = strings.TrimSpace(ex)
+			excludeSlice = append(excludeSlice, utilsW.Abs(ex))
+		}
 	}
 
-	excludes, err := filepath.Glob(exclude)
-	if err != nil {
-		log.Println(err)
-		return
+	var excludes []string
+	for _, ex := range excludeSlice {
+		gs, err := filepath.Glob(ex)
+		if err != nil {
+			panic(err)
+		}
+		excludes = append(excludes, gs...)
 	}
 
 	verbose := parsedResults.ContainsFlagStrict("v")
