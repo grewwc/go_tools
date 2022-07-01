@@ -162,9 +162,6 @@ func main() {
 
 	for _, ex := range excludes {
 		filepath.Walk(ex, func(path string, info os.FileInfo, err error) error {
-			if info.IsDir() {
-				return nil
-			}
 			if err != nil {
 				return err
 			}
