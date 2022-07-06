@@ -1356,4 +1356,42 @@ func main() {
 		}
 		return
 	}
+
+	if positional.Contains("week") {
+		// merge from log.yyyy-MM-dd
+		firstDay := utilsW.GetFirstDayOfThisWeek()
+		now := time.Now()
+		tag := firstDay.Format(fmt.Sprintf("%s.%s", "week", utilsW.DateFormat))
+		rs, _ := listRecords(-1, true, true, []string{tag}, false, "", false, false)
+		title := bytes.NewBufferString("")
+		newWeekRecord := false
+		if len(rs) > 1 {
+			panic("too many week tags ")
+		}
+		if len(rs) == 0 {
+			rs = []*record{newRecord("", tag)}
+			newWeekRecord = true
+		}
+		for firstDay.Before(now) {
+			dayTag := firstDay.Format(fmt.Sprintf("%s.%s", "log", utilsW.DateFormat))
+			r, _ := listRecords(-1, true, true, []string{dayTag}, false, "", false, false)
+			if len(r) > 1 {
+				panic("log failed")
+			}
+			if len(r) == 1 {
+				title.WriteString(color.YellowString(firstDay.Format(utilsW.DateFormat)))
+				title.WriteString("\n")
+				title.WriteString(r[0].Title)
+				title.WriteString("\n\n")
+			}
+			firstDay = firstDay.AddDate(0, 0, 1)
+		}
+		rs[0].Title = title.String()
+		if newWeekRecord {
+			rs[0].save(true)
+		} else {
+			rs[0].update(true)
+		}
+		return
+	}
 }
