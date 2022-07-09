@@ -871,6 +871,14 @@ func (l tagSlice) Less(i, j int) bool {
 	return ll[i].modifiedDate.Before(ll[j].modifiedDate)
 }
 
+func finishRecordsByTags(tags []string) {
+	rs, _ := listRecords(-1, false, true, tags, false, "", false, true)
+	for _, r := range rs {
+		r.Finished = true
+		r.update(false)
+	}
+}
+
 func main() {
 	// defer func() {
 	// 	if res := recover(); res != nil {
@@ -947,6 +955,10 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("f") {
+		if parsed.ContainsFlagStrict("prefix") {
+			finishRecordsByTags([]string{parsed.GetFlagValueDefault("f", "")})
+			return
+		}
 		toggle(true, getObjectIdByTags([]string{parsed.GetFlagValueDefault("f", "")}), finish, parsed.ContainsFlagStrict("prev"))
 		return
 	}
