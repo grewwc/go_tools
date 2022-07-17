@@ -146,3 +146,9 @@ func kill(cmd *exec.Cmd) error {
 	kill.Stdout = os.Stdout
 	return kill.Run()
 }
+
+// GetCommandList seperate cmd to []string
+func GetCommandList(cmd string) []string {
+	cmd = strings.ReplaceAll(cmd, ",", " ")
+	return stringsW.SplitNoEmpty(cmd, " ")
+}

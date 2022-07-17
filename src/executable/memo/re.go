@@ -879,6 +879,27 @@ func finishRecordsByTags(tags []string) {
 	}
 }
 
+func filterTags(tags []tag, prefix []string) []tag {
+	if len(prefix) == 0 {
+		return tags
+	}
+	res := make([]tag, 0, len(tags))
+	for _, t := range tags {
+		exclude := false
+		for _, p := range prefix {
+			if strings.HasPrefix(t.Name, p) {
+				exclude = true
+				break
+			}
+		}
+		if !exclude {
+			res = append(res, t)
+		}
+
+	}
+	return res
+}
+
 func main() {
 	// defer func() {
 	// 	if res := recover(); res != nil {
@@ -925,6 +946,7 @@ func main() {
 	fs.Bool("b", false, "shortcut for -binary")
 	fs.Bool("force", false, "force overwrite")
 	fs.Bool("sp", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tags)", specialTagPatterns.ToSlice()))
+	fs.String("ex", "", "exclude some tag prefix when list tags")
 
 	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
@@ -1197,6 +1219,7 @@ func main() {
 
 		if all || listTagsAndOrderByTime {
 			allRecords, _ := listRecords(-1, false, !listTagsAndOrderByTime || all, nil, false, "", false, false)
+
 			// modified date map
 			mtMap := getAllTagsModifiedDate(allRecords)
 			testTags := containerW.NewOrderedMap()
@@ -1242,6 +1265,10 @@ func main() {
 		cursor.All(ctx, &tags)
 	print:
 		_, w, err = utilsW.GetTerminalSize()
+		// filter records
+		if parsed.GetFlagValueDefault("ex", "") != "" {
+			tags = filterTags(tags, utilsW.GetCommandList(parsed.MustGetFlagVal("ex")))
+		}
 		for _, tag := range tags {
 			if verbose {
 				tag.Name = color.HiGreenString(tag.Name)
@@ -1322,6 +1349,7 @@ func main() {
 	}
 	if positional.Contains("open") {
 		positional.Delete("open")
+		listSpecial = true
 		tags := positional.ToStringSlice()
 		isObjectID := false
 		if positional.Size() > 0 {
