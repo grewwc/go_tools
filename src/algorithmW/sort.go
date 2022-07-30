@@ -75,15 +75,27 @@ func HeapSort(arr []int, reverse bool) {
 	}
 }
 
-func TopK(arr []interface{}, k int) []interface{} {
-	h := containerW.NewMaxHeapCap(k)
+func TopK(arr []interface{}, k int, minK bool) []interface{} {
+	if k < 1 {
+		return nil
+	}
+	var h containerW.Heap
+	if minK {
+		h = containerW.NewMaxHeapCap(k)
+	} else {
+		h = containerW.NewMinHeapCap(k)
+	}
 	for i, val := range arr {
 		if i < k {
 			h.Insert(val)
 			continue
 		}
 		next := h.Next()
-		if next != nil && next.(typesW.Comparable).Compare(val.(typesW.Comparable)) > 0 {
+		cmp := next.(typesW.Comparable).Compare(val.(typesW.Comparable))
+		if !minK {
+			cmp *= -1
+		}
+		if cmp > 0 {
 			h.Pop()
 			h.Insert(val)
 		}
