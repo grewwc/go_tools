@@ -8,6 +8,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 const (
@@ -33,7 +34,8 @@ func main() {
 	}
 	unixTime, err := strconv.Atoi(posArr[0])
 	if err != nil {
-		panic(err)
+		fmt.Println(utilsW.ToUnix(posArr[0]))
+		return
 	}
 	res := time.Unix(int64(unixTime), 0)
 	if res.After(time.Date(2500, time.January, 1, 0, 0, 0, 0, time.Local)) {
