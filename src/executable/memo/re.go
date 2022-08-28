@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -49,6 +50,7 @@ const (
 	defaultTxtOutputName = "output.txt"
 	outputName           = "output_binary"
 	finish               = "finish"
+	hold                 = "hold"
 	myproblem            = "myproblem"
 	titleLen             = 200
 )
@@ -82,6 +84,7 @@ type record struct {
 	ModifiedDate time.Time          `bson:"modified_date,ignoreempty" json:"modified_date,ignoreempty"`
 	MyProblem    bool               `bson:"my_problem,ignoreempty" json:"my_problem,ignoreempty"`
 	Finished     bool               `bson:"finished,ignoreempty" json:"finished,ignoreempty"`
+	Hold         bool               `bson:"hold,ignoreempty" json:"hold,ignoreempty"`
 	Title        string             `bson:"title,ignoreempty" json:"title,ignoreempty"`
 }
 
@@ -307,8 +310,24 @@ func (r *record) loadByID() {
 	r.do("load")
 }
 
-func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool, title string,
-	onlyMyproblem bool, prefix bool) ([]*record, bool) {
+func toggleByName(r *record, fieldName string) {
+	rr := reflect.ValueOf(r)
+	val := reflect.Indirect(rr).FieldByName(fieldName)
+	if val.Bool() {
+		val.SetBool(false)
+	} else {
+		val.SetBool(true)
+	}
+}
+
+func setValByFielName(r *record, fieldName string, val bool) {
+	rr := reflect.ValueOf(r)
+	fieldVal := reflect.Indirect(rr).FieldByName(fieldName)
+	fieldVal.SetBool(val)
+}
+
+func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, tags []string, useAnd bool, title string,
+	onlyMyproblem, onlyHold bool, prefix bool) ([]*record, bool) {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -337,9 +356,17 @@ func listRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	if !includeFinished {
 		m["finished"] = false
 	}
+	if !includeHold {
+		m["$or"] = []interface{}{bson.M{"hold": false}, bson.M{"hold": nil}}
+	}
 	if onlyMyproblem {
 		m["my_problem"] = true
 	}
+	if onlyHold {
+		m["hold"] = true
+		delete(m, "$or")
+	}
+
 	if len(tags) > 0 {
 		if useAnd {
 			m["tags"] = bson.M{"$all": tags}
@@ -571,6 +598,16 @@ func toggle(val bool, id string, name string, prev bool) {
 				inc = 1
 			}
 		}
+	case hold:
+		if r.Hold != val {
+			r.Hold = val
+			changed = true
+			if val {
+				inc = -1
+			} else {
+				inc = 1
+			}
+		}
 	case myproblem:
 		if r.MyProblem != val {
 			changed = true
@@ -592,7 +629,7 @@ func toggle(val bool, id string, name string, prev bool) {
 	r.update(false)
 }
 
-func delete(id string, prev bool) {
+func deleteRecord(id string, prev bool) {
 	var err error
 	r := record{}
 	id = strings.TrimSpace(id)
@@ -849,7 +886,7 @@ func getObjectIdByTags(tags []string) string {
 		}
 	}
 	if len(tags) > 0 {
-		listRecords(-1, true, false, tags, false, "", true, false)
+		listRecords(-1, true, false, false, tags, false, "", true, false, false)
 	}
 	id := _helpers.ReadInfo(false)
 	return id
@@ -872,9 +909,18 @@ func (l tagSlice) Less(i, j int) bool {
 }
 
 func finishRecordsByTags(tags []string) {
-	rs, _ := listRecords(-1, false, true, tags, false, "", false, true)
+	doRecordsByTagsByAction(tags, "Finished")
+}
+
+func holdRecordsByTags(tags []string) {
+	doRecordsByTagsByAction(tags, "Hold")
+}
+
+func doRecordsByTagsByAction(tags []string, name string) {
+	rs, _ := listRecords(-1, false, true, true, tags, false, "", false, false, true)
 	for _, r := range rs {
-		r.Finished = true
+		// r.Finished = true
+		setValByFielName(r, name, true)
 		r.update(false)
 	}
 }
@@ -901,19 +947,13 @@ func filterTags(tags []tag, prefix []string) []tag {
 }
 
 func main() {
-	// defer func() {
-	// 	if res := recover(); res != nil {
-	// 		fmt.Println("recovered:", res)
-	// 	}
-	// }()
-	var n int64 = 50
-
+	var n int64 = 100
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("i", false, "insert a record")
 	fs.String("ct", "", "change a record title")
 	fs.String("u", "", "update a record")
 	fs.String("d", "", "delete a record")
-	fs.Int("n", 10, "# of records to list")
+	fs.Int("n", 100, "# of records to list")
 	fs.Bool("h", false, "print help information")
 	fs.String("push", "objectID to push", "push to remote db (may take a while)")
 	fs.String("pull", "objectID to pull", "pull from remote db (may take a while)")
@@ -922,10 +962,13 @@ func main() {
 	fs.Bool("a", false, "shortcut for -all")
 	fs.String("f", "", "finish a record")
 	fs.String("nf", "", "set a record UNFINISHED")
+	fs.String("hold", "", "hold a record for later finish")
+	fs.String("unhold", "", "unhold a record (reverse operation for the -hold)")
 	fs.String("p", "", "set a record my problem")
 	fs.String("np", "", "set a record NOT my problem")
 	fs.String("t", "", "search by tags")
 	fs.Bool("include-finished", false, "include finished record")
+	fs.Bool("include-hold", false, "include held record")
 	fs.String("add-tag", "", "add tags for a record")
 	fs.String("del-tag", "", "delete tags for a record")
 	fs.String("clean-tag", "", "clean all the records having the tag")
@@ -946,14 +989,17 @@ func main() {
 	fs.Bool("b", false, "shortcut for -binary")
 	fs.Bool("force", false, "force overwrite")
 	fs.Bool("sp", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tags)", specialTagPatterns.ToSlice()))
+	fs.Bool("onlyhold", false, "list only the hold rerods")
 	fs.String("ex", "", "exclude some tag prefix when list tags")
 
 	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"sp")
+		"sp", "include-held", "onlyhold")
 
+	// default behavior
+	// re
 	if parsed == nil {
-		records, _ := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true, true)
+		records, _ := listRecords(n, false, false, false, []string{"todo", "urgent"}, false, "", true, false, true)
 		for _, record := range records {
 			printSeperator()
 			coloringRecord(record, nil)
@@ -962,9 +1008,11 @@ func main() {
 		}
 		return
 	}
+
 	positional := parsed.Positional
 	prefix := parsed.ContainsFlagStrict("prefix")
 	isWindows := utilsW.WINDOWS == utilsW.GetPlatform()
+	onlyHold := parsed.ContainsFlagStrict("onlyhold") || parsed.GetFlagValueDefault("hold", "") == ""
 
 	if parsed.ContainsFlagStrict("remote") {
 		initAtlas()
@@ -976,6 +1024,7 @@ func main() {
 		return
 	}
 
+	// finish and unfihish
 	if parsed.ContainsFlagStrict("f") {
 		if parsed.ContainsFlagStrict("prefix") {
 			finishRecordsByTags([]string{parsed.GetFlagValueDefault("f", "")})
@@ -987,6 +1036,21 @@ func main() {
 
 	if parsed.ContainsFlagStrict("nf") {
 		toggle(false, getObjectIdByTags([]string{parsed.GetFlagValueDefault("nf", "")}), finish, parsed.ContainsFlagStrict("prev"))
+		return
+	}
+
+	// hold and unhold
+	if parsed.ContainsFlagStrict("hold") {
+		if parsed.ContainsFlagStrict("prefix") {
+			holdRecordsByTags([]string{parsed.GetFlagValueDefault("hold", "")})
+			return
+		}
+		toggle(true, getObjectIdByTags([]string{parsed.GetFlagValueDefault("hold", "")}), hold, parsed.ContainsFlagStrict("prev"))
+		return
+	}
+
+	if parsed.ContainsFlagStrict("unhold") {
+		toggle(false, getObjectIdByTags([]string{parsed.GetFlagValueDefault("unhold", "")}), hold, parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
@@ -1016,6 +1080,8 @@ func main() {
 	listSpecial = parsed.ContainsFlagStrict("sp") || all
 	reverse := parsed.ContainsFlag("r") && !parsed.ContainsAnyFlagStrict("prev", "remote", "prefix")
 	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
+	includeHeld := parsed.ContainsFlagStrict("include-held") || all
+
 	verbose := parsed.ContainsFlagStrict("v")
 	tags := []string{}
 	listTagsAndOrderByTime := _helpers.OrderByTime(parsed)
@@ -1044,7 +1110,7 @@ func main() {
 			coloredTags[i] = color.HiRedString(tags[i])
 		}
 		fmt.Println("cleaning tags:", coloredTags)
-		records, _ := listRecords(-1, reverse, true, tags, true, "", false, false)
+		records, _ := listRecords(-1, reverse, true, true, tags, true, "", false, onlyHold, false)
 		// fmt.Println("here", records)
 		for _, record := range records {
 			record.delete()
@@ -1068,7 +1134,9 @@ func main() {
 			r.loadByID()
 			records = []*record{r}
 		} else {
-			records, _ = listRecords(n, reverse, includeFinished || all, tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all, parsed.ContainsFlagStrict("prefix"))
+			records, _ = listRecords(n, reverse, includeFinished, includeHeld,
+				tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all, onlyHold,
+				parsed.ContainsFlagStrict("prefix"))
 		}
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
@@ -1150,7 +1218,7 @@ func main() {
 		}
 
 		if len(tags) > 0 {
-			if r, _ := listRecords(-1, true, false, tags, false, "", true, prefix); len(r) < 1 {
+			if r, _ := listRecords(-1, true, false, false, tags, false, "", true, onlyHold, prefix); len(r) < 1 {
 				fmt.Println(color.YellowString("no records associated with the tags (%v: prefix: %v) found", tags, prefix))
 				return
 			}
@@ -1179,7 +1247,7 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("d") {
-		delete(parsed.GetFlagValueDefault("d", ""), parsed.ContainsFlagStrict("prev"))
+		deleteRecord(parsed.GetFlagValueDefault("d", ""), parsed.ContainsFlagStrict("prev"))
 		return
 	}
 
@@ -1218,7 +1286,8 @@ func main() {
 		var m bson.M = bson.M{}
 
 		if all || listTagsAndOrderByTime {
-			allRecords, _ := listRecords(-1, false, !listTagsAndOrderByTime || all, nil, false, "", false, false)
+			allRecords, _ := listRecords(-1, false, !listTagsAndOrderByTime || all, !listTagsAndOrderByTime || all,
+				nil, false, "", false, onlyHold, false)
 
 			// modified date map
 			mtMap := getAllTagsModifiedDate(allRecords)
@@ -1309,8 +1378,8 @@ func main() {
 		if title == "" {
 			title = parsed.GetFlagValueDefault("c", "")
 		}
-		records, _ := listRecords(n, reverse, includeFinished || all,
-			tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || all,
+		records, _ := listRecords(n, reverse, includeFinished, includeHeld,
+			tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || all, onlyHold,
 			parsed.ContainsFlagStrict("prefix"))
 
 		if parsed.ContainsFlagStrict("count") {
@@ -1363,7 +1432,7 @@ func main() {
 			_helpers.WriteInfo([]*primitive.ObjectID{&r.ID}, []string{r.Title})
 		}
 		if !isObjectID && len(tags) > 0 {
-			if _, written := listRecords(-1, true, true, tags, false, "", false, prefix); !written {
+			if _, written := listRecords(-1, true, true, true, tags, false, "", false, onlyHold, prefix); !written {
 				fmt.Printf("there are NO urls associated with tags: %v (prefix: %v)\n", tags, prefix)
 				return
 			}
@@ -1384,7 +1453,7 @@ func main() {
 		}
 
 		tag := time.Now().Add(time.Duration(nextDay * int(time.Hour) * 24)).Format(fmt.Sprintf("%s.2006-01-02", "log"))
-		rs, _ := listRecords(-1, true, true, []string{tag}, false, "", false, false)
+		rs, _ := listRecords(-1, true, true, true, []string{tag}, false, "", false, false, false)
 		if len(rs) > 1 {
 			panic("log failed: ")
 		}
@@ -1402,7 +1471,7 @@ func main() {
 		firstDay := utilsW.GetFirstDayOfThisWeek()
 		now := time.Now()
 		tag := firstDay.Format(fmt.Sprintf("%s.%s", "week", utilsW.DateFormat))
-		rs, _ := listRecords(-1, true, true, []string{tag}, false, "", false, false)
+		rs, _ := listRecords(-1, true, true, true, []string{tag}, false, "", false, false, false)
 		title := bytes.NewBufferString("")
 		newWeekRecord := false
 		if len(rs) > 1 {
@@ -1414,7 +1483,7 @@ func main() {
 		}
 		for firstDay.Before(now) {
 			dayTag := firstDay.Format(fmt.Sprintf("%s.%s", "log", utilsW.DateFormat))
-			r, _ := listRecords(-1, true, true, []string{dayTag}, false, "", false, false)
+			r, _ := listRecords(-1, true, true, true, []string{dayTag}, false, "", false, false, false)
 			if len(r) > 1 {
 				panic("log failed")
 			}
