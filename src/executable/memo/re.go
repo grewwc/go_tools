@@ -806,14 +806,14 @@ func coloringRecord(r *record, p *regexp.Regexp) {
 		for !beg.Empty() {
 			i := beg.Dequeue().(int)
 			j := end.Dequeue().(int)
-			all.WriteString(color.HiYellowString(string(bt[idx:i])))
+			all.WriteString(color.HiWhiteString(string(bt[idx:i])))
 			all.WriteString(color.RedString(string(bt[i:j])))
 			idx = j
 		}
-		all.WriteString(color.HiYellowString(string(bt[idx:])))
+		all.WriteString(color.HiWhiteString(string(bt[idx:])))
 		r.Title = all.String()
 	} else {
-		r.Title = color.HiYellowString(r.Title)
+		r.Title = color.HiWhiteString(r.Title)
 	}
 	r.Title = "\n" + r.Title
 	for i := range r.Tags {
@@ -1012,7 +1012,8 @@ func main() {
 	positional := parsed.Positional
 	prefix := parsed.ContainsFlagStrict("prefix")
 	isWindows := utilsW.WINDOWS == utilsW.GetPlatform()
-	onlyHold := parsed.ContainsFlagStrict("onlyhold") || parsed.GetFlagValueDefault("hold", "") == ""
+	onlyHold := parsed.ContainsFlagStrict("onlyhold") ||
+		(parsed.ContainsFlagStrict("hold") && parsed.GetFlagValueDefault("hold", "") == "")
 
 	if parsed.ContainsFlagStrict("remote") {
 		initAtlas()
@@ -1040,7 +1041,7 @@ func main() {
 	}
 
 	// hold and unhold
-	if parsed.ContainsFlagStrict("hold") {
+	if parsed.GetFlagValueDefault("hold", "") != "" {
 		if parsed.ContainsFlagStrict("prefix") {
 			holdRecordsByTags([]string{parsed.GetFlagValueDefault("hold", "")})
 			return
@@ -1093,7 +1094,7 @@ func main() {
 	}
 	toBinary := parsed.ContainsAnyFlagStrict("binary", "b")
 
-	if (parsed.ContainsAnyFlagStrict("t") || parsed.CoExists("t", "a")) && !listTagsAndOrderByTime {
+	if (parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a")) && !listTagsAndOrderByTime {
 		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
@@ -1119,7 +1120,7 @@ func main() {
 	}
 
 	// list by tag name
-	if (parsed.ContainsAnyFlagStrict("t") || parsed.CoExists("t", "a")) && !listTagsAndOrderByTime {
+	if (parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a")) && !listTagsAndOrderByTime {
 		if parsed.ContainsFlagStrict("pull") {
 			remote.Set(true)
 		}
