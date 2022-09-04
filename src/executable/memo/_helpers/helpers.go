@@ -15,6 +15,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -100,7 +101,7 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) bool {
 	for i := range titles {
 		title := titles[i]
 		objectID := objectIDs[i]
-		titleOneLine := strings.ReplaceAll(title, "\n", "")
+		titleOneLine := strings.ReplaceAll(title, "\n", "|")
 		titleOneLine = strings.ReplaceAll(titleOneLine, "\r", "")
 		buf := bytes.NewBufferString("")
 		for i, ch := range titleOneLine {
@@ -184,8 +185,15 @@ func ReadInfo(isURL bool) string {
 	// more than one urls
 	urlsWithNo := make([]string, len(urls))
 	for i := range urls {
+		hint := hints[i]
+		buf := bytes.NewBufferString("")
+		for _, sub := range stringsW.SplitNoEmpty(hint, "|") {
+			buf.WriteString(color.HiBlueString(sub))
+			buf.WriteString(color.HiWhiteString("|"))
+		}
+		buf.Truncate(buf.Len() - 1)
 		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.HiWhiteString(urls[i]),
-			color.HiBlueString(hints[i]))
+			buf.String())
 	}
 	_print(urlsWithNo, hints)
 	fmt.Print("\ninput the number: ")
