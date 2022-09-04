@@ -77,6 +77,16 @@ func ReadString(fname string) string {
 	return string(b)
 }
 
+// WriteToFile will clean the original content!!
+func WriteToFile(filename string, buf []byte) error {
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	_, err = f.Write(buf)
+	return err
+}
+
 func InputWithEditor(originalContent string) (res string) {
 	fname := uuid.New().String() + ".txt"
 	var cmd *exec.Cmd
