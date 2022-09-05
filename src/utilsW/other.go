@@ -133,6 +133,9 @@ func GetTerminalSize() (h, w int, err error) {
 }
 
 func PromptYesOrNo(msg string) bool {
+	if len(msg) == 0 || msg[len(msg)-1] != ' ' {
+		msg += " "
+	}
 	fmt.Print(msg)
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
