@@ -15,7 +15,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -186,14 +185,8 @@ func ReadInfo(isURL bool) string {
 	urlsWithNo := make([]string, len(urls))
 	for i := range urls {
 		hint := hints[i]
-		buf := bytes.NewBufferString("")
-		for _, sub := range stringsW.SplitNoEmpty(hint, "|") {
-			buf.WriteString(color.HiBlueString(sub))
-			buf.WriteString(color.HiWhiteString("|"))
-		}
-		buf.Truncate(buf.Len() - 1)
-		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.HiWhiteString(urls[i]),
-			buf.String())
+		// fmt.Println(">>here", fmt.Sprintf("%d: %s (%s)", i+1, urls[i], buf.String()))
+		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.HiWhiteString(urls[i]), color.HiBlueString(hint))
 	}
 	_print(urlsWithNo, hints)
 	fmt.Print("\ninput the number: ")
