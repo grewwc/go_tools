@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1613 // indirect
-	github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible // indirect
+	github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible
 	github.com/fatih/color v1.13.0
 	github.com/google/uuid v1.3.0
 	github.com/mattn/go-colorable v0.1.12 // indirect
