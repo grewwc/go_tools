@@ -994,7 +994,7 @@ func main() {
 
 	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"sp", "include-held", "onlyhold")
+		"sp", "include-held", "onlyhold", "p")
 
 	// default behavior
 	// re
@@ -1010,7 +1010,7 @@ func main() {
 	}
 
 	positional := parsed.Positional
-	prefix := parsed.ContainsFlagStrict("prefix")
+	prefix := parsed.ContainsAnyFlagStrict("prefix", "p")
 	isWindows := utilsW.WINDOWS == utilsW.GetPlatform()
 	onlyHold := parsed.ContainsFlagStrict("onlyhold") ||
 		(parsed.ContainsFlagStrict("hold") && parsed.GetFlagValueDefault("hold", "") == "")
