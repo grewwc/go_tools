@@ -1,0 +1,16 @@
+package main
+
+import (
+	"fmt"
+
+	"golang.design/x/clipboard"
+)
+
+func main() {
+	if err := clipboard.Init(); err != nil {
+		panic(err)
+	}
+
+	b := clipboard.Read(clipboard.FmtText)
+	fmt.Println(len(b))
+}

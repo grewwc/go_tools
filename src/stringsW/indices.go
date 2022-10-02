@@ -22,7 +22,7 @@ func FindAll(str, substr string) []int {
 }
 
 func StripPrefix(s, prefix string) string {
-	idx := strings.LastIndex(s, prefix)
+	idx := strings.Index(s, prefix)
 	if idx < 0 {
 		return s
 	}
