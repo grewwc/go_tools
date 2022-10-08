@@ -66,6 +66,9 @@ func uploadSingleFile(wg *sync.WaitGroup, filename, ossKey string, force bool) {
 				return
 			}
 		}
+	} else {
+		key = strings.TrimSuffix(key, "/")
+		key += "/" + filepath.Base(filename)
 	}
 	key = strings.TrimSuffix(key, "/")
 	fmt.Printf(">>> uploading %s to %s\n", color.GreenString(filepath.Base(filename)), color.GreenString(key))
@@ -149,7 +152,7 @@ func ls(dir string, prefixSpace int) {
 			if idx < 0 {
 				s.Add(name)
 			} else {
-				s.Add(name[:idx])
+				s.Add(color.HiCyanString(name[:idx]))
 			}
 		}
 	}
