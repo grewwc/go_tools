@@ -100,7 +100,11 @@ func upload(wg *sync.WaitGroup, filename, ossKey string, recursive, force bool) 
 	fmt.Println("done")
 }
 
-func download(filename, ossKey string, recursive, force bool) {
+func download(filename, ossKey string, recursive, force bool, ch <-chan struct{}) {
+	defer func() {
+		<-ch
+	}()
+
 	if filename, err = filepath.Abs(filename); err != nil {
 		panic(err)
 	}
@@ -162,8 +166,8 @@ func ls(dir string, prefixSpace int) {
 }
 
 func printHelp() {
-	fmt.Println("ss cp test.pdf oss://dir")
-	fmt.Println("ss cp oss://dir ./")
+	fmt.Println("ss cp test1.pdf test2.pdf test3.jpg oss://key")
+	fmt.Println("ss cp oss://key ./")
 }
 
 func handleDelete(args []string) {
@@ -188,15 +192,24 @@ func handleCp(args []string, recursive, force bool) {
 		printHelp()
 		return
 	}
-	name1 := args[0]
-	name2 := args[1]
+	n := len(args)
+	firstName := args[0]
+	lastName := args[n-1]
 	// upload
-	if strings.HasPrefix(name2, "oss://") {
+	if strings.HasPrefix(lastName, "oss://") {
 		wg := sync.WaitGroup{}
-		upload(&wg, name1, name2, recursive, force)
+		for _, name := range args[:n-1] {
+			upload(&wg, name, lastName, recursive, force)
+		}
 		wg.Wait()
-	} else if strings.HasPrefix(name1, "oss://") { // download
-		download(name2, name1, recursive, force)
+	} else if strings.HasPrefix(firstName, "oss://") { // download
+		// 10 parallism
+		ch := make(chan struct{}, 10)
+		for _, name := range args[:n-1] {
+			ch <- struct{}{}
+			download(name, firstName, recursive, force, ch)
+		}
+		close(ch)
 	} else {
 		printHelp()
 	}
