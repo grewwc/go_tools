@@ -205,7 +205,7 @@ func handleCp(args []string, recursive, force bool) {
 	} else if strings.HasPrefix(firstName, "oss://") { // download
 		// 10 parallism
 		ch := make(chan struct{}, 10)
-		for _, name := range args[1 : n-1] {
+		for _, name := range args[1:n] {
 			ch <- struct{}{}
 			download(name, firstName, recursive, force, ch)
 		}
