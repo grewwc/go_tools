@@ -166,8 +166,8 @@ func ls(dir string, prefixSpace int) {
 }
 
 func printHelp() {
-	fmt.Println("ss cp test1.pdf test2.pdf test3.jpg oss://key")
-	fmt.Println("ss cp oss://key ./")
+	fmt.Println("sn cp test1.pdf test2.pdf test3.jpg oss://key")
+	fmt.Println("sn cp oss://key ./")
 }
 
 func handleDelete(args []string) {
