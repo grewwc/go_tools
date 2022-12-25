@@ -99,7 +99,7 @@ func InputWithEditor(originalContent string) (res string) {
 
 	switch GetPlatform() {
 	case MAC, LINUX:
-		cmd = exec.Command("vim", fname)
+		cmd = exec.Command("code", "-w", fname)
 	case WINDOWS:
 		cmd = exec.Command("cmd.exe", "/C", "notepad.exe", fname)
 	}
