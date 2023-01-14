@@ -13,6 +13,11 @@ import (
 	"golang.design/x/clipboard"
 )
 
+var (
+	binary      bool = false
+	toClipboard bool = false
+)
+
 func init() {
 	if err := clipboard.Init(); err != nil {
 		panic(err)
@@ -20,57 +25,49 @@ func init() {
 }
 
 func isCopyAction(parsed *terminalW.ParsedResults) bool {
-	return parsed.ContainsFlagStrict("c")
+	return parsed.ContainsFlag("c")
 }
 
 func checkInput(parsed *terminalW.ParsedResults) {
-	if parsed.ContainsAllFlagStrict("c", "p") ||
-		!parsed.ContainsAnyFlagStrict("c", "p") {
+	if parsed.ContainsFlag("c") && parsed.ContainsFlag("p") {
 		fmt.Println(color.HiRedString("-c/-p, only 1 argument can be set"))
 		os.Exit(1)
+	}
+	if parsed.ContainsFlag("c") {
+		toClipboard = true
+		if parsed.ContainsFlag("b") {
+			binary = true
+		}
 	}
 	if parsed.Positional.Size() > 1 {
 		fmt.Println(color.HiRedString("have at most 1 positional arg"))
 	}
 }
 
-func writeToClipboard(parsed *terminalW.ParsedResults) {
+func copyToClipboard(parsed *terminalW.ParsedResults) {
 	// get the type
 	t := clipboard.FmtText
-	if parsed.ContainsFlagStrict("b") {
+	if binary {
 		t = clipboard.FmtImage
 	}
 	// get the data
 	var data []byte
 	var err error
-	pos := parsed.Positional.ToStringSlice()
-	if len(pos) == 1 {
-		if t == clipboard.FmtText {
-			data = []byte(pos[0])
-		} else {
-			data, err = ioutil.ReadFile(pos[0])
-			if err != nil {
-				panic(err)
-			}
-		}
-	} else {
-		if t == clipboard.FmtText {
-			fmt.Println(">>> input the text: ")
-		} else {
-			fmt.Print(">>> input the filename: ")
-		}
+	var filename string
+	arg := parsed.Positional.ToStringSlice()
+	if len(arg) == 1 {
+		filename = arg[0]
+	} else { // len(arg) == 0
+		fmt.Print(">>> input the filename: ")
 		scanner := bufio.NewScanner(os.Stdin)
 		scanner.Scan()
-		line := scanner.Text()
-		if t == clipboard.FmtText {
-			data = []byte(line)
-		} else {
-			data, err = ioutil.ReadFile(line)
-			if err != nil {
-				panic(err)
-			}
-		}
+		filename = scanner.Text()
 	}
+	data, err = ioutil.ReadFile(filename)
+	if err != nil {
+		panic(err)
+	}
+
 	clipboard.Write(t, data)
 	fmt.Println("<<< DONE copying to clipboard")
 }
@@ -90,16 +87,18 @@ func readFromClipboard(parsed *terminalW.ParsedResults) {
 	if parsed.ContainsFlagStrict("b") {
 		t = clipboard.FmtImage
 	}
+	fmt.Println("here", t)
 	b := clipboard.Read(t)
-	toWrite := true
+	fmt.Println("good", len(b))
+	write := true
 	if utilsW.IsExist(filename) {
 		if !utilsW.PromptYesOrNo(fmt.Sprintf("file: %s already exists, do you want to overwrite it?(y/n)",
 			color.HiRedString(filename))) {
-			toWrite = false
+			write = false
 		}
 	}
 	// overwrite
-	if toWrite {
+	if write {
 		if err := utilsW.WriteToFile(filename, b); err != nil {
 			panic(err)
 		}
@@ -124,7 +123,7 @@ func main() {
 	checkInput(parsed)
 
 	if isCopyAction(parsed) {
-		writeToClipboard(parsed)
+		copyToClipboard(parsed)
 	} else {
 		readFromClipboard(parsed)
 	}

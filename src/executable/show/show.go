@@ -13,20 +13,20 @@ import (
 
 func main() {
 	parsed := terminalW.ParseArgsCmd("h")
-	if parsed != nil && parsed.ContainsAnyFlagStrict("h"){
+	if parsed != nil && parsed.ContainsAnyFlagStrict("h") {
 		fmt.Println("print all the binary files of go_tools")
-		return 
+		return
 	}
 
 	dir := utilsW.GetDirOfTheFile()
 	dir = filepath.Join(dir, "..", "..", "..", "bin")
-	var allExecutables []string 
-	for _, name := range utilsW.LsDir(dir){
+	var allExecutables []string
+	for _, name := range utilsW.LsDir(dir) {
 		allExecutables = append(allExecutables, name)
 	}
 	_, w, err := utilsW.GetTerminalSize()
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
-	fmt.Println(color.RedString(stringsW.Wrap(strings.Join(allExecutables, " "), w, 3, "  ")))
+	fmt.Println(color.HiRedString(stringsW.Wrap(strings.Join(allExecutables, " "), w, 3, "  ")))
 }
