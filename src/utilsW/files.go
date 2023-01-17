@@ -87,7 +87,7 @@ func WriteToFile(filename string, buf []byte) error {
 	return err
 }
 
-func InputWithEditor(originalContent string) (res string) {
+func InputWithEditor(originalContent string, vs bool) (res string) {
 	fname := uuid.New().String() + ".txt"
 	var cmd *exec.Cmd
 	f, err := os.OpenFile(fname, os.O_CREATE|os.O_RDWR, 0666)
@@ -99,7 +99,11 @@ func InputWithEditor(originalContent string) (res string) {
 
 	switch GetPlatform() {
 	case MAC, LINUX:
-		cmd = exec.Command("code", "-w", fname)
+		if !vs {
+			cmd = exec.Command("vim", fname)
+		} else {
+			cmd = exec.Command("code", "-w", fname)
+		}
 	case WINDOWS:
 		cmd = exec.Command("cmd.exe", "/C", "notepad.exe", fname)
 	}

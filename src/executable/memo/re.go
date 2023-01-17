@@ -75,6 +75,7 @@ var (
 
 var (
 	listSpecial = false
+	useVsCode   = false
 )
 
 type record struct {
@@ -450,7 +451,7 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, pre
 	fmt.Print("input the title: ")
 	var title string
 	if fromEditor {
-		newRecord.Title = utilsW.InputWithEditor(oldTitle)
+		newRecord.Title = utilsW.InputWithEditor(oldTitle, useVsCode)
 		if newRecord.Title != oldTitle {
 			changed = true
 		}
@@ -525,7 +526,7 @@ func insert(fromEditor bool, filename, tagName string) {
 		}
 	} else if fromEditor {
 		fmt.Print("input the title: ")
-		title = utilsW.InputWithEditor("")
+		title = utilsW.InputWithEditor("", useVsCode)
 		fmt.Println()
 	} else {
 		fmt.Print("input the title: ")
@@ -671,7 +672,7 @@ func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 	<-c
 	fmt.Print("input the New Title: ")
 	if fromEditor {
-		newTitle := utilsW.InputWithEditor(r.Title)
+		newTitle := utilsW.InputWithEditor(r.Title, useVsCode)
 		if newTitle == r.Title {
 			fmt.Println("content not changed ")
 			return
@@ -991,10 +992,11 @@ func main() {
 	fs.Bool("sp", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tags)", specialTagPatterns.ToSlice()))
 	fs.Bool("onlyhold", false, "list only the hold rerods")
 	fs.String("ex", "", "exclude some tag prefix when list tags")
+	fs.Bool("code", false, "if use vscode as input editor (default false)")
 
 	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"sp", "include-held", "onlyhold", "p")
+		"sp", "include-held", "onlyhold", "p", "code")
 
 	// default behavior
 	// re
@@ -1023,6 +1025,10 @@ func main() {
 	if parsed.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
+	}
+
+	if parsed.ContainsAllFlagStrict("code") {
+		useVsCode = true
 	}
 
 	// finish and unfihish
