@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
@@ -28,5 +27,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(color.HiRedString(stringsW.Wrap(strings.Join(allExecutables, " "), w, 3, "  ")))
+	fmt.Println(stringsW.Wrap(strings.Join(allExecutables, " "), w, 3, "  "))
 }
