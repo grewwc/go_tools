@@ -1,7 +1,6 @@
 package utilsW
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -192,7 +191,7 @@ func IsTextFile(filename string) bool {
 
 func IsText(data []byte) bool {
 	t := http.DetectContentType(data)
-	fmt.Println(t)
+	// fmt.Println(t)
 	return strings.HasPrefix(t, "text")
 }
 
