@@ -1,12 +1,14 @@
 package utilsW
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -237,11 +239,90 @@ func CopyFile(src, dest string) error {
 		return err
 	}
 	defer in.Close()
-	out, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if !IsExist(filepath.Dir(dest)) {
+		if err = os.MkdirAll(filepath.Dir(dest), os.ModePerm); err != nil {
+			return err
+		}
+	}
+	out, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE, 0444)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 	_, err = io.Copy(out, in)
 	return err
+}
+
+func ExpandUser(filename string) string {
+	if len(filename) == 0 || filename[:2] != "~/" {
+		return filename
+	}
+	home := os.Getenv("HOME")
+	if home == "" {
+		return filename
+	}
+	if home[len(home)-1] != '/' {
+		home += "/"
+	}
+	return strings.Replace(filename, "~/", home, 1)
+}
+
+// LsRegexWd returns absolute path
+func LsRegex(regex string) ([]string, error) {
+	regex = ExpandUser(regex)
+	var dir string
+	var err error
+
+	regex = strings.ReplaceAll(regex, ".*", "\x00")
+	regex = strings.ReplaceAll(regex, ".+", "\x01")
+
+	regex = strings.ReplaceAll(regex, ".", "\\.")
+	regex = strings.ReplaceAll(regex, "?", ".?")
+	regex = strings.ReplaceAll(regex, "+", ".+")
+	regex = strings.ReplaceAll(regex, "*", ".*")
+
+	regex = strings.ReplaceAll(regex, "\x00", ".*")
+	regex = strings.ReplaceAll(regex, "\x01", ".+")
+
+	idx := strings.LastIndexByte(regex, '/')
+	if idx > 0 {
+		dir = regex[:idx]
+	} else {
+		dir, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+	}
+	regex = fmt.Sprintf("^%s$", regex)
+	// fmt.Println("==>", regex)
+	res := make([]string, 0)
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range LsDir(dir) {
+		if re.MatchString(filepath.Join(dir, file)) {
+			res = append(res, filepath.Join(dir, file))
+		}
+	}
+	return res, nil
+}
+
+// ExpandWd only works for ./ prefix
+func ExpandWd(filename string) string {
+	if len(filename) == 0 || filename[:2] != "./" {
+		return filename
+	}
+	home, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	if home == "" {
+		return filename
+	}
+	if home[len(home)-1] != '/' {
+		home += "/"
+	}
+	return strings.Replace(filename, "./", home, 1)
 }

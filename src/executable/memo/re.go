@@ -986,6 +986,7 @@ func main() {
 	fs.Bool("prev", false, "operate based on the previous ObjectIDs")
 	fs.Bool("count", false, "only print the count, not the result")
 	fs.Bool("prefix", false, "tag prefix")
+	fs.Bool("pre", false, "tag prefix (short for -prefix)")
 	fs.Bool("binary", false, "if the title is binary file")
 	fs.Bool("b", false, "shortcut for -binary")
 	fs.Bool("force", false, "force overwrite")
@@ -996,7 +997,7 @@ func main() {
 
 	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"sp", "include-held", "onlyhold", "p", "code")
+		"sp", "include-held", "onlyhold", "p", "code", "pre")
 
 	// default behavior
 	// re
@@ -1012,7 +1013,7 @@ func main() {
 	}
 
 	positional := parsed.Positional
-	prefix := parsed.ContainsAnyFlagStrict("prefix", "p")
+	prefix := parsed.ContainsAnyFlagStrict("prefix", "pre")
 	isWindows := utilsW.WINDOWS == utilsW.GetPlatform()
 	onlyHold := parsed.ContainsFlagStrict("onlyhold") ||
 		(parsed.ContainsFlagStrict("hold") && parsed.GetFlagValueDefault("hold", "") == "")
@@ -1033,7 +1034,7 @@ func main() {
 
 	// finish and unfihish
 	if parsed.ContainsFlagStrict("f") {
-		if parsed.ContainsFlagStrict("prefix") {
+		if prefix {
 			finishRecordsByTags([]string{parsed.GetFlagValueDefault("f", "")})
 			return
 		}
@@ -1048,7 +1049,7 @@ func main() {
 
 	// hold and unhold
 	if parsed.GetFlagValueDefault("hold", "") != "" {
-		if parsed.ContainsFlagStrict("prefix") {
+		if prefix {
 			holdRecordsByTags([]string{parsed.GetFlagValueDefault("hold", "")})
 			return
 		}
@@ -1085,7 +1086,7 @@ func main() {
 		n = math.MaxInt64
 	}
 	listSpecial = parsed.ContainsFlagStrict("sp") || all
-	reverse := parsed.ContainsFlag("r") && !parsed.ContainsAnyFlagStrict("prev", "remote", "prefix")
+	reverse := parsed.ContainsFlag("r") && !parsed.ContainsAnyFlagStrict("prev", "remote", "prefix", "pre")
 	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
 	includeHeld := parsed.ContainsFlagStrict("include-held") || all
 
@@ -1143,7 +1144,7 @@ func main() {
 		} else {
 			records, _ = listRecords(n, reverse, includeFinished, includeHeld,
 				tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all, onlyHold,
-				parsed.ContainsFlagStrict("prefix"))
+				parsed.ContainsAnyFlagStrict("prefix", "pre"))
 		}
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
@@ -1386,8 +1387,7 @@ func main() {
 			title = parsed.GetFlagValueDefault("c", "")
 		}
 		records, _ := listRecords(n, reverse, includeFinished, includeHeld,
-			tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || all, onlyHold,
-			parsed.ContainsFlagStrict("prefix"))
+			tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || all, onlyHold, prefix)
 
 		if parsed.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
@@ -1449,6 +1449,7 @@ func main() {
 		return
 	}
 
+	// log everyday work
 	if positional.Contains("log") {
 		positional.Delete("log")
 		nextDay := 0
@@ -1473,6 +1474,7 @@ func main() {
 		return
 	}
 
+	// log week work
 	if positional.Contains("week") {
 		// merge from log.yyyy-MM-dd
 		firstDay := utilsW.GetFirstDayOfThisWeek()
@@ -1509,5 +1511,32 @@ func main() {
 			rs[0].update(true)
 		}
 		return
+	}
+
+	// clean (move) images
+	if positional.Contains("move") {
+		s := positional.ToStringSlice()
+		if len(s) != 3 {
+			fmt.Println(">> re move absFileName type")
+			return
+		}
+		type_, filename := s[2], s[1]
+		logMsg := _helpers.LogMoveImages(type_, strings.ReplaceAll(filename, "\\\\", "\\"))
+		tag := "move_" + type_
+		rs, _ := listRecords(-1, true, true, true, []string{tag}, false, "", false, false, false)
+		if len(rs) == 0 {
+			newRecord(logMsg, tag).save(false)
+		} else {
+			s := containerW.NewOrderedSet()
+			for _, title := range strings.Split(rs[0].Title, "\n") {
+				s.Add(title)
+			}
+			for _, title := range strings.Split(logMsg, "\n") {
+				s.Add(title)
+			}
+			rs[0].Title = strings.Join(s.ToStringSlice(), "\n")
+			rs[0].update(false)
+		}
+
 	}
 }
