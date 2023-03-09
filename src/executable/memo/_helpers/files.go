@@ -49,6 +49,12 @@ redo:
 			filepaths = files
 			redoCnt++
 			goto redo
+		} else {
+			// delete the original file
+			if err = os.Remove(name); err != nil {
+				fmt.Printf("failed to remove the file: %s\n", name)
+				fmt.Println(err)
+			}
 		}
 	}
 

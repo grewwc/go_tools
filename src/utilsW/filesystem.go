@@ -311,7 +311,7 @@ func LsRegex(regex string) ([]string, error) {
 
 // ExpandWd only works for ./ prefix
 func ExpandWd(filename string) string {
-	if len(filename) == 0 || filename[:2] != "./" {
+	if len(filename) == 0 || filepath.IsAbs(filename) {
 		return filename
 	}
 	home, err := os.Getwd()
@@ -321,8 +321,12 @@ func ExpandWd(filename string) string {
 	if home == "" {
 		return filename
 	}
-	if home[len(home)-1] != '/' {
-		home += "/"
+	if filename[:2] == "./" {
+		if home[len(home)-1] != '/' {
+			home += "/"
+		}
+		return strings.Replace(filename, "./", home, 1)
+	} else {
+		return filepath.Join(home, filename)
 	}
-	return strings.Replace(filename, "./", home, 1)
 }
