@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/terminalW"
@@ -82,14 +83,13 @@ func readFromClipboard(parsed *terminalW.ParsedResults) {
 	} else {
 		filename = parsed.Positional.ToStringSlice()[0]
 	}
+	filename = strings.TrimSpace(filename)
 	// get the type
 	t := clipboard.FmtText
-	if parsed.ContainsFlagStrict("b") {
+	if parsed.ContainsFlag("b") {
 		t = clipboard.FmtImage
 	}
-	fmt.Println("here", t)
 	b := clipboard.Read(t)
-	fmt.Println("good", len(b))
 	write := true
 	if utilsW.IsExist(filename) {
 		if !utilsW.PromptYesOrNo(fmt.Sprintf("file: %s already exists, do you want to overwrite it?(y/n)",
@@ -103,7 +103,7 @@ func readFromClipboard(parsed *terminalW.ParsedResults) {
 			panic(err)
 		}
 	}
-	fmt.Println("<<< DONE pasting from clipboard")
+	fmt.Printf("<<< DONE pasting from clipboard, write to file: %s\n", filename)
 }
 
 func main() {
