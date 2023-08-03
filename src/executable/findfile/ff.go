@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/stringsW"
@@ -26,7 +27,7 @@ var wg sync.WaitGroup
 
 var verbose bool
 var ignores string
-var count int64
+var atomicCount atomic.Int64
 
 var numThreads = make(chan struct{}, 50)
 
@@ -42,7 +43,7 @@ func findFile(rootDir string, numPrint int64, allIgnores []string) {
 	defer wg.Done()
 
 	mu.Lock()
-	if count >= numPrint {
+	if int64(atomicCount.Load()) >= numPrint {
 		mu.Unlock()
 		return
 	}
@@ -79,10 +80,15 @@ OUTER:
 
 		match = filepath.Base(match)
 		mu.Lock()
+		count := atomicCount.Load()
 		if count < numPrint {
-			utilsW.Fprintf(color.Output, "%s %s\n", color.YellowString(">>"),
+			prefix := color.YellowString(" >>")
+			if count == 0 {
+				prefix = ""
+			}
+			utilsW.Fprintf(color.Output, "%s%s\n", prefix,
 				strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.GreenString(match)))
-			count++
+			atomicCount.Add(1)
 		}
 		mu.Unlock()
 	}
@@ -178,8 +184,10 @@ func main() {
 		go findFile(dir, numPrint, allIgnores)
 	}
 	wg.Wait()
-
+	count := atomicCount.Load()
 	summaryString := fmt.Sprintf("%d matches found\n", count)
-	fmt.Println(strings.Repeat("-", len(summaryString)))
-	fmt.Printf("%v matches found\n", math.Min(float64(count), float64(numPrint)))
+	if count > 1 {
+		fmt.Println(strings.Repeat("-", len(summaryString)))
+		fmt.Printf("%v matches found\n", math.Min(float64(count), float64(numPrint)))
+	}
 }
