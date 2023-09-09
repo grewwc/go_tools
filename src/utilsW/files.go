@@ -135,3 +135,15 @@ func GetFileMode(fname string) os.FileMode {
 	}
 	return info.Mode()
 }
+
+func GetFileSize(fname string) int64 {
+	if IsDir(fname) {
+		fmt.Printf("%s is a directory!", fname)
+		return 0
+	}
+	info, err := os.Stat(fname)
+	if err != nil {
+		panic(err)
+	}
+	return info.Size()
+}
