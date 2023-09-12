@@ -9,14 +9,14 @@ require (
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
 	go.mongodb.org/mongo-driver v1.9.1
 	golang.design/x/clipboard v0.6.2
-	golang.org/x/sys v0.1.0
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+	golang.org/x/sys v0.12.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 )
 
 require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
-	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect

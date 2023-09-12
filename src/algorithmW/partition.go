@@ -1,7 +1,9 @@
 package algorithmW
 
+import "golang.org/x/exp/constraints"
+
 // ThreeWayPartition return range of pivot value (both inclusive)
-func ThreeWayPartitionInts(nums []int) (int, int) {
+func ThreeWayPartitionInts[T constraints.Ordered](nums []T) (int, int) {
 	pivot := nums[0]
 	lt, gt := 0, len(nums)-1
 	i := 1

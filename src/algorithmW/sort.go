@@ -2,11 +2,11 @@ package algorithmW
 
 import (
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/containerW/typesW"
+	"golang.org/x/exp/constraints"
 )
 
 // InsertionSort ints
-func InsertionSort(arr []int) {
+func InsertionSort[T constraints.Ordered](arr []T) {
 	l := len(arr)
 	if l <= 1 {
 		return
@@ -23,7 +23,7 @@ func InsertionSort(arr []int) {
 }
 
 // QuickSort ints
-func QuickSort(arr []int) {
+func QuickSort[T constraints.Ordered](arr []T) {
 	if len(arr) < 8 {
 		InsertionSort(arr)
 		return
@@ -34,7 +34,7 @@ func QuickSort(arr []int) {
 }
 
 // ShellSort ints
-func ShellSort(arr []int) {
+func ShellSort[T constraints.Ordered](arr []T) {
 	h := 1
 	l := len(arr)
 	if l <= 1 {
@@ -57,7 +57,7 @@ func ShellSort(arr []int) {
 	}
 }
 
-func HeapSort(arr []int, reverse bool) {
+func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
 	var h containerW.Heap
 	if reverse {
 		h = containerW.NewMaxHeapCap(len(arr))
@@ -65,17 +65,17 @@ func HeapSort(arr []int, reverse bool) {
 		h = containerW.NewMinHeapCap(len(arr))
 	}
 	for _, val := range arr {
-		h.Insert(typesW.IntComparable(val))
+		h.Insert(val)
 	}
 
 	i := 0
 	for !h.IsEmpty() {
-		arr[i] = int(h.Pop().(typesW.IntComparable))
+		arr[i] = h.Pop().(T)
 		i++
 	}
 }
 
-func TopK(arr []interface{}, k int, minK bool) []interface{} {
+func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 	if k < 1 {
 		return nil
 	}
@@ -91,7 +91,14 @@ func TopK(arr []interface{}, k int, minK bool) []interface{} {
 			continue
 		}
 		next := h.Next()
-		cmp := next.(typesW.Comparable).Compare(val.(typesW.Comparable))
+		cmp := 0
+		if next.(T) < val {
+			cmp = -1
+		} else if next.(T) == val {
+			cmp = 0
+		} else {
+			cmp = -1
+		}
 		if !minK {
 			cmp *= -1
 		}
@@ -100,5 +107,8 @@ func TopK(arr []interface{}, k int, minK bool) []interface{} {
 			h.Insert(val)
 		}
 	}
-	return h.ToList()
+	interfaceList := h.ToList()
+	result := make([]T, len(interfaceList))
+
+	return result
 }
