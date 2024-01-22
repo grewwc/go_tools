@@ -82,12 +82,7 @@ OUTER:
 		mu.Lock()
 		count := atomicCount.Load()
 		if count < numPrint {
-			prefix := color.YellowString(" >>")
-			if count == 0 {
-				prefix = ""
-			}
-			utilsW.Fprintf(color.Output, "%s%s\n", prefix,
-				strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.GreenString(match)))
+			utilsW.Fprintf(color.Output, "%s\n", strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.GreenString(match)))
 			atomicCount.Add(1)
 		}
 		mu.Unlock()
@@ -186,7 +181,7 @@ func main() {
 	wg.Wait()
 	count := atomicCount.Load()
 	summaryString := fmt.Sprintf("%d matches found\n", count)
-	if count > 1 {
+	if count > 1 && verboseFlag {
 		fmt.Println(strings.Repeat("-", len(summaryString)))
 		fmt.Printf("%v matches found\n", math.Min(float64(count), float64(numPrint)))
 	}
