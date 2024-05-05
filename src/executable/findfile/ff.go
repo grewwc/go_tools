@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math"
 	"os"
@@ -89,7 +88,7 @@ OUTER:
 	}
 
 	// check sub directories
-	subs, err := ioutil.ReadDir(rootDir)
+	subs, err := os.ReadDir(rootDir)
 	if err != nil {
 		if verbose {
 			utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
@@ -121,8 +120,6 @@ func main() {
 		fs.PrintDefaults()
 		return
 	}
-	// fmt.Println(os.Args)
-	// fmt.Println(results)
 
 	verboseFlag := results.ContainsFlagStrict("v")
 
@@ -167,7 +164,6 @@ func main() {
 	verbose = verboseFlag
 	targets = results.Positional.ToStringSlice()
 
-	fmt.Println()
 	// fmt.Println("rootDir", *rootDir)
 	allRootDirs, err := filepath.Glob(rootDir)
 	if err != nil {
