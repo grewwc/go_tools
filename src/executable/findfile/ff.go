@@ -115,7 +115,7 @@ func main() {
 	fs.Int("p", 4, "how many threads to use")
 	fs.Bool("dir", false, "only search directories")
 	fs.Bool("h", false, "print this help")
-	results := terminalW.ParseArgsCmd("v", "a")
+	results := terminalW.ParseArgsCmd("v", "a", "dir", "h")
 
 	if results == nil {
 		fs.PrintDefaults()
