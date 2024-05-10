@@ -25,12 +25,10 @@ var targets []string
 var wg sync.WaitGroup
 
 var verbose bool
-var ignores string
 var atomicCount atomic.Int64
+var onlyDir bool = false
 
 var numThreads = make(chan struct{}, 50)
-
-var mu = sync.Mutex{}
 
 func expandTilda() string {
 	return os.Getenv("HOME")
@@ -41,12 +39,9 @@ func findFile(rootDir string, numPrint int64, allIgnores []string) {
 	defer func() { <-numThreads }()
 	defer wg.Done()
 
-	mu.Lock()
 	if int64(atomicCount.Load()) >= numPrint {
-		mu.Unlock()
 		return
 	}
-	mu.Unlock()
 
 	var matches []string
 	for _, target := range targets {
@@ -69,6 +64,10 @@ OUTER:
 			continue
 		}
 
+		if onlyDir && !utilsW.IsDir(abs) {
+			continue
+		}
+
 		for _, toIgnore := range allIgnores {
 			// fmt.Println("matching ", toIgnore, abs)
 			if match, _ := regexp.MatchString(toIgnore, filepath.ToSlash(abs)); match {
@@ -78,13 +77,13 @@ OUTER:
 		}
 
 		match = filepath.Base(match)
-		mu.Lock()
-		count := atomicCount.Load()
-		if count < numPrint {
+		if atomicCount.Load() < numPrint {
+			if utilsW.IsDir(abs) && !strings.HasSuffix(abs, "/") {
+				abs += "/"
+			}
 			utilsW.Fprintf(color.Output, "%s\n", strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.GreenString(match)))
 			atomicCount.Add(1)
 		}
-		mu.Unlock()
 	}
 
 	// check sub directories
@@ -114,9 +113,16 @@ func main() {
 	fs.String("ex", "", "the same as -i (second match)")
 	fs.Bool("a", false, "list all matches (has the highest priority)")
 	fs.Int("p", 4, "how many threads to use")
+	fs.Bool("dir", false, "only search directories")
+	fs.Bool("h", false, "print this help")
 	results := terminalW.ParseArgsCmd("v", "a")
 
 	if results == nil {
+		fs.PrintDefaults()
+		return
+	}
+
+	if results.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
@@ -133,6 +139,10 @@ func main() {
 	ignores := results.GetFlagValueDefault("i", "")
 	if ignores == "" {
 		ignores = results.GetFlagValueDefault("ex", "")
+	}
+
+	if results.ContainsFlagStrict("dir") {
+		onlyDir = true
 	}
 
 	numPrint := int64(results.GetNumArgs())
