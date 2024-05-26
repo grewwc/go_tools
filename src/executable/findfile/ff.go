@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
@@ -27,6 +29,7 @@ var wg sync.WaitGroup
 var verbose bool
 var atomicCount atomic.Int64
 var onlyDir bool = false
+var printMd5 bool = false
 
 var numThreads = make(chan struct{}, 50)
 
@@ -81,7 +84,20 @@ OUTER:
 			if utilsW.IsDir(abs) && !strings.HasSuffix(abs, "/") {
 				abs += "/"
 			}
-			utilsW.Fprintf(color.Output, "%s\n", strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.GreenString(match)))
+			toPrint := strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.GreenString(match))
+			if printMd5 {
+				b, err := os.ReadFile(abs)
+				if err != nil {
+					if verbose {
+						utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+					}
+					continue
+				}
+				h := md5.Sum(b)
+				val := hex.EncodeToString(h[:])
+				toPrint += "\t" + val
+			}
+			utilsW.Fprintf(color.Output, "%s\n", toPrint)
 			atomicCount.Add(1)
 		}
 	}
@@ -115,7 +131,8 @@ func main() {
 	fs.Int("p", 4, "how many threads to use")
 	fs.Bool("dir", false, "only search directories")
 	fs.Bool("h", false, "print this help")
-	results := terminalW.ParseArgsCmd("v", "a", "dir", "h")
+	fs.Bool("md5", false, "print md5 value")
+	results := terminalW.ParseArgsCmd("v", "a", "dir", "h", "md5")
 
 	if results == nil {
 		fs.PrintDefaults()
@@ -125,6 +142,10 @@ func main() {
 	if results.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
+	}
+
+	if results.ContainsFlagStrict("md5") {
+		printMd5 = true
 	}
 
 	verboseFlag := results.ContainsFlagStrict("v")
