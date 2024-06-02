@@ -6,7 +6,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -1175,7 +1174,7 @@ func main() {
 					if !utilsW.IsExist(filename) ||
 						(utilsW.IsExist(filename) && parsed.ContainsFlagStrict("force")) ||
 						(utilsW.IsExist(filename) && utilsW.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) {
-						if err := ioutil.WriteFile(filename, []byte(title), 0666); err != nil {
+						if err := os.WriteFile(filename, []byte(title), 0666); err != nil {
 							panic(err)
 						}
 					}
@@ -1190,7 +1189,7 @@ func main() {
 						buf.WriteString(r.Title)
 						buf.WriteString("\n")
 					}
-					if err = ioutil.WriteFile(txtOutputName, buf.Bytes(), 0666); err != nil {
+					if err = os.WriteFile(txtOutputName, buf.Bytes(), 0666); err != nil {
 						panic(err)
 					}
 				}
@@ -1416,7 +1415,7 @@ func main() {
 					buf.WriteString(r.Title)
 					buf.WriteString("\n")
 				}
-				if err = ioutil.WriteFile(txtOutputName, buf.Bytes(), 0666); err != nil {
+				if err = os.WriteFile(txtOutputName, buf.Bytes(), 0666); err != nil {
 					panic(err)
 				}
 			}

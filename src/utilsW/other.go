@@ -54,7 +54,8 @@ func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
 		fieldVal := copyV.Field(i)
 		fieldVal = reflect.NewAt(fieldVal.Type(), unsafe.Pointer(fieldVal.UnsafeAddr())).Elem()
 		if fieldVal.Type() == reflect.TypeOf(time.Time{}) {
-			val = (fieldVal.Interface().(time.Time)).Format("2006-01-02/15:04:05")
+			val = (fieldVal.Interface().(time.Time)).Local().Format("2006-01-02/15:04:05")
+			fmt.Println("ere", val)
 		} else {
 			// val = fmt.Sprintf("%v", v.Field(i))
 			val = toString(len(structName)+len(fieldName)+3, fieldVal.Interface())
