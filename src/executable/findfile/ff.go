@@ -31,9 +31,18 @@ var atomicCount atomic.Int64
 var onlyDir bool = false
 var printMd5 bool = false
 var caseInsensitive bool = false
-var showDate bool = false
+var relativePath bool = true
+var wd string
 
 var numThreads = make(chan struct{}, 50)
+
+func init() {
+	var err error
+	wd, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+}
 
 func expandTilda() string {
 	return os.Getenv("HOME")
@@ -94,13 +103,20 @@ OUTER:
 			if utilsW.IsDir(abs) && !strings.HasSuffix(abs, "/") {
 				abs += "/"
 			}
-			toPrint := strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
+			var toPrint string
+			if !relativePath {
+				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
+			} else {
+				abs = stringsW.StripPrefix(abs, wd)
+				abs = stringsW.StripPrefix(abs, "/")
+				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
+			}
 			if verbose {
 				info, err := os.Stat(match)
 				if err != nil {
 					utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
 				}
-				toPrint += "  " + info.ModTime().Format("2006/01/02 15:04:05")
+				toPrint += "  (" + info.ModTime().Format("2006/01/02 15:04:05") + ")"
 			}
 			if printMd5 {
 				b, err := os.ReadFile(abs)
@@ -149,7 +165,8 @@ func main() {
 	fs.Bool("dir", false, "only search directories")
 	fs.Bool("h", false, "print this help")
 	fs.Bool("md5", false, "print md5 value")
-	results := terminalW.ParseArgsCmd("v", "a", "dir", "h", "md5")
+	fs.Bool("abs", false, "print absolute path")
+	results := terminalW.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs")
 
 	if results == nil {
 		fs.PrintDefaults()
@@ -180,6 +197,8 @@ func main() {
 	if results.ContainsFlagStrict("dir") {
 		onlyDir = true
 	}
+
+	relativePath = !results.ContainsFlagStrict("abs")
 
 	numPrint := int64(results.GetNumArgs())
 	if numPrint == -1 {
