@@ -30,6 +30,8 @@ var verbose bool
 var atomicCount atomic.Int64
 var onlyDir bool = false
 var printMd5 bool = false
+var caseInsensitive bool = false
+var showDate bool = false
 
 var numThreads = make(chan struct{}, 50)
 
@@ -48,11 +50,20 @@ func findFile(rootDir string, numPrint int64, allIgnores []string) {
 
 	var matches []string
 	for _, target := range targets {
-		m, err := terminalW.Glob(target, rootDir)
+		var m []string
+		var err error
+		if caseInsensitive {
+			m, err = terminalW.GlobCaseInsensitive(target, rootDir)
+		} else {
+			m, err = terminalW.Glob(target, rootDir)
+		}
 		if err != nil {
 			if verbose {
 				utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
 			}
+		}
+		if len(m) == 0 {
+			continue
 		}
 		matches = append(matches, m...)
 	}
@@ -78,13 +89,19 @@ OUTER:
 				continue OUTER
 			}
 		}
-
-		match = filepath.Base(match)
+		matchBase := filepath.Base(match)
 		if atomicCount.Load() < numPrint {
 			if utilsW.IsDir(abs) && !strings.HasSuffix(abs, "/") {
 				abs += "/"
 			}
-			toPrint := strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), match, color.GreenString(match))
+			toPrint := strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
+			if verbose {
+				info, err := os.Stat(match)
+				if err != nil {
+					utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+				}
+				toPrint += "  " + info.ModTime().Format("2006/01/02 15:04:05")
+			}
 			if printMd5 {
 				b, err := os.ReadFile(abs)
 				if err != nil {
@@ -125,8 +142,8 @@ func main() {
 	fs.Int64("n", 10, "number of found results to print, -10 for short")
 	fs.Bool("v", false, "if print error")
 	fs.String("d", ".", "root directory for searching")
-	fs.String("i", "", "ignores some file pattern (support glob expression) ")
-	fs.String("ex", "", "the same as -i (second match)")
+	fs.String("i", "", "ignore case")
+	fs.String("ex", "", "exclude file patterns (glob )")
 	fs.Bool("a", false, "list all matches (has the highest priority)")
 	fs.Int("p", 4, "how many threads to use")
 	fs.Bool("dir", false, "only search directories")
@@ -157,10 +174,8 @@ func main() {
 			log.Fatalln("HOME is not set")
 		}
 	}
-	ignores := results.GetFlagValueDefault("i", "")
-	if ignores == "" {
-		ignores = results.GetFlagValueDefault("ex", "")
-	}
+	ignores := results.GetFlagValueDefault("ex", "")
+	caseInsensitive = results.ContainsFlag("i")
 
 	if results.ContainsFlagStrict("dir") {
 		onlyDir = true

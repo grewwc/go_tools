@@ -3,7 +3,6 @@ package utilsW
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -30,7 +29,7 @@ func LsDir(fname string) []string {
 	if !IsDir(fname) {
 		return []string{}
 	}
-	infos, err := ioutil.ReadDir(fname)
+	infos, err := os.ReadDir(fname)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -168,7 +167,7 @@ func TrimFileExt(filename string) string {
 }
 
 func isTextFile(filename string) bool {
-	buf, _ := ioutil.ReadFile(filename)
+	buf, _ := os.ReadFile(filename)
 	return IsText(buf)
 }
 
