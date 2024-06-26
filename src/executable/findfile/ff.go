@@ -48,6 +48,18 @@ func expandTilda() string {
 	return os.Getenv("HOME")
 }
 
+func parseFileSize(size int64) string {
+	if size < 1024 {
+		return fmt.Sprintf("%d", size)
+	} else if size < 1024*1024 {
+		return fmt.Sprintf("%.2fK", float64(size)/1024)
+	} else if size < 1024*1024*1024 {
+		return fmt.Sprintf("%.2fM", float64(size)/1024/1024)
+	} else {
+		return fmt.Sprintf("%.2fG", float64(size)/1024/1024/1024)
+	}
+}
+
 func findFile(rootDir string, numPrint int64, allIgnores []string) {
 	numThreads <- struct{}{}
 	defer func() { <-numThreads }()
@@ -113,10 +125,12 @@ OUTER:
 			}
 			if verbose {
 				info, err := os.Stat(match)
+				fileSize := info.Size()
 				if err != nil {
 					utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
 				}
-				toPrint += "  (" + info.ModTime().Format("2006/01/02 15:04:05") + ")"
+				toPrint += "  " + parseFileSize(fileSize)
+				toPrint += "  " + info.ModTime().Format("2006/01/02/15:04:05")
 			}
 			if printMd5 {
 				b, err := os.ReadFile(abs)
