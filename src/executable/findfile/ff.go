@@ -27,7 +27,7 @@ var targets []string
 var wg sync.WaitGroup
 
 var verbose bool
-var atomicCount atomic.Int64
+var atomicCount atomic.Int32
 var onlyDir bool = false
 var printMd5 bool = false
 var caseInsensitive bool = false
@@ -60,12 +60,12 @@ func parseFileSize(size int64) string {
 	}
 }
 
-func findFile(rootDir string, numPrint int64, allIgnores []string) {
+func findFile(rootDir string, numPrint int, allIgnores []string) {
 	numThreads <- struct{}{}
 	defer func() { <-numThreads }()
 	defer wg.Done()
 
-	if int64(atomicCount.Load()) >= numPrint {
+	if int(atomicCount.Load()) >= numPrint {
 		return
 	}
 
@@ -111,7 +111,7 @@ OUTER:
 			}
 		}
 		matchBase := filepath.Base(match)
-		if atomicCount.Load() < numPrint {
+		if int(atomicCount.Load()) < numPrint {
 			if utilsW.IsDir(abs) && !strings.HasSuffix(abs, "/") {
 				abs += "/"
 			}
@@ -120,7 +120,9 @@ OUTER:
 				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
 			} else {
 				abs = stringsW.StripPrefix(abs, wd)
-				abs = stringsW.StripPrefix(abs, "/")
+				if wd != "" {
+					abs = stringsW.StripPrefix(abs, "/")
+				}
 				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
 			}
 			if verbose {
@@ -214,9 +216,9 @@ func main() {
 
 	relativePath = !results.ContainsFlagStrict("abs")
 
-	numPrint := int64(results.GetNumArgs())
+	numPrint := results.GetNumArgs()
 	if numPrint == -1 {
-		numPrint, err = strconv.ParseInt(results.GetFlagValueDefault("n", "10"), 10, 64)
+		numPrint, err = strconv.Atoi(results.GetFlagValueDefault("n", "10"))
 
 		if err != nil {
 			log.Fatalln(err)
@@ -224,7 +226,7 @@ func main() {
 	}
 
 	if results.ContainsFlagStrict("a") {
-		numPrint = math.MaxInt64
+		numPrint = math.MaxInt32
 	}
 
 	if results.ContainsFlagStrict("p") {
