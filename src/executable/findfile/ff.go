@@ -42,6 +42,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	wd = utilsW.Abs(wd)
 }
 
 func expandTilda() string {
@@ -119,11 +120,12 @@ OUTER:
 			if !relativePath {
 				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
 			} else {
-				abs = stringsW.StripPrefix(abs, wd)
-				if strings.HasPrefix(abs, wd) {
-					abs = stringsW.StripPrefix(abs, "/")
+				absStripped := stringsW.StripPrefix(abs, wd)
+				if absStripped != abs {
+					absStripped = stringsW.StripPrefix(absStripped, "/")
 				}
-				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
+				abs = absStripped
+				toPrint = strings.ReplaceAll(strings.ReplaceAll(absStripped, "\\", "/"), matchBase, color.GreenString(matchBase))
 			}
 			if verbose {
 				info, err := os.Stat(match)
