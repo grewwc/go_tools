@@ -120,7 +120,7 @@ OUTER:
 				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
 			} else {
 				abs = stringsW.StripPrefix(abs, wd)
-				if wd != "" {
+				if strings.HasPrefix(abs, wd) {
 					abs = stringsW.StripPrefix(abs, "/")
 				}
 				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
