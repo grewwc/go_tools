@@ -134,7 +134,7 @@ OUTER:
 					utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
 				}
 				toPrint += "  " + parseFileSize(fileSize)
-				toPrint += "  " + info.ModTime().Format("2006/01/02/15:04:05")
+				toPrint += "  " + info.ModTime().Format("2006.01.02/15:04:05")
 			}
 			if printMd5 {
 				b, err := os.ReadFile(abs)
