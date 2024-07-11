@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
@@ -470,6 +471,13 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, pre
 	scanner.Scan()
 	tags := strings.TrimSpace(scanner.Text())
 	tags = strings.ReplaceAll(tags, ",", " ")
+	var tagsRunes []rune
+	for _, r := range tags {
+		if unicode.IsPrint(r) {
+			tagsRunes = append(tagsRunes, r)
+		}
+	}
+	tags = string(tagsRunes)
 	if tags != "" {
 		changed = true
 		newRecord.Tags = stringsW.SplitNoEmpty(tags, " ")
