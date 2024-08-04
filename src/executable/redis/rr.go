@@ -103,11 +103,11 @@ func main() {
 		flag.PrintDefaults()
 		return
 	}
-	// defer func() {
-	// 	if e := recover(); e != nil {
-	// 		fmt.Println(e)
-	// 	}
-	// }()
+	defer func() {
+		if e := recover(); e != nil {
+			fmt.Println(e)
+		}
+	}()
 
 	// Create a Redis client
 	m := utilsW.GetAllConfig()
