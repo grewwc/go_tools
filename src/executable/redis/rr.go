@@ -103,11 +103,11 @@ func main() {
 		flag.PrintDefaults()
 		return
 	}
-	defer func() {
-		if e := recover(); e != nil {
-			fmt.Println(e)
-		}
-	}()
+	// defer func() {
+	// 	if e := recover(); e != nil {
+	// 		fmt.Println(e)
+	// 	}
+	// }()
 
 	// Create a Redis client
 	m := utilsW.GetAllConfig()
@@ -115,8 +115,8 @@ func main() {
 		fmt.Println("set redis.host and redis.password in ~/.configW")
 		return
 	}
-	host := utilsW.GetAllConfig().Get("redis.address")
-	password := utilsW.GetAllConfig().Get("redis.password")
+	host := m.GetOrDefault("redis.address", nil)
+	password := m.GetOrDefault("redis.password", nil)
 	if host == nil || password == nil {
 		fmt.Println("set redis.host and redis.password in ~/.configW")
 		return
