@@ -45,6 +45,17 @@ func (r ParsedResults) MustGetFlagValAsInt(flagName string) int {
 	return res
 }
 
+func (r *ParsedResults) GetIntFlagVal(flagName string) int {
+	return r.MustGetFlagValAsInt(flagName)
+}
+
+func (r *ParsedResults) GetIntFlagValOrDefault(flagName string, val int) int {
+	if r.ContainsFlag(flagName) {
+		return r.MustGetFlagValAsInt(flagName)
+	}
+	return val
+}
+
 func (r ParsedResults) MustGetFlagValAsInt64(flagName string) (res int64) {
 	resStr, err := r.GetFlagVal(flagName)
 	if err != nil {
