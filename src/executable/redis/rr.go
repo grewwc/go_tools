@@ -115,17 +115,21 @@ func main() {
 		fmt.Println("set redis.host and redis.password in ~/.configW")
 		return
 	}
-	host := m.GetOrDefault("redis.address", nil)
+	addr := m.GetOrDefault("redis.address", nil)
 	password := m.GetOrDefault("redis.password", nil)
-	if host == nil || password == nil {
-		fmt.Println("set redis.host and redis.password in ~/.configW")
+	if addr == nil {
+		fmt.Println("set redis.address in ~/.configW")
 		return
 	}
-	hostStr, passwordStr := host.(string), password.(string)
-	fmt.Printf("connected to %s\n~~~~~~~~~\n", color.GreenString(hostStr))
+	if password == nil {
+		fmt.Println("set redis.password in ~/.configW")
+		return
+	}
+	addrStr, passwordStr := addr.(string), password.(string)
+	fmt.Printf("connected to %s\n~~~~~~~~~\n", color.GreenString(addrStr))
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     hostStr,     // Default Redis port is 6379
+		Addr:     addrStr,     // Default Redis port is 6379
 		Password: passwordStr, // No password set
 		DB:       0,           // Use default DB
 	})
