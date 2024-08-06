@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/terminalW"
@@ -64,7 +65,7 @@ func copyToClipboard(parsed *terminalW.ParsedResults) {
 		scanner.Scan()
 		filename = scanner.Text()
 	}
-	data, err = ioutil.ReadFile(filename)
+	data, err = os.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
@@ -92,21 +93,31 @@ func readFromClipboard(parsed *terminalW.ParsedResults) {
 	b := clipboard.Read(t)
 	write := true
 	if utilsW.IsExist(filename) {
-		if !utilsW.PromptYesOrNo(fmt.Sprintf("file: %s already exists, do you want to overwrite it?(y/n)",
+		if !utilsW.PromptYesOrNo(fmt.Sprintf("file: %s already exists, do you want to overwrite it? (y/n)",
 			color.HiRedString(filename))) {
 			write = false
 		}
 	}
 	// overwrite
 	if write {
+		if len(b) == 0 {
+			_, err := utilsW.RunCmdWithTimeout(fmt.Sprintf("pngpaste %s", filename), 10*time.Second)
+			fmt.Println("here", err)
+			if err != nil {
+				panic(err)
+			}
+		}
+
 		if err := utilsW.WriteToFile(filename, b); err != nil {
-			panic(err)
+			log.Fatalln(err)
 		}
 	}
 	fmt.Printf("<<< DONE pasting from clipboard, write to file: %s\n", filename)
 }
 
 func main() {
+	fmt.Println("begin")
+	os.Exit(0)
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 
 	fs.Bool("t", true, "text data")

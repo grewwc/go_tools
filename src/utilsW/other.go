@@ -3,6 +3,7 @@ package utilsW
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -93,7 +94,7 @@ func OpenUrlInBrowswer(url string) {
 	}
 }
 
-func TimeoutWait(wg *sync.WaitGroup, timeout time.Duration) {
+func TimeoutWait(wg *sync.WaitGroup, timeout time.Duration) error {
 	c := make(chan interface{})
 	go func() {
 		defer close(c)
@@ -101,9 +102,9 @@ func TimeoutWait(wg *sync.WaitGroup, timeout time.Duration) {
 	}()
 	select {
 	case <-c:
-		return
+		return nil
 	case <-time.After(timeout):
-		return
+		return errors.New("timeout")
 	}
 }
 
@@ -155,4 +156,37 @@ func kill(cmd *exec.Cmd) error {
 func GetCommandList(cmd string) []string {
 	cmd = strings.ReplaceAll(cmd, ",", " ")
 	return stringsW.SplitNoEmpty(cmd, " ")
+}
+
+func RunCmd(cmd string) (string, error) {
+	l := stringsW.SplitNoEmpty(cmd, " ")
+	if len(l) < 1 {
+		fmt.Println("cmd is empty")
+		return "", errors.New("cmd is empty")
+	}
+	command := exec.Command(l[0], l[1:]...)
+	stdout := bytes.NewBufferString("")
+	stderr := bytes.NewBufferString("")
+	command.Stdout = stdout
+	command.Stderr = stderr
+	err := command.Run()
+	if err != nil {
+		return "", fmt.Errorf("%s: %s %s", err.Error(), stdout.String(), stderr.String())
+	}
+	return stdout.String(), nil
+}
+
+func RunCmdWithTimeout(cmd string, timeout time.Duration) (string, error) {
+	wg := sync.WaitGroup{}
+	var res string
+	var err error
+	wg.Add(1)
+	go func(res *string, err *error) {
+		*res, *err = RunCmd(cmd)
+		defer wg.Done()
+	}(&res, &err)
+	if TimeoutWait(&wg, timeout) != nil {
+		return "", fmt.Errorf("timeout Execute command: %s (%v)", cmd, timeout)
+	}
+	return res, err
 }
