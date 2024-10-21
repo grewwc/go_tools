@@ -56,9 +56,7 @@ func uploadSingleFile(wg *sync.WaitGroup, filename, ossKey string, force bool) {
 	defer wg.Done()
 	key := _helpers.GetOssKey(ossKey)
 	if key[len(key)-1] != '/' {
-		if filepath.Base(key) != filepath.Base(filename) {
-			key += "/" + filepath.Base(filename)
-		} else if !force {
+		if !force {
 			if utilsW.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", key)) {
 				fmt.Println(color.RedString("the file: %s will be overwritten!!", key))
 			} else {
@@ -136,6 +134,25 @@ func handleLs(args []string) {
 		}
 	}
 }
+
+// func handleDelete(objectKey string) {
+// 	exist, err := bucket.IsObjectExist(objectKey)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	if exist {
+// 		res := utilsW.PromptYesOrNo(fmt.Sprintf("Delete %s? (y/n)", objectKey))
+// 		if res {
+// 			if err = bucket.DeleteObject(objectKey); err != nil {
+// 				fmt.Println("Failed to delete", objectKey)
+// 			} else {
+// 				fmt.Printf("Deleted %s", objectKey)
+// 			}
+// 		} else {
+// 			fmt.Println("Abort deleting", objectKey)
+// 		}
+// 	}
+// }
 
 func ls(dir string, prefixSpace int) {
 	result, err := bucket.ListObjectsV2()
