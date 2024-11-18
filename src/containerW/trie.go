@@ -36,7 +36,7 @@ func (t *Trie) Contains(word string) bool {
 			return false
 		}
 		if cnt+1 == len(word) {
-			return t.end[ch] > 0
+			return cur.end[ch] > 0
 		}
 		cur = cur.root[ch]
 	}
@@ -63,11 +63,14 @@ func (t *Trie) Delete(word string) bool {
 		return false
 	}
 	cur := t
-	for _, ch := range word {
-		cur.end[ch]--
-		if cur.end[ch] == 0 {
+	for cnt, ch := range word {
+		if cnt+1 == len(word) {
+			cur.end[ch]--
+		}
+		if count, exists := cur.end[ch]; exists && count == 0 {
 			delete(cur.root, ch)
 		}
+		cur = cur.root[ch]
 	}
 	return true
 }
