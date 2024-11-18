@@ -1,9 +1,16 @@
 package algorithmW
 
-import "golang.org/x/exp/constraints"
+import (
+	"math/rand"
+
+	"golang.org/x/exp/constraints"
+)
 
 // ThreeWayPartition return range of pivot value (both inclusive)
 func ThreeWayPartitionInts[T constraints.Ordered](nums []T) (int, int) {
+	rand.Shuffle(len(nums), func(i, j int) {
+		nums[i], nums[j] = nums[j], nums[i]
+	})
 	pivot := nums[0]
 	lt, gt := 0, len(nums)-1
 	i := 1

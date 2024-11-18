@@ -247,10 +247,10 @@ func main() {
 			ext := filepath.Ext(path)
 			if t != "" {
 				// 没有文件后缀的也忽略
-				if fileExtension.Search(ext) && ext != "" {
+				if fileExtension.Contains(ext) && ext != "" {
 					allFiles = append(allFiles, path)
 				}
-			} else if !excludeSet.Contains(absPath) && (ext == "" || !excludeFileExtension.Search(ext)) {
+			} else if !excludeSet.Contains(absPath) && (ext == "" || !excludeFileExtension.Contains(ext)) {
 				allFiles = append(allFiles, path)
 			} else if verbose {
 				fmt.Println("exclude: ", color.YellowString(path))
