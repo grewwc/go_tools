@@ -232,7 +232,6 @@ func main() {
 	fs.Bool("f", false, "only list regular files")
 	fs.String("gt", "", "size greater than. (1.3g, 1m, 1K)")
 	fs.String("ex", "", "exclude files or dirs (including subdirs having same name)")
-	fs.String("inc", "", "only include files or dirs (including files in subdirs having same name)")
 
 	parsed := terminalW.ParseArgsCmd("v", "d", "f")
 
