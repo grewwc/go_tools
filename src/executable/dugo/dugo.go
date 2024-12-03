@@ -3,13 +3,17 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -23,6 +27,8 @@ const (
 var lowerSizeBound float64 = -1
 
 var threadControl = make(chan struct{}, 50)
+
+var excludes *containerW.Set = containerW.NewSet()
 
 func listFile(path string) ([]os.DirEntry, error) {
 	threadControl <- struct{}{}
@@ -42,6 +48,9 @@ func walkDir(root string, fileSize chan<- int64, wg *sync.WaitGroup) {
 		return
 	}
 	for _, file := range files {
+		if !valid(file.Name()) {
+			continue
+		}
 		if file.IsDir() {
 			subDir := path.Join(root, file.Name())
 			wg.Add(1)
@@ -57,6 +66,11 @@ func walkDir(root string, fileSize chan<- int64, wg *sync.WaitGroup) {
 }
 
 func printInfo(nFiles, fileSize int64, numSpace int) {
+	fs := formatFileSize(fileSize)
+	utilsW.Printf("%s%d files\t%s\n", strings.Repeat(" ", numSpace), nFiles, fs)
+}
+
+func formatFileSize(fileSize int64) string {
 	unit := "B"
 	var fileSizeFloat float64
 
@@ -69,11 +83,20 @@ func printInfo(nFiles, fileSize int64, numSpace int) {
 	} else if fileSize > _1K {
 		fileSizeFloat = float64(fileSize) / float64(_1K)
 		unit = "KB"
+	} else {
+		fileSizeFloat = float64(fileSize)
+		unit = "B"
 	}
-	fmt.Printf("%s%d files\t%.2f %s\n", strings.Repeat(" ", numSpace), nFiles, fileSizeFloat, unit)
+	if fileSizeFloat < 1e-5 {
+		return "0 B"
+	}
+	return fmt.Sprintf("%.3f %s", fileSizeFloat, unit)
 }
 
 func checkOneDirectory(root string) {
+	if !valid(root) {
+		return
+	}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	filesizeChan := make(chan int64)
@@ -94,7 +117,7 @@ func checkOneDirectory(root string) {
 	}
 
 	if totalSize > int64(lowerSizeBound) {
-		fmt.Printf(color.HiBlueString("%s\n", root))
+		fmt.Println(color.HiBlueString("%s", root))
 		printInfo(nFiles, totalSize, 4)
 	}
 }
@@ -110,6 +133,28 @@ func getOnlyDirectories(root string) []string {
 	return result
 }
 
+func getOnlyFiles(root string) []string {
+	result := make([]string, 0)
+	for _, file := range utilsW.LsDir(root) {
+		if utilsW.IsDir(file) {
+			continue
+		}
+		result = append(result, file)
+	}
+	return result
+}
+
+func getDirAndFiles(root string) []string {
+	result := make([]string, 0)
+	for _, file := range utilsW.LsDir(root) {
+		if excludes.Contains(file) {
+			continue
+		}
+		result = append(result, file)
+	}
+	return result
+}
+
 func parseSize(size string) float64 {
 	if len(size) == 0 {
 		return -1
@@ -117,7 +162,7 @@ func parseSize(size string) float64 {
 	size, unit := size[:len(size)-1], string(size[len(size)-1])
 	sizeFloat, err := strconv.ParseFloat(size, 64)
 	if err != nil {
-		size, unit = size+unit, ""
+		panic(err)
 	}
 	unit = strings.ToLower(unit)
 	switch unit {
@@ -131,12 +176,71 @@ func parseSize(size string) float64 {
 	return sizeFloat
 }
 
+func checkOneFile(f string) {
+	if !valid(f) {
+		return
+	}
+	info, err := os.Stat(filepath.ToSlash(f))
+	if err != nil {
+		log.Println(color.RedString("failed get file info: %s", f))
+		return
+	}
+	sz := info.Size()
+	if sz > int64(lowerSizeBound) {
+		fs := formatFileSize(sz)
+		utilsW.Printf("%s  \t%s\n", color.YellowString(f), fs)
+	}
+}
+
+func check(f string) {
+	if utilsW.IsDir(f) {
+		checkOneDirectory(f)
+	} else if utilsW.IsRegular(f) {
+		checkOneFile(f)
+	} else {
+		log.Println(color.RedString("unknow file: %s", f))
+	}
+}
+
+func getFirstDir(parsed *terminalW.ParsedResults) string {
+	if parsed == nil {
+		return "."
+	}
+	args := parsed.Positional.ToStringSlice()
+	if len(args) == 0 {
+		return "."
+	}
+	return args[1]
+}
+
+func getExcludeFiles(parsed *terminalW.ParsedResults) {
+	ex := parsed.GetFlagValueDefault("ex", "")
+	for _, file := range stringsW.SplitNoEmpty(ex, ",") {
+		file = strings.Trim(file, " ")
+		excludes.Add(file)
+	}
+}
+
+func valid(file string) bool {
+	return !excludes.Contains(file)
+}
+
 func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("v", false, "list directries seperately")
+	fs.Bool("d", false, "only list directries")
+	fs.Bool("f", false, "only list regular files")
 	fs.String("gt", "", "size greater than. (1.3g, 1m, 1K)")
-	parsed := terminalW.ParseArgsCmd("v")
+	fs.String("ex", "", "exclude files or dirs (including subdirs having same name)")
+	fs.String("inc", "", "only include files or dirs (including files in subdirs having same name)")
+
+	parsed := terminalW.ParseArgsCmd("v", "d", "f")
+
 	args := make([]string, 0)
+	verbose := false
+	onlyFile := false
+	onlyDir := false
+
 	if parsed == nil {
 		args = append(args, ".")
 		goto check
@@ -144,24 +248,40 @@ func main() {
 		fs.PrintDefaults()
 		return
 	}
-	if len(parsed.Positional.ToSlice()) == 0 {
-		if parsed.ContainsFlagStrict("v") {
-			for _, dir := range getOnlyDirectories(".") {
-				args = append(args, dir)
-			}
+
+	onlyFile = parsed.ContainsAllFlagStrict("f")
+	onlyDir = parsed.ContainsAllFlagStrict("d")
+	verbose = parsed.ContainsAllFlagStrict("v") || onlyDir || onlyFile
+	getExcludeFiles(parsed)
+
+	if verbose {
+		rootDir := getFirstDir(parsed)
+		if onlyDir {
+			args = append(args, getOnlyDirectories(rootDir)...)
+		} else if onlyFile {
+			args = append(args, getOnlyFiles(rootDir)...)
+		} else {
+			args = append(args, getDirAndFiles(rootDir)...)
 		}
 	}
 	if parsed.ContainsFlagStrict("gt") {
 		lowerSizeBound = parseSize(parsed.GetFlagValueDefault("gt", "10000g"))
 	}
-	for _, dir := range parsed.Positional.ToStringSlice() {
-		if utilsW.IsDir(dir) {
-			args = append(args, dir)
+	if len(parsed.Positional.ToStringSlice()) == 0 {
+		args = append(args, ".")
+	}
+	for _, file := range parsed.Positional.ToStringSlice() {
+		if utilsW.IsDir(file) && !onlyFile && valid(file) {
+			args = append(args, file)
+		} else if utilsW.IsRegular(file) && !onlyDir && valid(file) {
+			args = append(args, file)
+		} else {
+			args = append(args, file)
 		}
 	}
 
 check:
-	for _, dir := range args {
-		checkOneDirectory(dir)
+	for _, file := range args {
+		check(file)
 	}
 }
