@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"unsafe"
 
 	"golang.org/x/exp/constraints"
@@ -137,4 +138,22 @@ func (j *Json) Len() int {
 		return len(data)
 	}
 	return 0
+}
+
+func (j *Json) Keys() []string {
+	result := make([]string, 0, j.Len())
+	if mResult, ok := j.data.(map[string]interface{}); ok {
+		for k := range mResult {
+			result = append(result, k)
+		}
+		return result
+	}
+	if sliceResult, ok := j.data.([]interface{}); ok {
+		for idx := range sliceResult {
+			result = append(result, strconv.Itoa(idx))
+		}
+		return result
+	}
+
+	return nil
 }
