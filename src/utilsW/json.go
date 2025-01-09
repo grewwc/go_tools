@@ -50,12 +50,13 @@ func getByIndex[T type_](j *Json, idx int) T {
 		fmt.Printf("ERROR: idx (%d) >= size (%d)\n", idx, len(data))
 		return *new(T)
 	}
-	res, ok := data[idx].(T)
-	if !ok {
-		fmt.Println("ERROR: json is not []T")
-		return *new(T)
+	if res, ok := data[idx].(T); ok {
+		return res
 	}
-	return res
+	res := Json{
+		data: data[idx],
+	}
+	return *(*T)(unsafe.Pointer(&res))
 }
 
 func getT[T type_, U keytype](j *Json, key U) T {
@@ -107,8 +108,9 @@ func (j *Json) GetInt(key string) int {
 	return getT[int](j, key)
 }
 
-func (j *Json) GetIndex(idx int) interface{} {
-	return getT[interface{}](j, idx)
+func (j *Json) GetIndex(idx int) *Json {
+	res := getT[Json](j, idx)
+	return &res
 }
 
 func (j *Json) GetFloat(key string) float64 {
