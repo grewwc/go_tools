@@ -76,7 +76,7 @@ func getT[T type_, U keytype](j *Json, key U) T {
 	}
 	if res, ok := data[strKey].(T); ok {
 		return res
-	} else if reflect.TypeOf(data[strKey]).Kind() == reflect.Map && reflect.TypeOf(new(T)) == reflect.TypeOf(new(Json)) {
+	} else if reflect.TypeOf(data[strKey]).Kind() == reflect.Map && reflect.TypeOf(*new(T)) == reflect.TypeOf(*new(Json)) {
 		obj, ok := data[strKey].(map[string]interface{})
 		if !ok {
 			fmt.Printf("ERROR: key %s is not Json object, maybe array?\n", strKey)
@@ -87,6 +87,12 @@ func getT[T type_, U keytype](j *Json, key U) T {
 		}
 		return *(*T)(unsafe.Pointer(newJson))
 
+	} else if reflect.TypeOf(data[strKey]).Kind() == reflect.Slice {
+		obj, _ := data[strKey].([]interface{})
+		res := Json{
+			data: obj,
+		}
+		return *(*T)(unsafe.Pointer(&res))
 	} else {
 		fmt.Printf("ERROR: key (\"%s\") is not type (\"%s\")\n", strKey, reflect.TypeOf(*new(T)))
 		return *new(T)
