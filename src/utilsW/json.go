@@ -180,3 +180,11 @@ func (j *Json) ContainsKey(key string) bool {
 	}
 	return false
 }
+
+func (j Json) String() string {
+	s, err := json.Marshal(j.data)
+	if err != nil {
+		return fmt.Sprintf("%v", j.data)
+	}
+	return stringsW.BytesToString(s)
+}
