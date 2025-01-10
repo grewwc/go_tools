@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"unsafe"
 
+	"github.com/grewwc/go_tools/src/stringsW"
 	"golang.org/x/exp/constraints"
 )
 
@@ -15,13 +16,25 @@ type Json struct {
 	data interface{}
 }
 
-func NewJsonByFile(filename string) *Json {
+func NewJsonFromFile(filename string) *Json {
 	b, err := os.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
 	var res Json
 	json.Unmarshal(b, &res.data)
+	return &res
+}
+
+func NewJsonFromByte(data []byte) *Json {
+	var res Json
+	json.Unmarshal(data, &res.data)
+	return &res
+}
+
+func NewJsonFromString(content string) *Json {
+	var res Json
+	json.Unmarshal(stringsW.StringToBytes(content), &res.data)
 	return &res
 }
 
@@ -156,4 +169,14 @@ func (j *Json) Keys() []string {
 	}
 
 	return nil
+}
+
+func (j *Json) ContainsKey(key string) bool {
+	keys := j.Keys()
+	for _, k := range keys {
+		if key == k {
+			return true
+		}
+	}
+	return false
 }
