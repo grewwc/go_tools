@@ -145,6 +145,19 @@ func PromptYesOrNo(msg string) bool {
 	return strings.ToLower(ans) == "y"
 }
 
+func Getline(msg string) string {
+	if len(msg) > 0 && msg[len(msg)-1] != ' ' {
+		msg += " "
+	}
+	fmt.Print(msg)
+	reader := bufio.NewReader(os.Stdin)
+	b, err := reader.ReadBytes('\n')
+	if err != nil {
+		panic(err)
+	}
+	return stringsW.BytesToString(b[:len(b)-1])
+}
+
 func kill(cmd *exec.Cmd) error {
 	kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(cmd.Process.Pid))
 	kill.Stderr = os.Stderr
