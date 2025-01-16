@@ -32,7 +32,7 @@ var ch = make(chan struct{}, 50)
 
 func processTarGzFile(fname string, prefix string) {
 	if !listOnly {
-		fmt.Fprintf(color.Output, "untar \"%s\" to \"%s\"\n", color.GreenString(fname), color.YellowString(prefix))
+		fmt.Fprintf(color.Output, "untar \"%s\" to \"%s\"\n", fname, prefix)
 	}
 	ch <- struct{}{}
 	defer func(ch <-chan struct{}) {
@@ -120,7 +120,7 @@ func main() {
 	// fmt.Println(parsedResults)
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
-		fmt.Println(color.GreenString("targo thesis.tar.gz thesis_folder"))
+		fmt.Printf("%s dest.tar.gz source_dir\n", utilsW.BaseNoExt(utilsW.GetCurrentFileName()))
 		return
 	}
 
@@ -183,7 +183,7 @@ func main() {
 	var srcName string
 	outName := args[0]
 
-	if filepath.Ext(outName) != ".gz" {
+	if !stringsW.EqualsAny(filepath.Ext(outName), ".gz", ".tgz") {
 		msg := color.RedString(fmt.Sprintf("%q is not a valid outname", outName))
 		panic(msg)
 	}
@@ -272,5 +272,4 @@ func main() {
 		}
 		log.Fatalln(err)
 	}
-	fmt.Println()
 }

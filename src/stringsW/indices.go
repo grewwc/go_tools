@@ -29,6 +29,14 @@ func StripPrefix(s, prefix string) string {
 	return s[idx+len(prefix):]
 }
 
+func StripSuffix(s, suffix string) string {
+	idx := strings.LastIndex(s, suffix)
+	if idx < 0 {
+		return s
+	}
+	return s[:idx]
+}
+
 // SubStringQuiet
 // beg include, end exclude
 func SubStringQuiet(s string, beg, end int) string {

@@ -39,6 +39,15 @@ func CopySlice(original []string) []string {
 	return res
 }
 
+func EqualsAny(target string, choices ...string) bool {
+	for _, choice := range choices {
+		if choice == target {
+			return true
+		}
+	}
+	return false
+}
+
 func makePrefix(s, sub string) []int {
 	res := make([]int, len(sub))
 	j, i := 0, 1

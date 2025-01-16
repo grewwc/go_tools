@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/google/uuid"
+	"github.com/grewwc/go_tools/src/stringsW"
 )
 
 var ch = make(chan interface{}, 1)
@@ -55,7 +55,7 @@ func TarGz(outName string, srcNames []string, verbose bool) error {
 			}
 			src.Close()
 			if verbose {
-				fmt.Println(color.GreenString(filename))
+				fmt.Println(filename)
 			}
 		}
 	}
@@ -145,4 +145,10 @@ func GetFileSize(fname string) int64 {
 		panic(err)
 	}
 	return info.Size()
+}
+
+func BaseNoExt(filename string) string {
+	base := filepath.Base(filename)
+	ext := filepath.Ext(filename)
+	return stringsW.StripSuffix(base, ext)
 }
