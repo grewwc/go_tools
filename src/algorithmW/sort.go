@@ -1,7 +1,10 @@
 package algorithmW
 
 import (
+	"math"
+
 	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/containerW/typesW"
 	"golang.org/x/exp/constraints"
 )
 
@@ -22,15 +25,36 @@ func InsertionSort[T constraints.Ordered](arr []T) {
 	}
 }
 
-// QuickSort ints
-func QuickSort[T constraints.Ordered](arr []T) {
-	if len(arr) < 8 {
-		InsertionSort(arr)
+func InsertionSortComparable[T typesW.Comparable](arr []T) {
+	l := len(arr)
+	if l <= 1 {
 		return
 	}
-	lt, gt := ThreeWayPartitionInts(arr)
-	QuickSort(arr[:lt])
-	QuickSort(arr[gt+1:])
+	for i := 0; i < l-1; i++ {
+		for j := i + 1; j > 0; j-- {
+			if arr[j].Compare(arr[j-1]) < 0 {
+				arr[j], arr[j-1] = arr[j-1], arr[j]
+			} else {
+				break
+			}
+		}
+	}
+
+}
+
+// QuickSort ints
+func QuickSort[T constraints.Ordered](arr []T) {
+	quickSort(arr, true)
+}
+
+func QuickSortComparable[T typesW.Comparable](arr []T) {
+	if len(arr) < 8 {
+		InsertionSortComparable(arr)
+		return
+	}
+	lt, gt := ThreeWayPartitionComparable(arr)
+	QuickSortComparable(arr[:lt])
+	QuickSortComparable(arr[gt+1:])
 }
 
 // ShellSort ints
@@ -40,13 +64,37 @@ func ShellSort[T constraints.Ordered](arr []T) {
 	if l <= 1 {
 		return
 	}
+	r := int(math.Max(math.Log10(float64(l)), 3))
+	for r*h < l {
+		h = r*h + 1
+	}
+	for h >= 1 {
+		for i := 0; i < l-h; i += h {
+			for j := i + h; j >= h; j -= h {
+				if arr[j] < arr[j-h] {
+					arr[j], arr[j-h] = arr[j-h], arr[j]
+				} else {
+					break
+				}
+			}
+		}
+		h /= r
+	}
+}
+
+func ShellSortComparable[T typesW.Comparable](arr []T) {
+	h := 1
+	l := len(arr)
+	if l <= 1 {
+		return
+	}
 	for 3*h < l {
 		h = 3*h + 1
 	}
 	for h >= 1 {
-		for i := h; i < l-1; i++ {
+		for i := 0; i < l-1; i += h {
 			for j := i + 1; j >= h; j -= h {
-				if arr[j] < arr[j-h] {
+				if arr[j].Compare(arr[j-h]) < 0 {
 					arr[j], arr[j-h] = arr[j-h], arr[j]
 				} else {
 					break
@@ -111,4 +159,69 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 	result := make([]T, len(interfaceList))
 
 	return result
+}
+
+func AreSorted[T typesW.Comparable](arr []T) bool {
+	for i := 0; i < len(arr)-1; i++ {
+		if arr[i].Compare(arr[i+1]) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func calcSortedRatio[T constraints.Ordered](arr []T) float32 {
+	if len(arr) <= 1 {
+		return 1
+	}
+	cnt := 1
+	for i := 0; i < len(arr)-1; i++ {
+		if arr[i] <= arr[i+1] {
+			cnt++
+		}
+	}
+	return float32(cnt) / float32(len(arr))
+}
+
+func calcSortedRatioComparable[T typesW.Comparable](arr []T) float32 {
+	if len(arr) <= 1 {
+		return 1
+	}
+	cnt := 1
+	for i := 0; i < len(arr)-1; i++ {
+		if arr[i].Compare(arr[i+1]) <= 0 {
+			cnt++
+		}
+	}
+	return float32(cnt) / float32(len(arr))
+}
+
+func quickSort[T constraints.Ordered](arr []T, calclRatio bool) {
+	if len(arr) < 32 {
+		InsertionSort(arr)
+		return
+	}
+	if calclRatio && calcSortedRatio(arr) >= 0.95 {
+		InsertionSort(arr)
+		return
+	}
+
+	lt, gt := ThreeWayPartitionInts(arr)
+	quickSort(arr[:lt], false)
+	quickSort(arr[gt+1:], false)
+}
+
+func quickSortComparable[T typesW.Comparable](arr []T, calcRatio bool) {
+	if len(arr) < 32 {
+		InsertionSortComparable(arr)
+		return
+	}
+	if calcRatio && calcSortedRatioComparable(arr) >= 0.95 {
+		InsertionSortComparable(arr)
+		return
+	}
+
+	lt, gt := ThreeWayPartitionComparable(arr)
+	quickSortComparable(arr[:lt], false)
+	quickSortComparable(arr[gt+1:], false)
 }

@@ -3,15 +3,15 @@ package algorithmW
 import (
 	"math/rand"
 
+	"github.com/grewwc/go_tools/src/containerW/typesW"
 	"github.com/grewwc/go_tools/src/randW"
 	"golang.org/x/exp/constraints"
 )
 
 // ThreeWayPartition return range of pivot value (both inclusive)
 func ThreeWayPartitionInts[T constraints.Ordered](nums []T) (int, int) {
-	rand.Shuffle(len(nums), func(i, j int) {
-		nums[i], nums[j] = nums[j], nums[i]
-	})
+	r := rand.Int31n(int32(len(nums)))
+	nums[0], nums[r] = nums[r], nums[0]
 	pivot := nums[0]
 	lt, gt := 0, len(nums)-1
 	i := 1
@@ -23,6 +23,31 @@ func ThreeWayPartitionInts[T constraints.Ordered](nums []T) (int, int) {
 			i++
 			lt++
 		} else if cur == pivot {
+			i++
+		} else {
+			// swap(nums, i, gt)
+			nums[i], nums[gt] = nums[gt], nums[i] // for faster speed
+			gt--
+		}
+	}
+	return lt, gt
+}
+
+func ThreeWayPartitionComparable[T typesW.Comparable](nums []T) (int, int) {
+	r := rand.Int31n(int32(len(nums)))
+	nums[0], nums[r] = nums[r], nums[0]
+	pivot := nums[0]
+	lt, gt := 0, len(nums)-1
+	i := 1
+	for i <= gt {
+		cur := nums[i]
+		cmp := cur.Compare(pivot)
+		if cmp < 0 {
+			// swap(nums, i, lt)
+			nums[i], nums[lt] = nums[lt], nums[i] // for faster speed
+			i++
+			lt++
+		} else if cmp == 0 {
 			i++
 		} else {
 			// swap(nums, i, gt)
