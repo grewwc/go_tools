@@ -3,6 +3,7 @@ package algorithmW
 import (
 	"math/rand"
 
+	"github.com/grewwc/go_tools/src/randW"
 	"golang.org/x/exp/constraints"
 )
 
@@ -30,4 +31,24 @@ func ThreeWayPartitionInts[T constraints.Ordered](nums []T) (int, int) {
 		}
 	}
 	return lt, gt
+}
+
+// Partition partition array into two parts [lo, hi)
+func Partition[T constraints.Ordered](nums []T, lo, hi int) int {
+	if hi-lo <= 1 {
+		return lo
+	}
+	start := lo - 1
+	r := randW.RandInt(lo, hi, 1)[0]
+	nums[r], nums[hi-1] = nums[hi-1], nums[r]
+	pivot := nums[hi-1]
+	for i := lo; i < hi-1; i++ {
+		if nums[i] < pivot {
+			start++
+			nums[start], nums[i] = nums[i], nums[start]
+		}
+	}
+	start++
+	nums[start], nums[hi-1] = nums[hi-1], nums[start]
+	return start
 }
