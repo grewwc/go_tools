@@ -137,6 +137,9 @@ func (j *Json) GetBool(key string) bool {
 
 func (j *Json) GetJson(key string) *Json {
 	res := getT[Json](j, key)
+	if res.data == nil {
+		return nil
+	}
 	return &res
 }
 
