@@ -20,9 +20,7 @@ func main() {
 	dir := utilsW.GetDirOfTheFile()
 	dir = filepath.Join(dir, "..", "..", "..", "bin")
 	var allExecutables []string
-	for _, name := range utilsW.LsDir(dir) {
-		allExecutables = append(allExecutables, name)
-	}
+	allExecutables = append(allExecutables, utilsW.LsDir(dir)...)
 	_, w, err := utilsW.GetTerminalSize()
 	if err != nil {
 		panic(err)
