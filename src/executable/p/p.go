@@ -109,12 +109,12 @@ func main() {
 	fs.String("ex", "", "exclude file/directory")
 	fs.String("exclude", "", "exclude file/directory, (i.e.: ${somedir}/.git, NOT .git")
 	fs.Bool("v", false, "verbose")
-	fs.Bool("u", false, "untar")
+	fs.Bool("u", false, "untar. (e.g: untar src.tar.gz dest_directory)")
 	fs.Bool("h", false, "print help info")
 	fs.Bool("clean", true, "clean the zipped file if error occurs")
 	fs.Bool("l", false, "only list files in the tar.gz")
-	fs.String("nt", "", "exclude file type")
-	fs.String("t", "", "only include file type, if set, ignore -nt & -ex")
+	fs.String("nt", "", "exclude file type. separated by comma, dot is NOT required.")
+	fs.String("t", "", "only include file type, if set, ignore -nt & -ex. separated by comma, dot is NOT required.")
 
 	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean", "l")
 	// fmt.Println(parsedResults)
@@ -125,9 +125,9 @@ func main() {
 	}
 
 	nt := parsedResults.GetFlagValueDefault("nt", "")
-	nt = strings.ReplaceAll(nt, ",", "")
+	nt = strings.ReplaceAll(nt, ",", " ")
 	t := parsedResults.GetFlagValueDefault("t", "")
-	t = strings.ReplaceAll(t, ",", "")
+	t = strings.ReplaceAll(t, ",", " ")
 	for _, val := range stringsW.SplitNoEmpty(nt, " ") {
 		if val[0] != '.' {
 			val = "." + val
