@@ -48,13 +48,7 @@ func QuickSort[T constraints.Ordered](arr []T) {
 }
 
 func QuickSortComparable[T typesW.Comparable](arr []T) {
-	if len(arr) < 8 {
-		InsertionSortComparable(arr)
-		return
-	}
-	lt, gt := ThreeWayPartitionComparable(arr)
-	QuickSortComparable(arr[:lt])
-	QuickSortComparable(arr[gt+1:])
+	quickSortComparable(arr, true)
 }
 
 // ShellSort ints
