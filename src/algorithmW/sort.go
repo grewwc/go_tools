@@ -55,14 +55,18 @@ func mustToIntegerSlice[From constraints.Ordered, To constraints.Integer](from [
 	return *((*[]To)(unsafe.Pointer(&from)))
 }
 
-func getMaxVal[T constraints.Ordered](arr []T) T {
+func minMax[T constraints.Ordered](arr []T) (T, T) {
 	maxVal := arr[0]
+	minVal := arr[0]
 	for _, val := range arr[1:] {
 		if val > maxVal {
 			maxVal = val
 		}
+		if val < minVal {
+			minVal = val
+		}
 	}
-	return maxVal
+	return minVal, maxVal
 }
 
 // QuickSort uses multi cores
@@ -71,13 +75,14 @@ func QuickSort[T constraints.Ordered](arr []T) {
 		return
 	}
 	name := reflect.TypeOf(*new(T)).Name()
-	maxVal := getMaxVal(arr)
+	minVal, maxVal := minMax(arr)
+	minValInt := *(*int)(unsafe.Pointer(&minVal))
 	maxValInt := *(*int)(unsafe.Pointer(&maxVal))
 	isint := name == "int" || name == "int8" || name == "int16" || name == "int32" || name == "int64" ||
 		name == "uint" || name == "uint8" || name == "uint16" || name == "uint32" || name == "uint64"
 	thresh := int(1e5) + 1
 	if isint && maxValInt < thresh {
-		countSortWithThreash(mustToIntegerSlice[T, int](arr), thresh)
+		countSortWithThreash(mustToIntegerSlice[T, int](arr), minValInt, maxValInt)
 		return
 	}
 	quickSort(arr, true, nil)
@@ -154,18 +159,18 @@ func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
 	}
 }
 
-func countSortWithThreash[T constraints.Integer](arr []T, thresh int) {
+func countSortWithThreash[T constraints.Integer](arr []T, min, max T) {
 	if len(arr) <= 1 {
 		return
 	}
-	count := make([]int64, thresh)
+	count := make([]int64, max-min+1)
 	for _, val := range arr {
-		count[int(val)]++
+		count[val-min]++
 	}
 	var index int64
 	for i, val := range count {
 		for j := 0; int64(j) < val; j++ {
-			arr[index] = T(i)
+			arr[index] = T(i) + T(min)
 			index++
 		}
 	}
@@ -175,8 +180,8 @@ func CountSort[T constraints.Integer](arr []T) {
 	if len(arr) <= 1 {
 		return
 	}
-	maxVal := getMaxVal(arr)
-	countSortWithThreash(arr, int(maxVal)+1)
+	minVal, maxVal := minMax(arr)
+	countSortWithThreash(arr, minVal, maxVal)
 }
 
 func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {

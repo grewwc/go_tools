@@ -48,7 +48,7 @@ func TestRadixSort(t *testing.T) {
 
 func TestCountSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		arr := randW.RandInt(0, 500, 1000)
+		arr := randW.RandInt(-500, 500, 10000)
 		algorithmW.CountSort(arr)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
@@ -85,7 +85,7 @@ func TestQuickSortComparable(t *testing.T) {
 }
 
 func BenchmarkQuickSort(b *testing.B) {
-	arr := randW.RandInt(0, 100000, N)
+	arr := randW.RandInt(0, 10000, N)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		rand.Shuffle(len(arr), func(i, j int) {
@@ -109,7 +109,7 @@ func BenchmarkShellSort(b *testing.B) {
 }
 
 func BenchmarkSort(b *testing.B) {
-	arr := randW.RandInt(0, 100000, N)
+	arr := randW.RandInt(0, 10000, N)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		rand.Shuffle(len(arr), func(i, j int) {
