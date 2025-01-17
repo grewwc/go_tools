@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,6 +19,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/sortW"
 
 	"github.com/grewwc/go_tools/src/executable/memo/_helpers"
 	"github.com/grewwc/go_tools/src/stringsW"
@@ -94,6 +94,10 @@ type tag struct {
 	Name         string             `bson:"name,ignoreempty"`
 	Count        int64              `bson:"count,ignoreempty"`
 	modifiedDate time.Time
+}
+
+func (t tag) String() string {
+	return utilsW.ToString(t, "ID", "Name", "Count")
 }
 
 func newRecord(title string, tags ...string) *record {
@@ -900,20 +904,15 @@ func getObjectIdByTags(tags []string) string {
 	return id
 }
 
-type tagSlice []tag
-
-func (l tagSlice) Len() int {
-	return len([]tag(l))
-}
-
-func (l tagSlice) Swap(i, j int) {
-	ll := []tag(l)
-	ll[i], ll[j] = ll[j], ll[i]
-}
-
-func (l tagSlice) Less(i, j int) bool {
-	ll := []tag(l)
-	return ll[i].modifiedDate.Before(ll[j].modifiedDate)
+func (t tag) Compare(other interface{}) int {
+	otherT := other.(tag)
+	if t.modifiedDate.Before(otherT.modifiedDate) {
+		return -1
+	}
+	if t.modifiedDate.Equal(otherT.modifiedDate) {
+		return 0
+	}
+	return 1
 }
 
 func finishRecordsByTags(tags []string) {
@@ -1319,7 +1318,8 @@ func main() {
 				tags = append(tags, t)
 			}
 			if listTagsAndOrderByTime {
-				sort.Sort(tagSlice(tags))
+				// sort.Sort(tagSlice(tags))
+				sortW.QuickSortComparable(tags)
 			}
 			// fmt.Println("tags", tags)
 			goto print

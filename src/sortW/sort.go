@@ -1,4 +1,4 @@
-package algorithmW
+package sortW
 
 import (
 	"math"
@@ -6,6 +6,7 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/grewwc/go_tools/src/algorithmW"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/containerW/typesW"
 	"golang.org/x/exp/constraints"
@@ -270,7 +271,7 @@ func quickSort[T constraints.Ordered](arr []T, calclRatio bool, wg *sync.WaitGro
 		return
 	}
 
-	lt, gt := ThreeWayPartitionInts(arr)
+	lt, gt := algorithmW.ThreeWayPartitionInts(arr)
 	left, right := arr[:lt], arr[gt+1:]
 	n := 4096
 	if len(left) < n || len(right) < n {
@@ -298,7 +299,7 @@ func quickSortComparable[T typesW.Comparable](arr []T, calcRatio bool, wg *sync.
 		return
 	}
 
-	lt, gt := ThreeWayPartitionComparable(arr)
+	lt, gt := algorithmW.ThreeWayPartitionComparable(arr)
 	left, right := arr[:lt], arr[gt+1:]
 	n := 4096
 	if len(left) < n || len(right) < n {

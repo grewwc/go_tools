@@ -253,7 +253,7 @@ func BuildMongoRegularExpExclude(specialPattern *containerW.Set) string {
 
 func SearchTrie(trie *containerW.Trie, specialPattern *containerW.Set) bool {
 	for val := range specialPattern.Iterate() {
-		if trie.StartsWith(val.(string)) {
+		if trie.LooseContains(val.(string)) {
 			return true
 		}
 	}
