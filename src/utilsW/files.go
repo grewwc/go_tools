@@ -78,10 +78,11 @@ func ReadString(fname string) string {
 
 // WriteToFile will clean the original content!!
 func WriteToFile(filename string, buf []byte) error {
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0664)
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0664)
 	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
 	_, err = f.Write(buf)
 	return err
 }
@@ -89,7 +90,7 @@ func WriteToFile(filename string, buf []byte) error {
 func InputWithEditor(originalContent string, vs bool) (res string) {
 	fname := uuid.New().String() + ".txt"
 	var cmd *exec.Cmd
-	f, err := os.OpenFile(fname, os.O_CREATE|os.O_RDWR, 0666)
+	f, err := os.OpenFile(fname, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
 	if err != nil {
 		panic(err)
 	}
