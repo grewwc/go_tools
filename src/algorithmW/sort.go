@@ -2,6 +2,9 @@ package algorithmW
 
 import (
 	"math"
+	"reflect"
+	"sync"
+	"unsafe"
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/containerW/typesW"
@@ -12,6 +15,12 @@ import (
 func InsertionSort[T constraints.Ordered](arr []T) {
 	l := len(arr)
 	if l <= 1 {
+		return
+	}
+	if l == 2 {
+		if arr[0] > arr[1] {
+			arr[0], arr[1] = arr[1], arr[0]
+		}
 		return
 	}
 	for i := 0; i < l-1; i++ {
@@ -42,13 +51,41 @@ func InsertionSortComparable[T typesW.Comparable](arr []T) {
 
 }
 
-// QuickSort ints
-func QuickSort[T constraints.Ordered](arr []T) {
-	quickSort(arr, true)
+func mustToIntegerSlice[From constraints.Ordered, To constraints.Integer](from []From) []To {
+	return *((*[]To)(unsafe.Pointer(&from)))
 }
 
+func getMaxVal[T constraints.Ordered](arr []T) T {
+	maxVal := arr[0]
+	for _, val := range arr[1:] {
+		if val > maxVal {
+			maxVal = val
+		}
+	}
+	return maxVal
+}
+
+// QuickSort uses multi cores
+func QuickSort[T constraints.Ordered](arr []T) {
+	if len(arr) <= 1 {
+		return
+	}
+	name := reflect.TypeOf(*new(T)).Name()
+	maxVal := getMaxVal(arr)
+	maxValInt := *(*int)(unsafe.Pointer(&maxVal))
+	isint := name == "int" || name == "int8" || name == "int16" || name == "int32" || name == "int64" ||
+		name == "uint" || name == "uint8" || name == "uint16" || name == "uint32" || name == "uint64"
+	thresh := int(1e5) + 1
+	if isint && maxValInt < thresh {
+		countSortWithThreash(mustToIntegerSlice[T, int](arr), thresh)
+		return
+	}
+	quickSort(arr, true, nil)
+}
+
+// QuickSortComparable uses multi cores
 func QuickSortComparable[T typesW.Comparable](arr []T) {
-	quickSortComparable(arr, true)
+	quickSortComparable(arr, true, nil)
 }
 
 // ShellSort ints
@@ -115,6 +152,31 @@ func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
 		arr[i] = h.Pop().(T)
 		i++
 	}
+}
+
+func countSortWithThreash[T constraints.Integer](arr []T, thresh int) {
+	if len(arr) <= 1 {
+		return
+	}
+	count := make([]int64, thresh)
+	for _, val := range arr {
+		count[int(val)]++
+	}
+	var index int64
+	for i, val := range count {
+		for j := 0; int64(j) < val; j++ {
+			arr[index] = T(i)
+			index++
+		}
+	}
+}
+
+func CountSort[T constraints.Integer](arr []T) {
+	if len(arr) <= 1 {
+		return
+	}
+	maxVal := getMaxVal(arr)
+	countSortWithThreash(arr, int(maxVal)+1)
 }
 
 func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
@@ -190,8 +252,11 @@ func calcSortedRatioComparable[T typesW.Comparable](arr []T) float32 {
 	return float32(cnt) / float32(len(arr))
 }
 
-func quickSort[T constraints.Ordered](arr []T, calclRatio bool) {
-	if len(arr) < 32 {
+func quickSort[T constraints.Ordered](arr []T, calclRatio bool, wg *sync.WaitGroup) {
+	if wg != nil {
+		defer wg.Done()
+	}
+	if len(arr) < 48 {
 		InsertionSort(arr)
 		return
 	}
@@ -201,11 +266,24 @@ func quickSort[T constraints.Ordered](arr []T, calclRatio bool) {
 	}
 
 	lt, gt := ThreeWayPartitionInts(arr)
-	quickSort(arr[:lt], false)
-	quickSort(arr[gt+1:], false)
+	left, right := arr[:lt], arr[gt+1:]
+	n := 4096
+	if len(left) < n || len(right) < n {
+		quickSort(left, false, nil)
+		quickSort(right, false, nil)
+		return
+	}
+	var wg1 sync.WaitGroup
+	wg1.Add(2)
+	go quickSort(left, false, &wg1)
+	go quickSort(right, false, &wg1)
+	wg1.Wait()
 }
 
-func quickSortComparable[T typesW.Comparable](arr []T, calcRatio bool) {
+func quickSortComparable[T typesW.Comparable](arr []T, calcRatio bool, wg *sync.WaitGroup) {
+	if wg != nil {
+		defer wg.Done()
+	}
 	if len(arr) < 32 {
 		InsertionSortComparable(arr)
 		return
@@ -216,6 +294,16 @@ func quickSortComparable[T typesW.Comparable](arr []T, calcRatio bool) {
 	}
 
 	lt, gt := ThreeWayPartitionComparable(arr)
-	quickSortComparable(arr[:lt], false)
-	quickSortComparable(arr[gt+1:], false)
+	left, right := arr[:lt], arr[gt+1:]
+	n := 4096
+	if len(left) < n || len(right) < n {
+		quickSortComparable(left, false, nil)
+		quickSortComparable(right, false, nil)
+		return
+	}
+	wg1 := sync.WaitGroup{}
+	wg1.Add(2)
+	quickSortComparable(left, false, &wg1)
+	quickSortComparable(right, false, &wg1)
+	wg1.Wait()
 }

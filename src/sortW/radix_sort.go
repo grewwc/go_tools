@@ -14,8 +14,8 @@ func getNumDigits(num int) int {
 	return resultVal
 }
 
-func countSort(nums *[]int, exp int) {
-	old := *nums
+func countSort(nums []int, exp int) {
+	old := nums
 	count := make([]int, 10)
 	n := len(old)
 	output := make([]int, n)
@@ -40,7 +40,7 @@ func countSort(nums *[]int, exp int) {
 }
 
 // RadixSort int slice version
-func RadixSort(nums *[]int) {
+func RadixSort(nums []int) {
 	getMaxVal := func(nums []int) int {
 		resultVal := math.MinInt64
 		for _, num := range nums {
@@ -51,7 +51,7 @@ func RadixSort(nums *[]int) {
 		return resultVal
 	}
 
-	maxDigit := getNumDigits(getMaxVal(*nums))
+	maxDigit := getNumDigits(getMaxVal(nums))
 	exp := 1
 	for i := 0; i < maxDigit; i++ {
 		countSort(nums, exp)

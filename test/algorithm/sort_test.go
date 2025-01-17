@@ -8,10 +8,11 @@ import (
 	"github.com/grewwc/go_tools/src/algorithmW"
 	"github.com/grewwc/go_tools/src/containerW/typesW"
 	"github.com/grewwc/go_tools/src/randW"
+	"github.com/grewwc/go_tools/src/sortW"
 )
 
 const (
-	N = 50000
+	N = 500000
 )
 
 func TestShellSort(t *testing.T) {
@@ -27,8 +28,28 @@ func TestShellSort(t *testing.T) {
 
 func TestQuickSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		arr := randW.RandInt(0, 100, 500)
+		arr := randW.RandInt(0, 500, 1000)
 		algorithmW.QuickSort(arr)
+		if !sort.IntsAreSorted(arr) {
+			t.Errorf("arr is not sorted, %v", arr)
+		}
+	}
+}
+
+func TestRadixSort(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		arr := randW.RandInt(0, 500, 1000)
+		sortW.RadixSort(arr)
+		if !sort.IntsAreSorted(arr) {
+			t.Errorf("arr is not sorted, %v", arr)
+		}
+	}
+}
+
+func TestCountSort(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		arr := randW.RandInt(0, 500, 1000)
+		algorithmW.CountSort(arr)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}
@@ -64,12 +85,13 @@ func TestQuickSortComparable(t *testing.T) {
 }
 
 func BenchmarkQuickSort(b *testing.B) {
-	arr := randW.RandFloat64(N)
-	sort.Float64s(arr)
+	arr := randW.RandInt(0, 100000, N)
 	for i := 0; i < b.N; i++ {
+		b.StopTimer()
 		rand.Shuffle(len(arr), func(i, j int) {
 			arr[i], arr[j] = arr[j], arr[i]
 		})
+		b.StartTimer()
 		algorithmW.QuickSort(arr)
 	}
 }
@@ -77,20 +99,23 @@ func BenchmarkQuickSort(b *testing.B) {
 func BenchmarkShellSort(b *testing.B) {
 	arr := randW.RandFloat64(N)
 	for i := 0; i < b.N; i++ {
+		b.StopTimer()
 		rand.Shuffle(len(arr), func(i, j int) {
 			arr[i], arr[j] = arr[j], arr[i]
 		})
+		b.StartTimer()
 		algorithmW.ShellSort(arr)
 	}
 }
 
 func BenchmarkSort(b *testing.B) {
-	arr := randW.RandFloat64(N)
-	sort.Float64s(arr)
+	arr := randW.RandInt(0, 100000, N)
 	for i := 0; i < b.N; i++ {
+		b.StopTimer()
 		rand.Shuffle(len(arr), func(i, j int) {
 			arr[i], arr[j] = arr[j], arr[i]
 		})
-		sort.Float64s(arr)
+		b.StartTimer()
+		sort.Ints(arr)
 	}
 }
