@@ -5,7 +5,6 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/grewwc/go_tools/src/algorithmW"
 	"github.com/grewwc/go_tools/src/containerW/typesW"
 	"github.com/grewwc/go_tools/src/randW"
 	"github.com/grewwc/go_tools/src/sortW"
@@ -18,7 +17,7 @@ const (
 func TestShellSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		arr := randW.RandInt(0, 100, 500)
-		algorithmW.ShellSort(arr)
+		sortW.ShellSort(arr)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}
@@ -29,7 +28,7 @@ func TestShellSort(t *testing.T) {
 func TestQuickSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		arr := randW.RandInt(0, 500, 1000)
-		algorithmW.QuickSort(arr)
+		sortW.QuickSort(arr)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}
@@ -49,7 +48,7 @@ func TestRadixSort(t *testing.T) {
 func TestCountSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		arr := randW.RandInt(-500, 500, 10000)
-		algorithmW.CountSort(arr)
+		sortW.CountSort(arr)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}
@@ -63,8 +62,8 @@ func TestShellSortComparable(t *testing.T) {
 		for _, v := range intsArr {
 			arr = append(arr, typesW.IntComparable(v))
 		}
-		algorithmW.ShellSortComparable(arr)
-		if !algorithmW.AreSorted(arr) {
+		sortW.ShellSortComparable(arr)
+		if !sortW.AreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}
 	}
@@ -77,8 +76,8 @@ func TestQuickSortComparable(t *testing.T) {
 		for _, v := range intsArr {
 			arr = append(arr, typesW.IntComparable(v))
 		}
-		algorithmW.ShellSortComparable(arr)
-		if !algorithmW.AreSorted(arr) {
+		sortW.ShellSortComparable(arr)
+		if !sortW.AreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}
 	}
@@ -92,7 +91,7 @@ func BenchmarkQuickSort(b *testing.B) {
 			arr[i], arr[j] = arr[j], arr[i]
 		})
 		b.StartTimer()
-		algorithmW.QuickSort(arr)
+		sortW.QuickSort(arr)
 	}
 }
 
@@ -104,7 +103,7 @@ func BenchmarkShellSort(b *testing.B) {
 			arr[i], arr[j] = arr[j], arr[i]
 		})
 		b.StartTimer()
-		algorithmW.ShellSort(arr)
+		sortW.ShellSort(arr)
 	}
 }
 
