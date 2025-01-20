@@ -13,24 +13,37 @@ func SliceContains(slice []string, target string) bool {
 
 // Contains test if "sub" is a substring of s
 func Contains(s, sub string) bool {
-	if len(sub) == 0 {
-		return len(s) != 0
+	if len(s) == 0 {
+		return false
 	}
-	prefix := makePrefix(s, sub)
-	i, j := 0, 0
-	for i < len(s) && j < len(sub) {
-		if s[i] == sub[j] {
+	if len(sub) == 0 {
+		return true
+	}
+	matches := KmpSearch(s, sub)
+	return len(matches) > 0
+}
+
+func KmpSearch(text, pattern string) []int {
+	matches := make([]int, 0)
+	next := kmpPrefix(pattern)
+	j := 0
+	for i := 0; i < len(text); {
+		if text[i] == pattern[j] {
 			i++
 			j++
 		} else {
-			j = prefix[j] - 1
-			if j == -1 {
-				j = 0
+			if j == 0 {
 				i++
+			} else {
+				j = next[j-1]
 			}
 		}
+		if j == len(pattern) {
+			matches = append(matches, i-j)
+			j = next[j-1]
+		}
 	}
-	return j == len(sub)
+	return matches
 }
 
 func CopySlice(original []string) []string {
@@ -48,20 +61,22 @@ func EqualsAny(target string, choices ...string) bool {
 	return false
 }
 
-func makePrefix(s, sub string) []int {
-	res := make([]int, len(sub))
-	j, i := 0, 1
-	for i < len(sub) {
-		if sub[j] == sub[i] {
-			res[i] = j + 1
-			i++
+func kmpPrefix(pattern string) []int {
+	prefix := make([]int, len(pattern))
+	j := 0
+	for i := 1; i < len(pattern); {
+		if pattern[i] == pattern[j] {
 			j++
-		} else if j == 0 {
-			res[i] = 0
+			prefix[i] = j
 			i++
 		} else {
-			j = res[j-1]
+			if j == 0 {
+				prefix[i] = 0
+				i++
+			} else {
+				j = prefix[j-1]
+			}
 		}
 	}
-	return res
+	return prefix
 }
