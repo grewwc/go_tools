@@ -22,7 +22,16 @@ func TestShellSort(t *testing.T) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}
 	}
+}
 
+func TestHeapSort(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		arr := randW.RandInt(-100, 100, 500)
+		sortW.HeapSort(arr, false)
+		if !sort.IntsAreSorted(arr) {
+			t.Errorf("arr is not sorted, %v", arr)
+		}
+	}
 }
 
 func TestQuickSort(t *testing.T) {

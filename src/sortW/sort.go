@@ -143,11 +143,11 @@ func ShellSortComparable[T typesW.Comparable](arr []T) {
 }
 
 func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
-	var h containerW.Heap
+	var h containerW.Heap[T]
 	if reverse {
-		h = containerW.NewMaxHeapCap(len(arr))
+		h = containerW.NewMaxHeapCap[T](len(arr))
 	} else {
-		h = containerW.NewMinHeapCap(len(arr))
+		h = containerW.NewMinHeapCap[T](len(arr))
 	}
 	for _, val := range arr {
 		h.Insert(val)
@@ -155,7 +155,24 @@ func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
 
 	i := 0
 	for !h.IsEmpty() {
-		arr[i] = h.Pop().(T)
+		arr[i] = h.Pop()
+		i++
+	}
+}
+
+func HeapSortComparable(arr []typesW.Comparable, reverse bool) {
+	var h containerW.HeapComparable
+	if reverse {
+		h = containerW.NewMaxHeapCapComparable(len(arr))
+	} else {
+		h = containerW.NewMinHeapCapComparable(len(arr))
+	}
+	for _, val := range arr {
+		h.Insert(val)
+	}
+	i := 0
+	for !h.IsEmpty() {
+		arr[i] = h.Pop().(typesW.Comparable)
 		i++
 	}
 }
@@ -189,11 +206,11 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 	if k < 1 {
 		return nil
 	}
-	var h containerW.Heap
+	var h containerW.Heap[T]
 	if minK {
-		h = containerW.NewMaxHeapCap(k)
+		h = containerW.NewMaxHeapCap[T](k)
 	} else {
-		h = containerW.NewMinHeapCap(k)
+		h = containerW.NewMinHeapCap[T](k)
 	}
 	for i, val := range arr {
 		if i < k {
@@ -202,9 +219,9 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 		}
 		next := h.Next()
 		cmp := 0
-		if next.(T) < val {
+		if next < val {
 			cmp = -1
-		} else if next.(T) == val {
+		} else if next == val {
 			cmp = 0
 		} else {
 			cmp = -1
