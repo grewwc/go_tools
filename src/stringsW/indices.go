@@ -21,6 +21,9 @@ func FindAll(str, substr string) []int {
 	return result
 }
 
+// StripPrefix: strip prefix
+//
+// Deprecated: use strings.TrimPrefix instead
 func StripPrefix(s, prefix string) string {
 	idx := strings.Index(s, prefix)
 	if idx < 0 {
@@ -29,6 +32,9 @@ func StripPrefix(s, prefix string) string {
 	return s[idx+len(prefix):]
 }
 
+// StripSuffix strip suffix
+//
+// Deprecated: use strings.TrimSuffix instead
 func StripSuffix(s, suffix string) string {
 	idx := strings.LastIndex(s, suffix)
 	if idx < 0 {
