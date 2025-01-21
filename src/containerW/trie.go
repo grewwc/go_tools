@@ -1,27 +1,27 @@
 package containerW
 
 type Trie struct {
-	root map[rune]*Trie
+	data map[rune]*Trie
 	end  map[rune]int
 }
 
 /** Initialize your data structure here. */
 func NewTrie() *Trie {
-	return &Trie{end: make(map[rune]int), root: make(map[rune]*Trie)}
+	return &Trie{end: make(map[rune]int), data: make(map[rune]*Trie)}
 }
 
 /** Inserts a word into the trie. */
 func (t *Trie) Insert(word string) {
 	cur := t
 	for cnt, ch := range word {
-		if _, exists := cur.root[ch]; !exists {
+		if _, exists := cur.data[ch]; !exists {
 			newTrie := NewTrie()
-			cur.root[ch] = newTrie
+			cur.data[ch] = newTrie
 		}
 		if cnt+1 == len(word) {
 			cur.end[ch] += 1
 		}
-		cur = cur.root[ch]
+		cur = cur.data[ch]
 	}
 }
 
@@ -32,13 +32,13 @@ func (t *Trie) Contains(word string) bool {
 	}
 	cur := t
 	for cnt, ch := range word {
-		if _, exists := cur.root[ch]; !exists {
+		if _, exists := cur.data[ch]; !exists {
 			return false
 		}
 		if cnt+1 == len(word) {
 			return cur.end[ch] > 0
 		}
-		cur = cur.root[ch]
+		cur = cur.data[ch]
 	}
 	return true
 }
@@ -50,10 +50,10 @@ func (t *Trie) LooseContains(word string) bool {
 	}
 	cur := t
 	for _, ch := range word {
-		if _, exists := cur.root[ch]; !exists {
+		if _, exists := cur.data[ch]; !exists {
 			return false
 		}
-		cur = cur.root[ch]
+		cur = cur.data[ch]
 	}
 	return true
 }
@@ -68,9 +68,56 @@ func (t *Trie) Delete(word string) bool {
 			cur.end[ch]--
 		}
 		if count, exists := cur.end[ch]; exists && count == 0 {
-			delete(cur.root, ch)
+			delete(cur.data, ch)
 		}
-		cur = cur.root[ch]
+		cur = cur.data[ch]
 	}
 	return true
+}
+
+func showPrefixHelper(t *Trie, prefix string, n int) []string {
+	if len(prefix) == 0 || n == 0 {
+		return nil
+	}
+	res := make([]string, 0, n)
+	if n == 0 {
+		return nil
+	}
+	s := NewQueue()
+	curr := prefix
+	currMap := t.data
+	s.Enqueue(NewTuple(currMap, curr))
+	for !s.Empty() {
+		currTuple := s.Dequeue().(*Tuple)
+		currMap, curr = currTuple.Get(0).(map[rune]*Trie), currTuple.Get(1).(string)
+		if curr != "" {
+			res = append(res, curr)
+			n--
+		}
+		for ch, t := range currMap {
+			if n > 0 {
+				s.Enqueue(NewTuple(t.data, curr+string(ch)))
+			} else {
+				break
+			}
+		}
+	}
+	return res
+}
+
+func (t *Trie) ShowPrefix(prefix string, n int) []string {
+	if len(prefix) == 0 || n == 0 {
+		return nil
+	}
+	if n < 0 {
+		n = 128
+	}
+	// find next prefix
+	for _, ch := range prefix {
+		if _, exists := t.data[ch]; !exists {
+			return nil
+		}
+		t = t.data[ch]
+	}
+	return showPrefixHelper(t, prefix, n)
 }
