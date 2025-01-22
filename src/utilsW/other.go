@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -208,4 +209,30 @@ func RunCmdWithTimeout(cmd string, timeout time.Duration) error {
 		return fmt.Errorf("timeout Execute command: %s (%v)", cmd, timeout)
 	}
 	return err
+}
+
+// Goid
+
+// copied from stackoverflow: https://stackoverflow.com/questions/75361134/how-can-i-get-a-goroutines-runtime-id
+func Goid() int {
+	buf := make([]byte, 32)
+	n := runtime.Stack(buf, false)
+	buf = buf[:n]
+	// goroutine 1 [running]: ...
+
+	buf, ok := bytes.CutPrefix(buf, stringsW.StringToBytes("goroutine "))
+	if !ok {
+		return -1
+	}
+
+	i := bytes.IndexByte(buf, ' ')
+	if i < 0 {
+		return -1
+	}
+
+	res, err := strconv.Atoi(string(buf[:i]))
+	if err != nil {
+		return -1
+	}
+	return res
 }
