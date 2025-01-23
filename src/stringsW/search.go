@@ -96,8 +96,10 @@ func Plus(a, b string) string {
 	}
 	a, b = strings.TrimLeft(a, "0"), strings.TrimLeft(b, "0")
 	// handle dot for float number
-	numDot := countDotdigit(a, b, true)
+	n1, n2, numDot := countDotdigit(a, b, true)
 	a, b = strings.ReplaceAll(a, ".", ""), strings.ReplaceAll(b, ".", "")
+	a += strings.Repeat("0", numDot-n1)
+	b += strings.Repeat("0", numDot-n2)
 	if len(a) < len(b) {
 		a, b = b, a
 	}
@@ -169,10 +171,12 @@ func Minus(a, b string) string {
 		return "-" + Plus(StripPrefix(a, "-"), b)
 	}
 	// handle dot for float number
-	numDot := countDotdigit(a, b, true)
+	n1, n2, numDot := countDotdigit(a, b, true)
 	a, b = strings.ReplaceAll(a, ".", ""), strings.ReplaceAll(b, ".", "")
 	isMinus := false
 	a, b = StripPrefix(a, "-"), StripPrefix(b, "-")
+	a += strings.Repeat(a, numDot-n1)
+	b += strings.Repeat(b, numDot-n2)
 	if len(a) < len(b) || (len(a) == len(b) && a < b) {
 		isMinus = true
 		a, b = b, a
@@ -238,7 +242,7 @@ func Mul(a, b string) string {
 		a, b = b, a
 	}
 	// handle dot for float number
-	numDot := countDotdigit(a, b, false)
+	_, _, numDot := countDotdigit(a, b, false)
 	a, b = strings.ReplaceAll(a, ".", ""), strings.ReplaceAll(b, ".", "")
 	carry := make([]int, len(a)+len(b)+1)
 	res := make([]byte, len(a)+len(b)+1)
@@ -311,7 +315,7 @@ func kmpPrefix(pattern string) []int {
 	return prefix
 }
 
-func countDotdigit(a, b string, add bool) int {
+func countDotdigit(a, b string, add bool) (int, int, int) {
 	aDot, bDot := strings.Count(a, "."), strings.Count(b, ".")
 	if aDot > 1 || bDot > 1 {
 		panic(fmt.Sprintf("invalid number: %s, %s\n", a, b))
@@ -323,9 +327,11 @@ func countDotdigit(a, b string, add bool) int {
 	if bi == -1 {
 		bi = len(b) - 1
 	}
+	ca := len(a) - ai - 1
+	cb := len(b) - bi - 1
 	// multiply
 	if !add {
-		return (len(a) - ai - 1) + (len(b) - bi - 1)
+		return ca, cb, ca + cb
 	}
-	return int(math.Max(float64(len(a)-ai-1), float64(len(b)-bi-1)))
+	return ca, cb, int(math.Max(float64(ca), float64(cb)))
 }
