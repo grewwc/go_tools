@@ -153,15 +153,18 @@ func calc(expr []byte) string {
 					numSt.Push(buf.String())
 					buf.Reset()
 				}
-				if numSt.Size() >= 2 && opSt.Size() >= 1 && opSt.Top().(byte) == '^' {
-					second := numSt.Pop().(string)
-					first := numSt.Pop().(string)
-					val := calcWithOp(first, second, opSt.Pop().(byte))
-					if val == "" {
-						reportErr(expr)
-						return ""
+				if numSt.Size() >= 2 && opSt.Size() >= 1 {
+					next := opSt.Top().(byte)
+					if next == '^' || next == '*' || next == '/' {
+						second := numSt.Pop().(string)
+						first := numSt.Pop().(string)
+						val := calcWithOp(first, second, opSt.Pop().(byte))
+						if val == "" {
+							reportErr(expr)
+							return ""
+						}
+						numSt.Push(val)
 					}
-					numSt.Push(val)
 				}
 
 			}
@@ -179,17 +182,14 @@ func calc(expr []byte) string {
 					buf.Reset()
 				}
 				if numSt.Size() >= 2 && opSt.Size() >= 1 {
-					prevOp := opSt.Top().(byte)
-					if prevOp != '+' && prevOp != '-' {
-						second := numSt.Pop().(string)
-						first := numSt.Pop().(string)
-						val := calcWithOp(first, second, opSt.Pop().(byte))
-						if val == "" {
-							reportErr(expr)
-							return ""
-						}
-						numSt.Push(val)
+					second := numSt.Pop().(string)
+					first := numSt.Pop().(string)
+					val := calcWithOp(first, second, opSt.Pop().(byte))
+					if val == "" {
+						reportErr(expr)
+						return ""
 					}
+					numSt.Push(val)
 				}
 			}
 			opSt.Push(ch)
@@ -229,7 +229,8 @@ func calc(expr []byte) string {
 }
 
 func test() {
-	x := "1-2.124**2"
+	x := "1-1+1"
+	x = "2*2"
 	res := calc(stringsW.StringToBytes(processInputStr(x)))
 	fmt.Println(res)
 }
@@ -256,5 +257,6 @@ func main() {
 
 	res := calc(stringsW.StringToBytes(processInputStr(expr)))
 	fmt.Println(res)
+	// test()
 
 }
