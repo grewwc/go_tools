@@ -2,14 +2,15 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"math"
-	"os"
 	"strconv"
 	"strings"
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/terminalW"
 )
 
 const (
@@ -17,7 +18,10 @@ const (
 	NUMBER
 	OPERATOR
 	BLANK_SPACE
+	DOT
 )
+
+var prec int
 
 func processInputStr(input string) string {
 	input = strings.ReplaceAll(input, "**", "^")
@@ -66,7 +70,8 @@ func calcWithOp(first, second string, op byte) string {
 	case '*':
 		val = stringsW.Mul(first, second)
 	case '/':
-		val = div(first, second)
+		// val = div(first, second)
+		val = stringsW.Div(first, second, prec)
 		if val == "" {
 			return ""
 		}
@@ -194,6 +199,14 @@ func calc(expr []byte) string {
 		} else if ch == '\n' {
 			i++
 			continue
+		} else if ch == '.' {
+			if state == DOT {
+				reportErr(expr)
+				return ""
+			}
+			buf.WriteByte(ch)
+			i++
+			state = DOT
 		} else {
 			reportErr(expr)
 			return ""
@@ -216,15 +229,28 @@ func calc(expr []byte) string {
 	return numSt.Pop().(string)
 }
 
+func test() {
+	x := "1-2.124**2"
+	res := calc(stringsW.StringToBytes(processInputStr(x)))
+	fmt.Println(res)
+}
+
 func main() {
-	if len(os.Args) < 2 {
+	flag.Int("prec", 16, "division precision. default is: 16")
+	parsed := terminalW.ParseArgsCmd()
+	if parsed == nil {
+		flag.PrintDefaults()
 		fmt.Println("c '1+2'")
 		return
 	}
-	expr := os.Args[1]
+
+	expr := parsed.Positional.ToStringSlice()[0]
+	prec = parsed.GetIntFlagValOrDefault("prec", 16)
+	if parsed.GetNumArgs() != -1 {
+		prec = parsed.GetNumArgs()
+	}
+
 	res := calc(stringsW.StringToBytes(processInputStr(expr)))
 	fmt.Println(res)
-	// x := "1*4*9^22"
-	// res := calc(stringsW.StringToBytes(processInputStr(x)))
-	// fmt.Println(res)
+
 }
