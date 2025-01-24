@@ -104,7 +104,6 @@ func calc(expr []byte) string {
 				}
 
 			}
-			state = BLANK_SPACE
 			i++
 			continue
 		}
