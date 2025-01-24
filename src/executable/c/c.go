@@ -238,6 +238,11 @@ func test() {
 func main() {
 	flag.Int("prec", 16, "division precision. default is: 16")
 	parsed := terminalW.ParseArgsCmd()
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	if parsed == nil {
 		flag.PrintDefaults()
 		fmt.Println("c '1+2'")
