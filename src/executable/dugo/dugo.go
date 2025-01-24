@@ -128,7 +128,7 @@ func getOnlyDirectories(root string) []string {
 		if !utilsW.IsDir(file) {
 			continue
 		}
-		result = append(result, file)
+		result = append(result, filepath.Join(root, file))
 	}
 	return result
 }
@@ -139,7 +139,7 @@ func getOnlyFiles(root string) []string {
 		if utilsW.IsDir(file) {
 			continue
 		}
-		result = append(result, file)
+		result = append(result, filepath.Join(root, file))
 	}
 	return result
 }
@@ -150,7 +150,7 @@ func getDirAndFiles(root string) []string {
 		if excludes.Contains(file) {
 			continue
 		}
-		result = append(result, file)
+		result = append(result, filepath.Join(root, file))
 	}
 	return result
 }
@@ -210,7 +210,7 @@ func getFirstDir(parsed *terminalW.ParsedResults) string {
 	if len(args) == 0 {
 		return "."
 	}
-	return args[1]
+	return args[0]
 }
 
 func getExcludeFiles(parsed *terminalW.ParsedResults) {
