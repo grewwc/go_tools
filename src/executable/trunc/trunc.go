@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,12 +19,47 @@ import (
 var (
 	force   bool
 	verbose bool
+	newline bool
 )
 
 var (
 	e  *containerW.Set
 	ne *containerW.Set
 )
+
+type iTask func(name string) error
+
+func truncFile(name string) error {
+	return os.Truncate(name, 0)
+}
+
+func removeNewLine(name string) error {
+	lines := make([]string, 0)
+	f, err := os.Open(name)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	reader := bufio.NewReader(f)
+	for {
+		b, err := reader.ReadBytes('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		line := stringsW.BytesToString(b)
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		lines = append(lines, line)
+
+	}
+	utilsW.WriteToFile(name, stringsW.StringToBytes(strings.Join(lines, "\n")))
+	return nil
+}
 
 func needTruncate(ext string) bool {
 	if e == nil && ne == nil {
@@ -34,8 +71,8 @@ func needTruncate(ext string) bool {
 	return e.Contains(ext)
 }
 
-func truncateDirOrFile(name string) error {
-	if !force && !utilsW.PromptYesOrNo(color.RedString("Are you sure to truncate all files in %q (y/n) ", name)) {
+func truncateDirOrFile(name string, task iTask) error {
+	if !force && !newline && !utilsW.PromptYesOrNo(color.RedString("Are you sure to truncate all files in %q (y/n) ", name)) {
 		fmt.Println("Aborting...")
 		return nil
 	}
@@ -66,7 +103,7 @@ func truncateDirOrFile(name string) error {
 	ext := strings.TrimLeft(filepath.Ext(name), ".")
 	// fmt.Println(needTruncate(ext), ext, e, ne)
 	if needTruncate(ext) {
-		return os.Truncate(name, 0)
+		return task(name)
 	}
 	return nil
 }
@@ -84,21 +121,24 @@ func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("f", false, "force")
 	fs.Bool("v", false, "verbose")
-	fs.String("e", "", "only trucnate files with the extension, e.g.: -e \".log, .txt\"")
-	fs.String("ne", "", "only trucnate files with the extension, e.g.: -e \".log, .txt\"")
+	fs.Bool("h", false, "print help info")
+	fs.Bool("newline", false, "only remove newline")
+	fs.String("include", "", "only trucnate files with the extension, e.g.: -include \".log, .txt\"")
+	fs.String("exclude", "", "only trucnate files without the extension, e.g.: -exclude \".log, .txt\"")
 
-	parsed := terminalW.ParseArgsCmd("v", "h", "f")
+	parsed := terminalW.ParseArgsCmd("v", "h", "f", "newline")
 	var root string
 	var err error
-	if parsed == nil {
+	if parsed == nil || parsed.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		printHelp()
 		return
 	}
 	force = parsed.ContainsFlagStrict("f")
 	verbose = parsed.ContainsFlagStrict("v")
-	includeExt := parsed.GetFlagValueDefault("e", "")
-	excludeExt := parsed.GetFlagValueDefault("ne", "")
+	includeExt := parsed.GetFlagValueDefault("include", "")
+	excludeExt := parsed.GetFlagValueDefault("exclude", "")
+	newline = parsed.ContainsFlagStrict("newline")
 	if includeExt != "" {
 		e = containerW.NewSet()
 		for _, ext := range getStringSlice(includeExt) {
@@ -111,19 +151,17 @@ func main() {
 			ne.Add(strings.TrimLeft(ext, "."))
 		}
 	}
-	if parsed.ContainsFlagStrict("h") {
-		fs.PrintDefaults()
-		printHelp()
-		return
-	}
 	pos := parsed.Positional.ToStringSlice()
 	if len(pos) > 1 {
 		fmt.Println(color.RedString("atmost 1 arg"))
 		return
 	}
 	root = pos[0]
-
-	if err = truncateDirOrFile(root); err != nil {
+	task := truncFile
+	if newline {
+		task = removeNewLine
+	}
+	if err = truncateDirOrFile(root, task); err != nil {
 		panic(err)
 	}
 }
