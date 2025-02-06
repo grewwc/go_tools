@@ -155,7 +155,7 @@ func task(fromRootDir, toRootDir string) {
 	q := containerW.NewQueue(fromRootDir)
 	for !q.Empty() {
 		cur := q.Dequeue().(string)
-		for _, sub := range utilsW.LsDir(cur) {
+		for _, sub := range utilsW.LsDir(cur, nil) {
 			absPath := filepath.Join(cur, sub)
 			absPath = filepath.ToSlash(absPath)
 			ext := strings.ToLower(filepath.Ext(absPath))

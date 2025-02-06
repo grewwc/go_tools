@@ -124,7 +124,7 @@ func checkOneDirectory(root string) {
 
 func getOnlyDirectories(root string) []string {
 	result := make([]string, 0)
-	for _, file := range utilsW.LsDir(root) {
+	for _, file := range utilsW.LsDir(root, nil) {
 		if !utilsW.IsDir(file) {
 			continue
 		}
@@ -135,10 +135,7 @@ func getOnlyDirectories(root string) []string {
 
 func getOnlyFiles(root string) []string {
 	result := make([]string, 0)
-	for _, file := range utilsW.LsDir(root) {
-		if utilsW.IsDir(file) {
-			continue
-		}
+	for _, file := range utilsW.LsDir(root, func(file string) bool { return !utilsW.IsDir(file) }) {
 		result = append(result, filepath.Join(root, file))
 	}
 	return result
@@ -146,7 +143,7 @@ func getOnlyFiles(root string) []string {
 
 func getDirAndFiles(root string) []string {
 	result := make([]string, 0)
-	for _, file := range utilsW.LsDir(root) {
+	for _, file := range utilsW.LsDir(root, nil) {
 		if excludes.Contains(file) {
 			continue
 		}

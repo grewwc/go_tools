@@ -25,7 +25,7 @@ func init() {
 // LsDir returns slices containing contents of a directory
 // if fname is a file, not a directory, return empty slice
 // return: relative path
-func LsDir(fname string) []string {
+func LsDir(fname string, filter func(filename string) bool) []string {
 	if !IsDir(fname) {
 		return []string{}
 	}
@@ -33,9 +33,12 @@ func LsDir(fname string) []string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	res := make([]string, len(infos))
-	for i, info := range infos {
-		res[i] = filepath.ToSlash(info.Name())
+	res := make([]string, 0, len(infos))
+	for _, info := range infos {
+		slashName := filepath.ToSlash(info.Name())
+		if filter != nil && filter(slashName) {
+			res = append(res, slashName)
+		}
 	}
 	return res
 }
@@ -55,7 +58,7 @@ func LsDirGlob(fname string) map[string][]string {
 			dirName := filepath.Dir(name) + "/"
 			res[dirName] = append(res[dirName], filepath.Base(name))
 		} else {
-			res[name] = LsDir(name)
+			res[name] = LsDir(name, nil)
 			// fmt.Println("here", name, res)
 		}
 	}
@@ -300,7 +303,7 @@ func LsRegex(regex string) ([]string, error) {
 		return nil, err
 	}
 
-	for _, file := range LsDir(dir) {
+	for _, file := range LsDir(dir, nil) {
 		if re.MatchString(filepath.Join(dir, file)) {
 			res = append(res, filepath.Join(dir, file))
 		}
