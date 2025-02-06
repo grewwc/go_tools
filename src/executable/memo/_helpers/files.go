@@ -48,7 +48,7 @@ func LogMoveImages(type_, absName string) string {
 	// Check if the path is a directory
 	if utilsW.IsDir(absName) {
 		// If it's a directory, get all file paths in the directory
-		for _, fname := range utilsW.LsDir(absName, nil) {
+		for _, fname := range utilsW.LsDir(absName, nil, nil) {
 			filepaths = append(filepaths, filepath.Join(absName, fname))
 		}
 	} else {

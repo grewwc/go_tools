@@ -34,7 +34,7 @@ func main() {
 		}
 	}
 
-	subdirs := utilsW.LsDir(utilsW.GetDirOfTheFile(), nil)
+	subdirs := utilsW.LsDir(utilsW.GetDirOfTheFile(), nil, nil)
 	// fmt.Println(forceRebuildName.ToSlice(), subdirs)
 	outputDir := filepath.Join(utilsW.GetDirOfTheFile(), "../", "../", "bin/")
 	if !utilsW.IsExist(outputDir) {
@@ -58,7 +58,7 @@ func main() {
 		}
 		defer os.Chdir("../")
 		var filename string
-		filenames := utilsW.LsDir(".", nil)
+		filenames := utilsW.LsDir(".", nil, nil)
 		// find the first go file to build as binary
 		for _, name := range filenames {
 			if filepath.Ext(name) != ".go" {

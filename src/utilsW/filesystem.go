@@ -62,7 +62,7 @@ func LsDirGlob(fname string) map[string][]string {
 			dirName := filepath.Dir(name) + "/"
 			res[dirName] = append(res[dirName], filepath.Base(name))
 		} else {
-			res[name] = LsDir(name, nil)
+			res[name] = LsDir(name, nil, nil)
 			// fmt.Println("here", name, res)
 		}
 	}
@@ -307,7 +307,7 @@ func LsRegex(regex string) ([]string, error) {
 		return nil, err
 	}
 
-	for _, file := range LsDir(dir, nil) {
+	for _, file := range LsDir(dir, nil, nil) {
 		if re.MatchString(filepath.Join(dir, file)) {
 			res = append(res, filepath.Join(dir, file))
 		}

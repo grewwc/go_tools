@@ -20,7 +20,7 @@ func calcMd5(filename string) string {
 
 func newFileSet(rootDir string, parsedResults *terminalW.ParsedResults) *containerW.OrderedSet {
 	s := containerW.NewOrderedSet()
-	files := utilsW.LsDir(rootDir, nil)
+	files := utilsW.LsDir(rootDir, nil, nil)
 	chooseExt := parsedResults.GetFlagValueDefault("ext", "") != ""
 	printMd5 := parsedResults.ContainsFlagStrict("md5")
 	for _, f := range files {
