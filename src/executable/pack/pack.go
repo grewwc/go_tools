@@ -60,13 +60,14 @@ func processTarGzFile(fname string, prefix string) {
 
 	for {
 		header, err := tf.Next()
-		if err == io.EOF {
-			break
-		}
 
-		if err != nil {
+		if err != nil && err != io.EOF {
 			log.Println(err)
 			os.Exit(1)
+		}
+
+		if header == nil {
+			break
 		}
 
 		switch header.Typeflag {
@@ -92,6 +93,10 @@ func processTarGzFile(fname string, prefix string) {
 		default:
 			panic(fmt.Sprintf("wrong,%v,%s", header.Typeflag, color.RedString(header.Name)))
 		}
+
+		if err == io.EOF {
+			break
+		}
 	}
 }
 
@@ -102,6 +107,11 @@ func clean(fname string) {
 		log.Fatalln(color.RedString(msg))
 		os.Remove(fname)
 	}
+}
+
+func printHelp(fs *flag.FlagSet) {
+	fs.PrintDefaults()
+	fmt.Printf("%s dest.tar.gz source_dir\n", utilsW.BaseNoExt(utilsW.GetCurrentFileName()))
 }
 
 func main() {
@@ -119,8 +129,7 @@ func main() {
 	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean", "l")
 	// fmt.Println(parsedResults)
 	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
-		fs.PrintDefaults()
-		fmt.Printf("%s dest.tar.gz source_dir\n", utilsW.BaseNoExt(utilsW.GetCurrentFileName()))
+		printHelp(fs)
 		return
 	}
 
@@ -181,6 +190,10 @@ func main() {
 	// fmt.Println("here", args)
 	srcNames := []string{}
 	var srcName string
+	if len(args) < 1 {
+		printHelp(fs)
+		return
+	}
 	outName := args[0]
 
 	if !stringsW.EqualsAny(filepath.Ext(outName), ".gz", ".tgz") {
@@ -193,7 +206,9 @@ func main() {
 	}
 	// extract tar files
 	if parsedResults.ContainsFlagStrict("u") || listOnly {
-		fmt.Println(color.GreenString("e.g: untar src.tar.gz dest_directory"))
+		if parsedResults.ContainsFlagStrict("u") {
+			fmt.Println(color.GreenString("e.g: untar src.tar.gz dest_directory"))
+		}
 
 		args := parsedResults.Positional.ToStringSlice()
 		var src, prefix string
@@ -201,6 +216,9 @@ func main() {
 		src = args[0]
 
 		if !parsedResults.ContainsFlagStrict("l") {
+			if len(args) < 2 {
+				printHelp(fs)
+			}
 			prefix = args[1]
 		}
 		processTarGzFile(src, prefix)
@@ -220,7 +238,7 @@ func main() {
 	if len(args) > 2 {
 		srcNames = args[1:]
 	} else if len(args) <= 1 {
-		fs.PrintDefaults()
+		printHelp(fs)
 		return
 	} else {
 		srcName = args[1]

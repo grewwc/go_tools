@@ -43,19 +43,17 @@ func removeNewLine(name string) error {
 	reader := bufio.NewReader(f)
 	for {
 		b, err := reader.ReadBytes('\n')
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return err
 		}
 		line := stringsW.BytesToString(b)
 		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+		if line != "" {
+			lines = append(lines, line)
 		}
-		lines = append(lines, line)
-
+		if err == io.EOF {
+			break
+		}
 	}
 	utilsW.WriteToFile(name, stringsW.StringToBytes(strings.Join(lines, "\n")))
 	return nil
