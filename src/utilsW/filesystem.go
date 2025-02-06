@@ -24,8 +24,7 @@ func init() {
 
 // LsDir returns slices containing contents of a directory
 // if fname is a file, not a directory, return empty slice
-// return: relative path
-func LsDir(fname string, filter func(filename string) bool) []string {
+func LsDir(fname string, filter func(filename string) bool, postProcess func(filename string) string) []string {
 	if !IsDir(fname) {
 		return []string{}
 	}
@@ -35,10 +34,15 @@ func LsDir(fname string, filter func(filename string) bool) []string {
 	}
 	res := make([]string, 0, len(infos))
 	for _, info := range infos {
-		slashName := filepath.ToSlash(info.Name())
-		if filter != nil && filter(slashName) {
-			res = append(res, slashName)
+		name := info.Name()
+		if filter != nil && !filter(name) {
+			continue
 		}
+		if postProcess != nil {
+			name = postProcess(name)
+		}
+		slashName := filepath.ToSlash(name)
+		res = append(res, slashName)
 	}
 	return res
 }
