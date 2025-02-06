@@ -43,6 +43,9 @@ func NewJson(data interface{}) *Json {
 	if data == nil {
 		data = make(map[string]interface{})
 	}
+	for isJson(data) {
+		data = unwrapJson(data)
+	}
 	return &Json{data: data}
 }
 
