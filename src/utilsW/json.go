@@ -39,6 +39,9 @@ func NewJsonFromString(content string) *Json {
 }
 
 func NewJson(data interface{}) *Json {
+	if data == nil {
+		data = make(map[string]interface{})
+	}
 	return &Json{data: data}
 }
 
@@ -112,6 +115,33 @@ func getT[T type_, U keytype](j *Json, key U) T {
 		fmt.Printf("ERROR: key (\"%s\") is not type (\"%s\")\n", strKey, reflect.TypeOf(*new(T)))
 		return *new(T)
 	}
+}
+
+func (j *Json) Set(key string, value interface{}) bool {
+	if j == nil || j.data == nil {
+		fmt.Println("ERROR: json is nil")
+		return false
+	}
+	data, ok := j.data.(map[string]interface{})
+	if !ok {
+		fmt.Println("ERROR: not json format, json array?")
+		return false
+	}
+	_, exist := data[key]
+	data[key] = value
+	return exist
+}
+
+func (j *Json) Add(value interface{}) {
+	if j == nil || j.data == nil {
+		fmt.Println("ERROR: json is nil")
+	}
+	arr, ok := j.data.([]interface{})
+	if !ok {
+		fmt.Println("ERROR: not json array.")
+		return
+	}
+	j.data = append(arr, value)
 }
 
 func (j *Json) GetString(key string) string {
