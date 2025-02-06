@@ -138,8 +138,11 @@ func (j *Json) Add(value interface{}) {
 	}
 	arr, ok := j.data.([]interface{})
 	if !ok {
-		fmt.Println("ERROR: not json array.")
-		return
+		if m, isMap := j.data.(map[string]interface{}); !isMap || len(m) > 0 {
+			fmt.Println("ERROR: not json array.")
+			return
+		}
+		j.data = make([]interface{}, 0, 2)
 	}
 	j.data = append(arr, value)
 }
