@@ -171,11 +171,11 @@ func GetCommandList(cmd string) []string {
 	return stringsW.SplitNoEmpty(cmd, " ")
 }
 
-func RunCmd(cmd string) error {
+func RunCmd(cmd string) (string, error) {
 	l := stringsW.SplitNoEmpty(cmd, " ")
 	if len(l) < 1 {
 		fmt.Println("cmd is empty")
-		return errors.New("cmd is empty")
+		return "", errors.New("cmd is empty")
 	}
 	command := exec.Command(l[0], l[1:]...)
 	command.Stdin = os.Stdin
@@ -183,32 +183,36 @@ func RunCmd(cmd string) error {
 	stdout, _ := command.StdoutPipe()
 	err := command.Start()
 	if err != nil {
-		return err
+		return "", err
 	}
-	// return stdout.String(), nil
+	var arr = make([]byte, 1024)
+	var buf bytes.Buffer
 	for {
-		buf := make([]byte, 1024)
-		_, err := stdout.Read(buf)
-		if err != nil {
+		n, err := stdout.Read(arr)
+		if n <= 0 {
 			break
 		}
-		fmt.Print(string(buf))
+		if err != nil {
+			return "", err
+		}
+		buf.Write(arr)
 	}
-	return nil
+	return buf.String(), nil
 }
 
-func RunCmdWithTimeout(cmd string, timeout time.Duration) error {
+func RunCmdWithTimeout(cmd string, timeout time.Duration) (string, error) {
 	wg := sync.WaitGroup{}
 	var err error
+	var res string
 	wg.Add(1)
 	go func(err *error) {
-		*err = RunCmd(cmd)
+		res, *err = RunCmd(cmd)
 		defer wg.Done()
 	}(&err)
 	if TimeoutWait(&wg, timeout) != nil {
-		return fmt.Errorf("timeout Execute command: %s (%v)", cmd, timeout)
+		return "", fmt.Errorf("timeout Execute command: %s (%v)", cmd, timeout)
 	}
-	return err
+	return res, err
 }
 
 // Goid
