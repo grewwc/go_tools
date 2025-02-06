@@ -46,6 +46,21 @@ func NewJson(data interface{}) *Json {
 	for isJson(data) {
 		data = unwrapJson(data)
 	}
+	jsonArr, isJson_ := data.([]Json)
+	jsonPtrArr, isJsonPtr := data.([]*Json)
+	interfaceArr, isInterface := data.([]interface{})
+
+	var dataArr []interface{}
+	if isJson_ {
+		dataArr = unwrapArr(jsonArr)
+	} else if isJsonPtr {
+		dataArr = unwrapArr(jsonPtrArr)
+	} else if isInterface {
+		dataArr = unwrapArr(interfaceArr)
+	}
+	if dataArr != nil {
+		data = dataArr
+	}
 	return &Json{data: data}
 }
 
@@ -87,6 +102,18 @@ func isJson(data interface{}) bool {
 	}
 	_, ok = data.(*Json)
 	return ok
+}
+
+func unwrapArr[T interface{} | Json | *Json](arr []T) []interface{} {
+	res := make([]interface{}, 0, len(arr))
+	for i := 0; i < len(arr); i++ {
+		var e interface{} = arr[i]
+		for isJson(e) {
+			e = unwrapJson(e)
+		}
+		res = append(res, e)
+	}
+	return res
 }
 
 func unwrapJson(value interface{}) interface{} {
