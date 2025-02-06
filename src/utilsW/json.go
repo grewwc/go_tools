@@ -76,6 +76,27 @@ func getByIndex[T type_](j *Json, idx int) T {
 	return *(*T)(unsafe.Pointer(&res))
 }
 
+func isJson(data interface{}) bool {
+	_, ok := data.(Json)
+	if ok {
+		return true
+	}
+	_, ok = data.(*Json)
+	return ok
+}
+
+func unwrapJson(value interface{}) interface{} {
+	data, ok := value.(Json)
+	if ok {
+		return data.data
+	}
+	ptr, jsonPtr := value.(*Json)
+	if jsonPtr {
+		return ptr.data
+	}
+	return nil
+}
+
 func getT[T type_, U keytype](j *Json, key U) T {
 	if j == nil || j.data == nil {
 		fmt.Println("ERROR: json is nil")
@@ -94,6 +115,8 @@ func getT[T type_, U keytype](j *Json, key U) T {
 	}
 	if res, ok := data[strKey].(T); ok {
 		return res
+	} else if res, ok := data[strKey].(*T); ok {
+		return *res
 	} else if reflect.TypeOf(data[strKey]).Kind() == reflect.Map && reflect.TypeOf(*new(T)) == reflect.TypeOf(*new(Json)) {
 		obj, ok := data[strKey].(map[string]interface{})
 		if !ok {
@@ -128,6 +151,9 @@ func (j *Json) Set(key string, value interface{}) bool {
 		return false
 	}
 	_, exist := data[key]
+	for isJson(value) {
+		value = unwrapJson(value)
+	}
 	data[key] = value
 	return exist
 }
@@ -143,6 +169,9 @@ func (j *Json) Add(value interface{}) {
 			return
 		}
 		j.data = make([]interface{}, 0, 2)
+	}
+	for isJson(value) {
+		value = unwrapJson(value)
 	}
 	j.data = append(arr, value)
 }
