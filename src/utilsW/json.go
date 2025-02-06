@@ -23,19 +23,25 @@ func NewJsonFromFile(filename string) *Json {
 		panic(err)
 	}
 	var res Json
-	json.Unmarshal(b, &res.data)
+	if err = json.Unmarshal(b, &res.data); err != nil {
+		panic(err)
+	}
 	return &res
 }
 
 func NewJsonFromByte(data []byte) *Json {
 	var res Json
-	json.Unmarshal(data, &res.data)
+	if err := json.Unmarshal(data, &res.data); err != nil {
+		panic(err)
+	}
 	return &res
 }
 
 func NewJsonFromString(content string) *Json {
 	var res Json
-	json.Unmarshal(stringsW.StringToBytes(content), &res.data)
+	if err := json.Unmarshal(stringsW.StringToBytes(content), &res.data); err != nil {
+		panic(err)
+	}
 	return &res
 }
 
