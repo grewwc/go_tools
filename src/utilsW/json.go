@@ -1,6 +1,7 @@
 package utilsW
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -247,9 +248,12 @@ func (j *Json) ContainsKey(key string) bool {
 }
 
 func (j Json) String() string {
-	s, err := json.Marshal(j.data)
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(j.data)
 	if err != nil {
 		return fmt.Sprintf("%v", j.data)
 	}
-	return stringsW.BytesToString(s)
+	return buf.String()
 }
