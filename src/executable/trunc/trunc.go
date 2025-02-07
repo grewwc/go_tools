@@ -47,8 +47,8 @@ func removeNewLine(name string) error {
 			return err
 		}
 		line := stringsW.BytesToString(b)
-		line = strings.TrimSpace(line)
-		if line != "" {
+		trimLine := strings.TrimSpace(line)
+		if trimLine != "" {
 			lines = append(lines, line)
 		}
 		if err == io.EOF {
