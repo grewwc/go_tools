@@ -17,6 +17,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
+	"golang.design/x/clipboard"
 )
 
 func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
@@ -239,4 +240,18 @@ func Goid() int {
 		return -1
 	}
 	return res
+}
+
+func ReadClipboardText() string {
+	if err := clipboard.Init(); err != nil {
+		panic(err)
+	}
+	return stringsW.BytesToString(clipboard.Read(clipboard.FmtText))
+}
+
+func WriteClipboardText(content string) {
+	if err := clipboard.Init(); err != nil {
+		panic(err)
+	}
+	clipboard.Write(clipboard.FmtText, stringsW.StringToBytes(content))
 }

@@ -22,7 +22,7 @@ func main() {
 	}
 	cmdStr := cmd.(string)
 	cmdStr += " " + strings.Join(os.Args[1:], " ")
-	err := utilsW.RunCmdWithTimeout(cmdStr, time.Second*60)
+	_, err := utilsW.RunCmdWithTimeout(cmdStr, time.Second*60)
 	if err != nil {
 		log.Fatalln(err)
 		return
