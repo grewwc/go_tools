@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"reflect"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
-	"golang.design/x/clipboard"
 )
 
 func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
@@ -122,8 +122,7 @@ func GetTerminalSize() (h, w int, err error) {
 	if err != nil {
 		return
 	}
-	var size []string
-	size = stringsW.SplitNoEmpty(strings.TrimSpace(string(out)), " ")
+	size := stringsW.SplitNoEmpty(strings.TrimSpace(string(out)), " ")
 	h, err = strconv.Atoi(size[0])
 	if err != nil {
 		return
@@ -172,14 +171,17 @@ func GetCommandList(cmd string) []string {
 	return stringsW.SplitNoEmpty(cmd, " ")
 }
 
-func RunCmd(cmd string) (string, error) {
+func RunCmd(cmd string, stdin io.Reader) (string, error) {
 	l := stringsW.SplitNoEmptyKeepQuote(cmd, ' ')
 	if len(l) < 1 {
 		fmt.Println("cmd is empty")
 		return "", errors.New("cmd is empty")
 	}
+	if stdin == nil {
+		stdin = os.Stdin
+	}
 	command := exec.Command(l[0], l[1:]...)
-	command.Stdin = os.Stdin
+	command.Stdin = stdin
 	command.Stderr = os.Stderr
 	stdout, _ := command.StdoutPipe()
 	err := command.Start()
@@ -207,7 +209,7 @@ func RunCmdWithTimeout(cmd string, timeout time.Duration) (string, error) {
 	var res string
 	wg.Add(1)
 	go func(err *error) {
-		res, *err = RunCmd(cmd)
+		res, *err = RunCmd(cmd, nil)
 		defer wg.Done()
 	}(&err)
 	if TimeoutWait(&wg, timeout) != nil {
@@ -243,15 +245,18 @@ func Goid() int {
 }
 
 func ReadClipboardText() string {
-	if err := clipboard.Init(); err != nil {
+	res, err := RunCmd("pbpaste", nil)
+	if err != nil {
 		panic(err)
 	}
-	return stringsW.BytesToString(clipboard.Read(clipboard.FmtText))
+	return res
 }
 
 func WriteClipboardText(content string) {
-	if err := clipboard.Init(); err != nil {
+	buffer := bytes.NewBufferString(content)
+	res, err := RunCmd("pbcopy", buffer)
+	if err != nil {
 		panic(err)
 	}
-	clipboard.Write(clipboard.FmtText, stringsW.StringToBytes(content))
+	fmt.Println(res)
 }

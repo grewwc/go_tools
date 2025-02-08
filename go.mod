@@ -21,13 +21,10 @@ require (
 	github.com/onsi/gomega v1.18.1 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.design/x/clipboard v0.7.0
-	golang.org/x/exp/shiny v0.0.0-20250207012021-f9890c6ad9f3 // indirect
-	golang.org/x/image v0.14.0 // indirect
-	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
 )
 
 require (
+	github.com/atotto/clipboard v0.1.4
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
