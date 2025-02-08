@@ -16,6 +16,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/atotto/clipboard"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
 )
@@ -245,7 +246,7 @@ func Goid() int {
 }
 
 func ReadClipboardText() string {
-	res, err := RunCmd("pbpaste", nil)
+	res, err := clipboard.ReadAll()
 	if err != nil {
 		panic(err)
 	}
@@ -253,10 +254,7 @@ func ReadClipboardText() string {
 }
 
 func WriteClipboardText(content string) {
-	buffer := bytes.NewBufferString(content)
-	res, err := RunCmd("pbcopy", buffer)
-	if err != nil {
+	if err := clipboard.WriteAll(content); err != nil {
 		panic(err)
 	}
-	fmt.Println(res)
 }

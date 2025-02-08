@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible
+	github.com/atotto/clipboard v0.1.4
 	github.com/fatih/color v1.13.0
 	github.com/google/uuid v1.3.0
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
@@ -24,7 +25,6 @@ require (
 )
 
 require (
-	github.com/atotto/clipboard v0.1.4
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
