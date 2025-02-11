@@ -31,7 +31,7 @@ func KmpSearch(text, pattern string) []int {
 		return []int{0}
 	}
 	matches := make([]int, 0)
-	next := kmpPrefix(pattern)
+	next := kmpNext(pattern)
 	j := 0
 	for i := 0; i < len(text); {
 		if text[i] == pattern[j] {
@@ -60,7 +60,7 @@ func KmpSearchBytes(text, pattern []byte) []int {
 		return []int{0}
 	}
 	matches := make([]int, 0)
-	next := kmpPrefixByte(pattern)
+	next := kmpNext(BytesToString(pattern))
 	j := 0
 	for i := 0; i < len(text); {
 		if text[i] == pattern[j] {
@@ -96,42 +96,22 @@ func EqualsAny(target string, choices ...string) bool {
 	return false
 }
 
-func kmpPrefix(pattern string) []int {
-	prefix := make([]int, len(pattern))
+func kmpNext(pattern string) []int {
+	next := make([]int, len(pattern))
 	j := 0
 	for i := 1; i < len(pattern); {
 		if pattern[i] == pattern[j] {
 			j++
-			prefix[i] = j
+			next[i] = j
 			i++
 		} else {
 			if j == 0 {
-				prefix[i] = 0
+				next[i] = 0
 				i++
 			} else {
-				j = prefix[j-1]
+				j = next[j-1]
 			}
 		}
 	}
-	return prefix
-}
-
-func kmpPrefixByte(pattern []byte) []int {
-	prefix := make([]int, len(pattern))
-	j := 0
-	for i := 1; i < len(pattern); {
-		if pattern[i] == pattern[j] {
-			j++
-			prefix[i] = j
-			i++
-		} else {
-			if j == 0 {
-				prefix[i] = 0
-				i++
-			} else {
-				j = prefix[j-1]
-			}
-		}
-	}
-	return prefix
+	return next
 }
