@@ -58,15 +58,15 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		return
 	}
-
-	for i, history := range stringsW.SplitNoEmptyKeepQuote(res, '\n') {
-		if i >= n {
+	p := regexp.MustCompile(pattern)
+	cnt := 0
+	for _, history := range stringsW.SplitNoEmptyKeepQuote(res, '\n') {
+		if cnt >= n {
 			break
 		}
-		if matched, err := regexp.MatchString(history, pattern); !matched || err != nil {
+		if matched := p.MatchString(history); !matched {
 			fmt.Println(history)
-		} else {
-			fmt.Println("here", history)
+			cnt++
 		}
 	}
 }
