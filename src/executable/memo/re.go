@@ -1007,7 +1007,7 @@ func main() {
 
 	// default behavior
 	// re
-	if parsed == nil {
+	if parsed.Empty() {
 		records, _ := listRecords(n, false, false, false, []string{"todo", "urgent"}, false, "", true, false, true)
 		for _, record := range records {
 			printSeperator()

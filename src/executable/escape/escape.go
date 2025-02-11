@@ -15,11 +15,11 @@ func main() {
 	fs.Bool("p", false, "PathEscape (default is QueryEscape)")
 	parsed := terminalW.ParseArgsCmd("un", "p")
 	escape := true
-	if parsed == nil || parsed.ContainsFlagStrict("h") {
+	if parsed.Empty() || parsed.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
-	if parsed != nil && parsed.ContainsFlag("un") {
+	if parsed.ContainsFlag("un") {
 		escape = false
 	}
 	var res string

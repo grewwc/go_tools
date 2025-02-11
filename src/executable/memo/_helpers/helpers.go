@@ -214,7 +214,7 @@ func ReadInfo(isURL bool) string {
 }
 
 func OrderByTime(parsed *terminalW.ParsedResults) bool {
-	if parsed == nil {
+	if parsed.Empty() {
 		return false
 	}
 	if parsed.ContainsFlagStrict("t") && parsed.MustGetFlagVal("t") == "" {

@@ -238,7 +238,7 @@ func main() {
 	fs.Bool("f", false, "force")
 
 	parsed := terminalW.ParseArgsCmd("r", "f")
-	if parsed == nil {
+	if parsed.Empty() {
 		printHelp()
 		return
 	}

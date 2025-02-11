@@ -18,7 +18,7 @@ const (
 )
 
 func getN(parsed *terminalW.ParsedResults) int {
-	if parsed == nil {
+	if parsed.Empty() {
 		return -1
 	}
 	n := parsed.GetNumArgs()
@@ -43,7 +43,7 @@ func main() {
 	flag.Bool("a", false, "print all histories")
 	flag.Bool("h", false, "print help info")
 	parsed := terminalW.ParseArgsCmd("h", "a")
-	if parsed != nil && parsed.ContainsFlagStrict("h") {
+	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
 	}

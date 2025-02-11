@@ -10,6 +10,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 var (
@@ -29,7 +30,7 @@ func transferImgToBase64(url string, isUrl bool) {
 		if err != nil {
 			panic(err)
 		}
-	} else {
+	} else if url != "" {
 		f, err := os.Open(url)
 		if err != nil {
 			panic(err)
@@ -39,6 +40,8 @@ func transferImgToBase64(url string, isUrl bool) {
 		if err != nil {
 			panic(err)
 		}
+	} else { // clipboard
+		buf = stringsW.StringToBytes(utilsW.ReadClipboardText())
 	}
 	str := base64.StdEncoding.EncodeToString(buf)
 	if err = os.WriteFile(outName, []byte(str), 0666); err != nil {
@@ -47,10 +50,17 @@ func transferImgToBase64(url string, isUrl bool) {
 }
 
 func base64ToImage(fname, outName string) {
-	imgBytes, err := os.ReadFile(fname)
-	if err != nil {
-		panic(err)
+	var imgBytes []byte
+	var err error
+	if fname == "" {
+		imgBytes = stringsW.StringToBytes(utilsW.ReadClipboardText())
+	} else {
+		imgBytes, err = os.ReadFile(fname)
+		if err != nil {
+			panic(err)
+		}
 	}
+
 	s := ";base64,"
 	indices := stringsW.KmpSearchBytes(imgBytes, stringsW.StringToBytes(s))
 	if len(indices) == 1 {
@@ -69,17 +79,19 @@ func base64ToImage(fname, outName string) {
 
 func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
-	fs.Bool("f", true, "pass file ")
+	fs.Bool("f", true, "get content from file")
+	fs.Bool("c", false, "get content from clipboard")
 	fs.String("out", "", "output file name")
 	fs.Bool("toimg", false, "")
 
-	parsed := terminalW.ParseArgsCmd("f", "toimg")
-	if parsed == nil || parsed.ContainsAnyFlagStrict("h") {
+	parsed := terminalW.ParseArgsCmd("f", "toimg", "c")
+	if parsed.ContainsAnyFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
 	isURL := true
-	if parsed.ContainsFlagStrict("f") {
+	toImage := parsed.ContainsFlagStrict("toimg")
+	if parsed.ContainsAnyFlagStrict("f", "c") {
 		isURL = false
 	}
 	if parsed.GetFlagValueDefault("out", "") != "" {
@@ -90,7 +102,12 @@ func main() {
 		fmt.Println("only 1 positional arg allowed")
 		return
 	}
-	if parsed.ContainsFlagStrict("toimg") {
+	if len(pos) == 0 {
+		pos = []string{""}
+		toImage = true
+		isURL = false
+	}
+	if toImage {
 		if isURL {
 			panic("must pass file name")
 		}

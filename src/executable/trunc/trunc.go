@@ -127,7 +127,7 @@ func main() {
 	parsed := terminalW.ParseArgsCmd("v", "h", "f", "newline")
 	var root string
 	var err error
-	if parsed == nil || parsed.ContainsFlagStrict("h") {
+	if parsed.Empty() || parsed.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		printHelp()
 		return

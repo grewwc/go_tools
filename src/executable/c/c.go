@@ -243,7 +243,7 @@ func main() {
 			fmt.Println(err)
 		}
 	}()
-	if parsed == nil {
+	if parsed.Empty() {
 		flag.PrintDefaults()
 		fmt.Println("c '1+2'")
 		return

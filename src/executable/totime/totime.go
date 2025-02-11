@@ -19,7 +19,7 @@ func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("ts", false, "get current timestamp")
 	parsed := terminalW.ParseArgsCmd()
-	if parsed == nil || parsed.ContainsFlagStrict("-h") {
+	if parsed.Empty() || parsed.ContainsFlagStrict("-h") {
 		fs.PrintDefaults()
 		fmt.Println(color.GreenString(helpMsg))
 		return

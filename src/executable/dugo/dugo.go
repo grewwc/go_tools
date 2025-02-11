@@ -200,7 +200,7 @@ func check(f string) {
 }
 
 func getFirstDir(parsed *terminalW.ParsedResults) string {
-	if parsed == nil {
+	if parsed.Empty() {
 		return "."
 	}
 	args := parsed.Positional.ToStringSlice()
@@ -237,7 +237,7 @@ func main() {
 	onlyFile := false
 	onlyDir := false
 
-	if parsed == nil {
+	if parsed.Empty() {
 		args = append(args, ".")
 		goto check
 	} else if parsed.ContainsFlagStrict("h") {

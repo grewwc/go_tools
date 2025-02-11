@@ -56,6 +56,10 @@ func (r *ParsedResults) GetIntFlagValOrDefault(flagName string, val int) int {
 	return val
 }
 
+func (r *ParsedResults) Empty() bool {
+	return len(r.Optional) == 0 && r.Positional.Empty()
+}
+
 func (r ParsedResults) MustGetFlagValAsInt64(flagName string) (res int64) {
 	resStr, err := r.GetFlagVal(flagName)
 	if err != nil {
@@ -333,7 +337,10 @@ func parseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 
 func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	if len(os.Args) <= 1 {
-		return nil
+		return &ParsedResults{
+			Optional:   make(map[string]string),
+			Positional: containerW.NewOrderedSet(),
+		}
 	}
 
 	args := make([]string, len(os.Args))
@@ -343,7 +350,7 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	cmd := strings.Join(args, " ")
 	// fmt.Println("here", cmd)
 
-	re := regexp.MustCompile("\\-\\d+")
+	re := regexp.MustCompile(`\-\d+`)
 	numArgs := re.FindString(cmd)
 	if len(numArgs) > 0 {
 		numArgs = numArgs[1:]

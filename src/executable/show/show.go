@@ -12,7 +12,7 @@ import (
 
 func main() {
 	parsed := terminalW.ParseArgsCmd("h")
-	if parsed != nil && parsed.ContainsAnyFlagStrict("h") {
+	if parsed.ContainsAnyFlagStrict("h") {
 		fmt.Println("print all the binary files of go_tools")
 		return
 	}
