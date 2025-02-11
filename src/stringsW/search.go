@@ -52,6 +52,35 @@ func KmpSearch(text, pattern string) []int {
 	return matches
 }
 
+func KmpSearchBytes(text, pattern []byte) []int {
+	if len(text) == 0 {
+		return []int{}
+	}
+	if len(pattern) == 0 {
+		return []int{0}
+	}
+	matches := make([]int, 0)
+	next := kmpPrefixByte(pattern)
+	j := 0
+	for i := 0; i < len(text); {
+		if text[i] == pattern[j] {
+			i++
+			j++
+		} else {
+			if j == 0 {
+				i++
+			} else {
+				j = next[j-1]
+			}
+		}
+		if j == len(pattern) {
+			matches = append(matches, i-j)
+			j = next[j-1]
+		}
+	}
+	return matches
+}
+
 func CopySlice(original []string) []string {
 	res := make([]string, 0, len(original))
 	res = append(res, original...)
@@ -68,6 +97,26 @@ func EqualsAny(target string, choices ...string) bool {
 }
 
 func kmpPrefix(pattern string) []int {
+	prefix := make([]int, len(pattern))
+	j := 0
+	for i := 1; i < len(pattern); {
+		if pattern[i] == pattern[j] {
+			j++
+			prefix[i] = j
+			i++
+		} else {
+			if j == 0 {
+				prefix[i] = 0
+				i++
+			} else {
+				j = prefix[j-1]
+			}
+		}
+	}
+	return prefix
+}
+
+func kmpPrefixByte(pattern []byte) []int {
 	prefix := make([]int, len(pattern))
 	j := 0
 	for i := 1; i < len(pattern); {

@@ -4,10 +4,11 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
+	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 )
 
@@ -24,7 +25,7 @@ func transferImgToBase64(url string, isUrl bool) {
 			panic(err)
 		}
 		defer resp.Body.Close()
-		buf, err = ioutil.ReadAll(resp.Body)
+		buf, err = io.ReadAll(resp.Body)
 		if err != nil {
 			panic(err)
 		}
@@ -34,29 +35,34 @@ func transferImgToBase64(url string, isUrl bool) {
 			panic(err)
 		}
 		defer f.Close()
-		buf, err = ioutil.ReadAll(f)
+		buf, err = io.ReadAll(f)
 		if err != nil {
 			panic(err)
 		}
 	}
 	str := base64.StdEncoding.EncodeToString(buf)
-	if err = ioutil.WriteFile(outName, []byte(str), 0666); err != nil {
+	if err = os.WriteFile(outName, []byte(str), 0666); err != nil {
 		panic(err)
 	}
 }
 
-func base64ToImage(fname, outName string){
-	imgBytes, err := ioutil.ReadFile(fname)
-	if err != nil{
+func base64ToImage(fname, outName string) {
+	imgBytes, err := os.ReadFile(fname)
+	if err != nil {
 		panic(err)
 	}
-	img := string(imgBytes)
+	s := ";base64,"
+	indices := stringsW.KmpSearchBytes(imgBytes, stringsW.StringToBytes(s))
+	if len(indices) == 1 {
+		imgBytes = imgBytes[indices[0]+len(s):]
+	}
+	img := stringsW.BytesToString(imgBytes)
 	b, err := base64.StdEncoding.DecodeString(img)
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 
-	if err = ioutil.WriteFile(outName, b, 0666); err != nil{
+	if err = os.WriteFile(outName, b, 0666); err != nil {
 		panic(err)
 	}
 }
@@ -84,11 +90,11 @@ func main() {
 		fmt.Println("only 1 positional arg allowed")
 		return
 	}
-	if parsed.ContainsFlagStrict("toimg"){
-		if isURL{
+	if parsed.ContainsFlagStrict("toimg") {
+		if isURL {
 			panic("must pass file name")
 		}
-		if outName == "image-base64.txt"{
+		if outName == "image-base64.txt" {
 			outName = "output.jpg"
 		}
 		base64ToImage(pos[0], outName)
