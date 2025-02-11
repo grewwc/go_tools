@@ -181,25 +181,14 @@ func RunCmd(cmd string, stdin io.Reader) (string, error) {
 	if stdin == nil {
 		stdin = os.Stdin
 	}
+	var buf bytes.Buffer
 	command := exec.Command(l[0], l[1:]...)
 	command.Stdin = stdin
 	command.Stderr = os.Stderr
-	stdout, _ := command.StdoutPipe()
-	err := command.Start()
+	command.Stdout = &buf
+	err := command.Run()
 	if err != nil {
 		return "", err
-	}
-	var arr = make([]byte, 1024)
-	var buf bytes.Buffer
-	for {
-		n, err := stdout.Read(arr)
-		if n <= 0 {
-			break
-		}
-		if err != nil {
-			return "", err
-		}
-		buf.Write(arr)
 	}
 	return buf.String(), nil
 }
