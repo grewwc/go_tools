@@ -1504,7 +1504,7 @@ func main() {
 				panic("log failed")
 			}
 			if len(r) == 1 {
-				title.WriteString(color.YellowString(firstDay.Format(utilsW.DateFormat)))
+				title.WriteString(fmt.Sprintf("-- %s --", firstDay.Format(utilsW.DateFormat)))
 				title.WriteString("\n")
 				title.WriteString(r[0].Title)
 				title.WriteString("\n\n")
