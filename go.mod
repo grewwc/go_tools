@@ -5,13 +5,14 @@ go 1.18
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible
 	github.com/atotto/clipboard v0.1.4
+	github.com/chzyer/readline v1.5.1
 	github.com/fatih/color v1.13.0
 	github.com/google/uuid v1.3.0
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
 	github.com/shirou/gopsutil v2.21.11+incompatible
 	go.mongodb.org/mongo-driver v1.9.1
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	golang.org/x/sys v0.28.0
+	golang.org/x/sys v0.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 )
 

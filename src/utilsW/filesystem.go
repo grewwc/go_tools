@@ -179,6 +179,9 @@ func isTextFile(filename string) bool {
 }
 
 func IsTextFile(filename string) bool {
+	if !IsRegular(filename) {
+		return false
+	}
 	ext := filepath.Ext(filename)
 
 	if ext != "" && DefaultExtensions.Contains(ext) {

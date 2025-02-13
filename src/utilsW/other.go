@@ -17,6 +17,7 @@ import (
 	"unsafe"
 
 	"github.com/atotto/clipboard"
+	"github.com/chzyer/readline"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
 )
@@ -146,17 +147,35 @@ func PromptYesOrNo(msg string) bool {
 	return strings.ToLower(ans) == "y"
 }
 
-func Getline(msg string) string {
-	if len(msg) > 0 && msg[len(msg)-1] != ' ' {
-		msg += " "
-	}
-	fmt.Print(msg)
-	reader := bufio.NewReader(os.Stdin)
-	b, err := reader.ReadBytes('\n')
+func UserInput(msg string, multiline bool) string {
+	// 创建 readline 实例
+	rl, err := readline.NewEx(&readline.Config{
+		EOFPrompt: "^D",
+		Prompt:    msg,
+		Stdin:     os.Stdin,
+		Stdout:    os.Stdout,
+		Stderr:    os.Stderr,
+	})
 	if err != nil {
 		panic(err)
 	}
-	return stringsW.BytesToString(b[:len(b)-1])
+	defer rl.Close()
+	var lines []string
+	for {
+		line, err := rl.Readline()
+		if err != nil && err == readline.ErrInterrupt {
+			fmt.Println("Exit.")
+			os.Exit(0)
+		}
+		if !multiline {
+			return line
+		}
+		if err != nil && err == io.EOF {
+			break
+		}
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
 }
 
 func kill(cmd *exec.Cmd) error {
