@@ -147,8 +147,19 @@ func getModel(parsed *terminalW.ParsedResults) string {
 	if parsed.ContainsFlagStrict("code") {
 		return QWEN_CODER_PLUS_LATEST
 	}
-
+	n := parsed.GetNumArgs()
+	switch n {
+	case 1:
+		return QWEN_PLUS
+	case 2:
+		return QWEN_MAX
+	case 3:
+		return QWEN_MAX_LASTEST
+	case 4:
+		return QWEN_CODER_PLUS_LATEST
+	}
 	model := parsed.GetFlagValueDefault("m", QWEN_PLUS)
+
 	switch model {
 	case QWEN_PLUS, "1":
 		return QWEN_PLUS
@@ -164,11 +175,7 @@ func getModel(parsed *terminalW.ParsedResults) string {
 }
 
 func getNumHistory(parsed *terminalW.ParsedResults) int {
-	res := parsed.GetNumArgs()
-	if res != -1 {
-		return res
-	}
-	return defaultNumHistory
+	return parsed.GetIntFlagValOrDefault("history", defaultNumHistory)
 }
 
 func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
