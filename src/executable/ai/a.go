@@ -155,6 +155,15 @@ func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
 	}
 }
 
+func writeToFile(f *os.File, content string) {
+	if f == nil {
+		return
+	}
+	if _, err := io.WriteString(f, content); err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	go exit()
 	flag.Int("history", 4, "number of history")
@@ -233,9 +242,7 @@ func main() {
 				}
 				curr.WriteString(content)
 				fmt.Print(content)
-				if _, err := io.WriteString(f, content); err != nil {
-					log.Fatal(err)
-				}
+				writeToFile(f, content)
 			default:
 				time.Sleep(1000)
 			}
