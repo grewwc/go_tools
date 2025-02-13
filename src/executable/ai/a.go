@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	maxHistoryLines = 1
+	maxHistoryLines   = 100
+	defaultNumHistory = 4
 )
 
 const (
@@ -57,17 +58,22 @@ func getText(j *utilsW.Json) string {
 
 func handleResponse(resp io.Reader) <-chan string {
 	keyword := "data: {"
+	doneKeyword := stringsW.StringToBytes("data: [DONE]")
 	ch := make(chan string)
 	go func() {
 		defer func() {
 			close(ch)
-			recover()
+			if err := recover(); err != nil {
+				log.Fatalln(err)
+			}
 		}()
 		for content := range stringsW.SplitByToken(resp, keyword, true) {
 			if content == keyword || content == "" {
 				continue
 			}
 			b := bytes.TrimRight(stringsW.StringToBytes(content)[len(keyword)-1:], "\n\t ")
+			b = bytes.TrimSuffix(b, doneKeyword)
+			b = bytes.TrimSpace(b)
 			j := utilsW.NewJsonFromByte(b)
 			ch <- getText(j)
 		}
@@ -144,6 +150,14 @@ func getModel(parsed *terminalW.ParsedResults) string {
 	return parsed.GetFlagValueDefault("m", QWEN_PLUS)
 }
 
+func getNumHistory(parsed *terminalW.ParsedResults) int {
+	res := parsed.GetNumArgs()
+	if res != -1 {
+		return res
+	}
+	return defaultNumHistory
+}
+
 func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
 	if parsed.ContainsFlagStrict("f") {
 		filename := parsed.GetFlagValueDefault("f", "")
@@ -177,7 +191,7 @@ func main() {
 		<-sigChan
 		close(stopChan)
 	}()
-	flag.Int("history", 4, "number of history")
+	flag.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
 	flag.String("m", "", "model name. (qwen-max-latest(default), qwen-plus(default), qwen-max, qwen-coder-plus-latest)")
 	flag.Bool("h", false, "print help help")
 	flag.Bool("multi-line", false, "input with multline")
@@ -192,7 +206,7 @@ func main() {
 		return
 	}
 
-	var nHistory = 4
+	var nHistory = getNumHistory(parsed)
 	var model = getModel(parsed)
 	fmt.Println("Model: ", color.GreenString(model))
 	var curr bytes.Buffer
@@ -219,7 +233,7 @@ func main() {
 					Content: "You are a helpful assistant.",
 				},
 			},
-			EnableSearch: true,
+			EnableSearch: model != QWEN_CODER_PLUS_LATEST,
 			Stream:       true,
 		}
 		arr := buildMessageArr(nHistory)

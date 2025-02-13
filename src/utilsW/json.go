@@ -32,7 +32,7 @@ func NewJsonFromFile(filename string) *Json {
 func NewJsonFromByte(data []byte) *Json {
 	var res Json
 	if err := json.Unmarshal(data, &res.data); err != nil {
-		panic(err)
+		panic(stringsW.BytesToString(data))
 	}
 	return &res
 }
