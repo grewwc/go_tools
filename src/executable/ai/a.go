@@ -24,6 +24,13 @@ const (
 	maxHistoryLines = 1
 )
 
+const (
+	QWEN_MAX_LASTEST       = "qwen-max-latest"
+	QWEN_PLUS              = "qwen-plus"
+	QWEN_MAX               = "qwen-max"
+	QWEN_CODER_PLUS_LATEST = "qwen-coder-plus-latest"
+)
+
 var (
 	apiKey      string
 	historyFile string
@@ -120,23 +127,21 @@ func appendHistory(content string) {
 
 var sigChan = make(chan os.Signal, 1)
 
-func exit() {
-	// Create a channel to receive signals
-
-	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	// Block until a signal is received
-	<-sigChan
-}
-
 func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 	multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
 	if parsed.ContainsFlagStrict("e") {
-		question = utilsW.InputWithEditor("", parsed.ContainsFlagStrict("code"))
+		question = utilsW.InputWithEditor("", parsed.ContainsFlagStrict("vs"))
 	} else {
 		question = utilsW.UserInput(color.GreenString("> "), multiLine)
 	}
 	return
+}
+
+func getModel(parsed *terminalW.ParsedResults) string {
+	if parsed.ContainsFlagStrict("code") {
+		return QWEN_CODER_PLUS_LATEST
+	}
+	return parsed.GetFlagValueDefault("m", QWEN_PLUS)
 }
 
 func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
@@ -165,23 +170,30 @@ func writeToFile(f *os.File, content string) {
 }
 
 func main() {
-	go exit()
+	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	stopChan := make(chan struct{})
+	go func() {
+		<-sigChan
+		close(stopChan)
+	}()
 	flag.Int("history", 4, "number of history")
-	flag.String("m", "", "model name. (qwen-max-latest(default), qwen-plus(default), qwen-max)")
+	flag.String("m", "", "model name. (qwen-max-latest(default), qwen-plus(default), qwen-max, qwen-coder-plus-latest)")
 	flag.Bool("h", false, "print help help")
 	flag.Bool("multi-line", false, "input with multline")
 	flag.Bool("mul", false, "same as multi-line")
 	flag.Bool("e", false, "input with editor")
-	flag.Bool("code", false, "input with vscode")
+	flag.Bool("vs", false, "input with vscode")
+	flag.Bool("code", false, "use code model (qwen-coder-plus-latest)")
 	flag.String("f", "", "write output to file")
-	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code")
+	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code", "vs")
 	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
 	}
 
 	var nHistory = 4
-	var model = parsed.GetFlagValueDefault("m", "qwen-plus")
+	var model = getModel(parsed)
 	fmt.Println("Model: ", color.GreenString(model))
 	var curr bytes.Buffer
 
@@ -192,6 +204,9 @@ func main() {
 	}
 	for {
 		question := getQuestion(parsed)
+		if strings.TrimSpace(question) == "" {
+			continue
+		}
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
 		// 构建请求体
@@ -234,7 +249,7 @@ func main() {
 
 		for {
 			select {
-			case <-sigChan:
+			case <-stopChan:
 				goto end
 			case content, ok := <-ch:
 				if !ok {
@@ -243,15 +258,14 @@ func main() {
 				curr.WriteString(content)
 				fmt.Print(content)
 				writeToFile(f, content)
-			default:
-				time.Sleep(1000)
+				time.Sleep(0)
 			}
 		}
 	end:
 		resp.Body.Close()
 		curr.WriteByte('\x01')
 		appendHistory(curr.String())
-		if parsed.ContainsAnyFlagStrict("e", "code") {
+		if parsed.ContainsAnyFlagStrict("e", "vs") {
 			if !utilsW.PromptYesOrNo("\ncontinue? (y/n)") {
 				return
 			}

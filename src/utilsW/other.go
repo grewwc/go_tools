@@ -150,16 +150,17 @@ func PromptYesOrNo(msg string) bool {
 func UserInput(msg string, multiline bool) string {
 	// 创建 readline 实例
 	rl, err := readline.NewEx(&readline.Config{
-		EOFPrompt: "^D",
-		Prompt:    msg,
-		Stdin:     os.Stdin,
-		Stdout:    os.Stdout,
-		Stderr:    os.Stderr,
+		EOFPrompt:       "^D",
+		Prompt:          msg,
+		Stdin:           os.Stdin,
+		Stderr:          os.Stderr,
+		InterruptPrompt: "^C",
 	})
 	if err != nil {
 		panic(err)
 	}
-	defer rl.Close()
+	rl.Operation.ExitCompleteMode(true)
+	// defer rl.Close()
 	var lines []string
 	for {
 		line, err := rl.Readline()
