@@ -154,6 +154,7 @@ func UserInput(msg string, multiline bool) string {
 		Prompt:          msg,
 		Stdin:           os.Stdin,
 		Stderr:          os.Stderr,
+		HistoryFile:     "/tmp/readline.tmp",
 		InterruptPrompt: "^C",
 	})
 	if err != nil {
