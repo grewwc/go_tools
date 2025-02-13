@@ -147,7 +147,20 @@ func getModel(parsed *terminalW.ParsedResults) string {
 	if parsed.ContainsFlagStrict("code") {
 		return QWEN_CODER_PLUS_LATEST
 	}
-	return parsed.GetFlagValueDefault("m", QWEN_PLUS)
+
+	model := parsed.GetFlagValueDefault("m", QWEN_PLUS)
+	switch model {
+	case QWEN_PLUS, "1":
+		return QWEN_PLUS
+	case QWEN_MAX, "2":
+		return QWEN_MAX
+	case QWEN_MAX_LASTEST, "3":
+		return QWEN_MAX_LASTEST
+	case QWEN_CODER_PLUS_LATEST, "4":
+		return QWEN_CODER_PLUS_LATEST
+	default:
+		return QWEN_PLUS
+	}
 }
 
 func getNumHistory(parsed *terminalW.ParsedResults) int {
@@ -192,7 +205,7 @@ func main() {
 		close(stopChan)
 	}()
 	flag.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
-	flag.String("m", "", "model name. (qwen-max-latest(default), qwen-plus(default), qwen-max, qwen-coder-plus-latest)")
+	flag.String("m", "", "model name. (qwen-plus[1, default], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4])")
 	flag.Bool("h", false, "print help help")
 	flag.Bool("multi-line", false, "input with multline")
 	flag.Bool("mul", false, "same as multi-line")
