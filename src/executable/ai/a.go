@@ -139,6 +139,22 @@ func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 	return
 }
 
+func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
+	if parsed.ContainsFlagStrict("f") {
+		filename := parsed.GetFlagValueDefault("f", "")
+		if filename == "" {
+			filename = "output.txt"
+		}
+		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			panic(err)
+		}
+		return f
+	} else {
+		return nil
+	}
+}
+
 func main() {
 	go exit()
 	flag.Int("history", 4, "number of history")
@@ -148,6 +164,7 @@ func main() {
 	flag.Bool("mul", false, "same as multi-line")
 	flag.Bool("e", false, "input with editor")
 	flag.Bool("code", false, "input with vscode")
+	flag.String("f", "", "write output to file")
 	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code")
 	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
@@ -160,6 +177,10 @@ func main() {
 	var curr bytes.Buffer
 
 	client := &http.Client{}
+	var f *os.File = getWriteResultFile(parsed)
+	if f != nil {
+		defer f.Close()
+	}
 	for {
 		question := getQuestion(parsed)
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
@@ -212,6 +233,9 @@ func main() {
 				}
 				curr.WriteString(content)
 				fmt.Print(content)
+				if _, err := io.WriteString(f, content); err != nil {
+					log.Fatal(err)
+				}
 			default:
 				time.Sleep(1000)
 			}
