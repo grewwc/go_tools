@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -139,6 +140,14 @@ func appendHistory(content string) {
 
 var sigChan = make(chan os.Signal, 1)
 
+func modifyQuestion(question string) string {
+	if strings.HasSuffix(strings.TrimSpace(question), " -s") {
+		question = strings.TrimSuffix(strings.TrimSpace(question), " -s")
+		question += "\n Please be concise."
+	}
+	return question
+}
+
 func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 	multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
 	if parsed.ContainsFlagStrict("e") {
@@ -148,10 +157,6 @@ func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 	}
 	// short output
 	if parsed.ContainsFlagStrict("s") {
-		question += "\n Please be concise."
-	}
-	if strings.HasSuffix(strings.TrimSpace(question), " -s") {
-		question = strings.TrimSuffix(question, " -s")
 		question += "\n Please be concise."
 	}
 	return
@@ -235,6 +240,13 @@ func getModelByInput(prevModel string, input *string) string {
 		*input = strings.TrimSuffix(trimed, " -d")
 		return DEEPSEEK
 	}
+
+	p := regexp.MustCompile(` -\d$`)
+	if found := p.FindString(trimed); found != "" {
+		*input = p.ReplaceAllString(trimed, "")
+		return getModel(terminalW.ParseArgs(fmt.Sprintf("a %s", found)))
+	}
+
 	return prevModel
 }
 
@@ -302,6 +314,7 @@ func main() {
 		if nextModel != model {
 			fmt.Println("Model:", nextModel)
 		}
+		question = modifyQuestion(question)
 		// 构建请求体
 		requestBody := RequestBody{
 			// 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
