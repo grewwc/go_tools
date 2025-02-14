@@ -1,5 +1,7 @@
 package stringsW
 
+import "strings"
+
 // if target is in slice, return true
 // else return false
 func SliceContains(slice []string, target string) bool {
@@ -94,6 +96,42 @@ func EqualsAny(target string, choices ...string) bool {
 		}
 	}
 	return false
+}
+
+func AnyContains(str string, searchStrings ...string) bool {
+	for _, searchStr := range searchStrings {
+		if Contains(str, searchStr) {
+			return true
+		}
+	}
+	return false
+}
+
+func AllContains(str string, searchStrings ...string) bool {
+	for _, searchStr := range searchStrings {
+		if !Contains(str, searchStr) {
+			return false
+		}
+	}
+	return true
+}
+
+func AnyHasPrefix(str string, sub ...string) bool {
+	for _, s := range sub {
+		if strings.HasPrefix(str, s) {
+			return true
+		}
+	}
+	return false
+}
+
+func AllHasPrefix(str string, sub ...string) bool {
+	for _, s := range sub {
+		if !strings.HasPrefix(str, s) {
+			return false
+		}
+	}
+	return true
 }
 
 func kmpNext(pattern string) []int {

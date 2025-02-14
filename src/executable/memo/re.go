@@ -516,7 +516,6 @@ func getAllTagsModifiedDate(records []*record) map[string]time.Time {
 }
 
 func insert(fromEditor bool, filename, tagName string) {
-	scanner := bufio.NewScanner(os.Stdin)
 	var title string
 	var tagsStr string
 	var titleSlice []string
@@ -540,14 +539,10 @@ func insert(fromEditor bool, filename, tagName string) {
 		title = utilsW.InputWithEditor("", useVsCode)
 		fmt.Println()
 	} else {
-		fmt.Print("input the title: ")
-		scanner.Scan()
-		title = strings.TrimSpace(scanner.Text())
+		title = strings.TrimSpace(utilsW.UserInput("input the title: ", false))
 	}
 	if len(tagName) == 0 {
-		fmt.Print("input the tags: ")
-		scanner.Scan()
-		tagsStr = strings.TrimSpace(scanner.Text())
+		tagsStr = strings.TrimSpace(utilsW.UserInput("input the tags: ", false))
 	} else {
 		tagsStr = tagName
 	}

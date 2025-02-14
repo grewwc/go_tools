@@ -34,6 +34,11 @@ func GetAllConfig() (m *containerW.OrderedMap) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
+		trimed := strings.TrimSpace(line)
+		// comment
+		if stringsW.AnyHasPrefix(trimed, "#", "//") {
+			continue
+		}
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
