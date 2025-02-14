@@ -26,6 +26,7 @@ const (
 )
 
 const (
+	DEEPSEEK               = "deepseek-r1"
 	QWEN_MAX_LASTEST       = "qwen-max-latest"
 	QWEN_PLUS              = "qwen-plus"
 	QWEN_MAX               = "qwen-max"
@@ -53,7 +54,12 @@ func getText(j *utilsW.Json) string {
 	if choices.Len() == 0 {
 		return ""
 	}
-	return choices.GetIndex(0).GetJson("delta").GetString("content")
+	delta := choices.GetIndex(0).GetJson("delta")
+	content := delta.GetString("content")
+	if content == "" && delta.ContainsKey("reasoning_content") {
+		return delta.GetString("reasoning_content")
+	}
+	return content
 }
 
 func handleResponse(resp io.Reader) <-chan string {
@@ -164,6 +170,8 @@ func getModel(parsed *terminalW.ParsedResults) string {
 		return QWEN_MAX_LASTEST
 	case 4:
 		return QWEN_CODER_PLUS_LATEST
+	case 5:
+		return DEEPSEEK
 	}
 	model := parsed.GetFlagValueDefault("m", QWEN_PLUS)
 
@@ -176,6 +184,8 @@ func getModel(parsed *terminalW.ParsedResults) string {
 		return QWEN_MAX_LASTEST
 	case QWEN_CODER_PLUS_LATEST, "4":
 		return QWEN_CODER_PLUS_LATEST
+	case DEEPSEEK, "5":
+		return DEEPSEEK
 	default:
 		return QWEN_PLUS
 	}
@@ -183,6 +193,10 @@ func getModel(parsed *terminalW.ParsedResults) string {
 
 func getNumHistory(parsed *terminalW.ParsedResults) int {
 	return parsed.GetIntFlagValOrDefault("history", defaultNumHistory)
+}
+
+func searchEnabled(model string) bool {
+	return model == QWEN_MAX || model == QWEN_MAX_LASTEST || model == QWEN_PLUS
 }
 
 func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
@@ -210,6 +224,17 @@ func writeToFile(f *os.File, content string) {
 	}
 }
 
+func getModelByInput(prevModel, input string) string {
+	trimed := strings.TrimSpace(input)
+	if strings.HasSuffix(trimed, " -code") {
+		return QWEN_CODER_PLUS_LATEST
+	}
+	if strings.HasSuffix(trimed, " -d") {
+		return DEEPSEEK
+	}
+	return prevModel
+}
+
 func main() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -227,8 +252,9 @@ func main() {
 	flag.Bool("vs", false, "input with vscode")
 	flag.Bool("code", false, "use code model (qwen-coder-plus-latest)")
 	flag.Bool("s", false, "short output")
+	flag.Bool("d", false, "deepseek model")
 	flag.String("f", "", "write output to file")
-	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code", "vs", "s")
+	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code", "vs", "s", "d")
 	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
@@ -259,17 +285,18 @@ func main() {
 		}
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
+		nextModel := getModelByInput(model, question)
 		// 构建请求体
 		requestBody := RequestBody{
 			// 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
-			Model: model,
+			Model: nextModel,
 			Messages: []Message{
 				{
 					Role:    "system",
 					Content: "You are a helpful assistant.",
 				},
 			},
-			EnableSearch: model != QWEN_CODER_PLUS_LATEST,
+			EnableSearch: searchEnabled(nextModel),
 			Stream:       true,
 		}
 		arr := buildMessageArr(nHistory)
