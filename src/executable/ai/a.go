@@ -140,6 +140,10 @@ func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 	} else {
 		question = utilsW.UserInput(color.GreenString("> "), multiLine)
 	}
+	// short output
+	if parsed.ContainsFlagStrict("s") {
+		question += "\n Please be concise."
+	}
 	return
 }
 
@@ -219,8 +223,9 @@ func main() {
 	flag.Bool("e", false, "input with editor")
 	flag.Bool("vs", false, "input with vscode")
 	flag.Bool("code", false, "use code model (qwen-coder-plus-latest)")
+	flag.Bool("s", false, "short output")
 	flag.String("f", "", "write output to file")
-	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code", "vs")
+	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code", "vs", "s")
 	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
