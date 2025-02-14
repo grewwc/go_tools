@@ -244,7 +244,7 @@ func main() {
 		close(stopChan)
 	}()
 	flag.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
-	flag.String("m", "", "model name. (qwen-plus[1, default], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4])")
+	flag.String("m", "", "model name. (qwen-plus[1, default], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5])")
 	flag.Bool("h", false, "print help help")
 	flag.Bool("multi-line", false, "input with multline")
 	flag.Bool("mul", false, "same as multi-line")
