@@ -144,6 +144,9 @@ func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 	if parsed.ContainsFlagStrict("s") {
 		question += "\n Please be concise."
 	}
+	if strings.HasSuffix(strings.TrimSpace(question), " -s") {
+		question += "\n Please be concise."
+	}
 	return
 }
 
