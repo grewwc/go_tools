@@ -234,6 +234,8 @@ func main() {
 		return
 	}
 
+	args := parsed.Positional.ToStringSlice()
+
 	var nHistory = getNumHistory(parsed)
 	var model = getModel(parsed)
 	fmt.Println("Model: ", color.GreenString(model))
@@ -245,7 +247,13 @@ func main() {
 		defer f.Close()
 	}
 	for {
-		question := getQuestion(parsed)
+		var question string
+		if len(args) == 1 {
+			question = args[0]
+			args = []string{}
+		} else {
+			question = getQuestion(parsed)
+		}
 		if strings.TrimSpace(question) == "" {
 			continue
 		}
