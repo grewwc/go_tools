@@ -147,7 +147,7 @@ func getT[T type_, U keytype](j *Json, key U) T {
 		}
 	}
 	strKey := reflect.ValueOf(key).String()
-	if _, ok := data[strKey]; !ok {
+	if val, ok := data[strKey]; !ok || val == nil {
 		return *new(T)
 	}
 	if res, ok := data[strKey].(T); ok {

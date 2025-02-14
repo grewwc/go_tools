@@ -235,14 +235,16 @@ func getModelByInput(prevModel, input string) string {
 	return prevModel
 }
 
+func signalStop(sigChan <-chan os.Signal, stopChan chan struct{}) {
+	<-sigChan
+	close(stopChan)
+}
+
 func main() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	stopChan := make(chan struct{})
-	go func() {
-		<-sigChan
-		close(stopChan)
-	}()
+	go signalStop(sigChan, stopChan)
 	flag.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
 	flag.String("m", "", "model name. (qwen-plus[1, default], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5])")
 	flag.Bool("h", false, "print help help")
@@ -286,6 +288,9 @@ func main() {
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
 		nextModel := getModelByInput(model, question)
+		if nextModel != model {
+			fmt.Println("Model:", nextModel)
+		}
 		// 构建请求体
 		requestBody := RequestBody{
 			// 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
@@ -327,6 +332,8 @@ func main() {
 		for {
 			select {
 			case <-stopChan:
+				stopChan = make(chan struct{})
+				go signalStop(sigChan, stopChan)
 				goto end
 			case content, ok := <-ch:
 				if !ok {
