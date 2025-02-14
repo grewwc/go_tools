@@ -151,6 +151,7 @@ func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 		question += "\n Please be concise."
 	}
 	if strings.HasSuffix(strings.TrimSpace(question), " -s") {
+		question = strings.TrimSuffix(question, " -s")
 		question += "\n Please be concise."
 	}
 	return
@@ -224,12 +225,14 @@ func writeToFile(f *os.File, content string) {
 	}
 }
 
-func getModelByInput(prevModel, input string) string {
-	trimed := strings.TrimSpace(input)
+func getModelByInput(prevModel string, input *string) string {
+	trimed := strings.TrimSpace(*input)
 	if strings.HasSuffix(trimed, " -code") {
+		*input = strings.TrimSuffix(trimed, " -code")
 		return QWEN_CODER_PLUS_LATEST
 	}
 	if strings.HasSuffix(trimed, " -d") {
+		*input = strings.TrimSuffix(trimed, " -d")
 		return DEEPSEEK
 	}
 	return prevModel
@@ -255,10 +258,18 @@ func main() {
 	flag.Bool("code", false, "use code model (qwen-coder-plus-latest)")
 	flag.Bool("s", false, "short output")
 	flag.Bool("d", false, "deepseek model")
+	flag.Bool("clear-history", false, "clear history")
 	flag.String("f", "", "write output to file")
-	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code", "vs", "s", "d")
+	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code", "vs", "s", "d", "-clear-history")
 	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
+		return
+	}
+
+	if parsed.ContainsFlagStrict("-clear-history") {
+		if err := os.Remove(historyFile); err != nil {
+			log.Fatalln(err)
+		}
 		return
 	}
 
@@ -287,7 +298,7 @@ func main() {
 		}
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
-		nextModel := getModelByInput(model, question)
+		nextModel := getModelByInput(model, &question)
 		if nextModel != model {
 			fmt.Println("Model:", nextModel)
 		}
