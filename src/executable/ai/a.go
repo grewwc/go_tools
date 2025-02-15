@@ -166,6 +166,9 @@ func getModel(parsed *terminalW.ParsedResults) string {
 	if parsed.ContainsFlagStrict("code") {
 		return QWEN_CODER_PLUS_LATEST
 	}
+	if parsed.ContainsFlagStrict("d") {
+		return DEEPSEEK
+	}
 	n := parsed.GetNumArgs()
 	switch n {
 	case 1:
@@ -299,8 +302,8 @@ func main() {
 	}
 	for {
 		var question string
-		if len(args) == 1 {
-			question = args[0]
+		if len(args) >= 1 {
+			question = strings.Join(args, " ")
 			args = []string{}
 		} else {
 			question = getQuestion(parsed)
