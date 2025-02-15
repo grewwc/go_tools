@@ -17,9 +17,9 @@ import (
 	"unsafe"
 
 	"github.com/atotto/clipboard"
-	"github.com/chzyer/readline"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/peterh/liner"
 )
 
 func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
@@ -148,34 +148,44 @@ func PromptYesOrNo(msg string) bool {
 }
 
 func UserInput(msg string, multiline bool) string {
-	// 创建 readline 实例
-	rl, err := readline.NewEx(&readline.Config{
-		EOFPrompt:       "^D",
-		Prompt:          msg,
-		Stdin:           os.Stdin,
-		Stderr:          os.Stderr,
-		HistoryFile:     "/tmp/readline.tmp",
-		InterruptPrompt: "^C",
-	})
+	line := liner.NewLiner()
+	line.SetMultiLineMode(multiline)
+	defer line.Close()
+	historyFile := ExpandUser("~/.liner_histroy")
+	f, err := os.OpenFile(historyFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0664)
 	if err != nil {
 		panic(err)
 	}
-	rl.Operation.ExitCompleteMode(true)
-	// defer rl.Close()
+	defer f.Close()
+	line.ReadHistory(f)
+	line.SetCtrlCAborts(true)
 	var lines []string
 	for {
-		line, err := rl.Readline()
-		if err != nil && err == readline.ErrInterrupt {
-			fmt.Println("Exit.")
-			os.Exit(0)
+		input, err := line.Prompt("> ")
+		if err != nil {
+			if err == liner.ErrPromptAborted {
+				fmt.Println("Exit.")
+				os.Exit(0)
+			}
+			if err != io.EOF {
+				panic(err)
+			}
 		}
+
 		if !multiline {
-			return line
+			if input != "" {
+				line.AppendHistory(input)
+			}
+			if _, err := line.WriteHistory(f); err != nil {
+				panic(err)
+			}
+
+			return input
 		}
-		if err != nil && err == io.EOF {
+		lines = append(lines, input)
+		if err == io.EOF {
 			break
 		}
-		lines = append(lines, line)
 	}
 	return strings.Join(lines, "\n")
 }

@@ -150,15 +150,25 @@ func modifyQuestion(question string) string {
 
 func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 	multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
-	if parsed.ContainsFlagStrict("e") {
-		question = utilsW.InputWithEditor("", parsed.ContainsFlagStrict("vs"))
-	} else {
-		question = utilsW.UserInput(color.GreenString("> "), multiLine)
+	var fileContent string
+	question = utilsW.UserInput("> ", multiLine)
+	tempParsed := terminalW.ParseArgs(fmt.Sprintf("a %s", question))
+	if tempParsed.GetFlagValueDefault("f", "") != "" {
+		parsed.SetFlagValue("f", tempParsed.GetFlagValueDefault("f", ""))
+	}
+	if parsed.GetFlagValueDefault("f", "") != "" {
+		files := parsed.MustGetFlagVal("f")
+		for _, file := range stringsW.SplitNoEmptyKeepQuote(files, ',') {
+			if utilsW.IsTextFile(file) {
+				fileContent += utilsW.ReadString(file) + "\n"
+			}
+		}
 	}
 	// short output
 	if parsed.ContainsFlagStrict("s") {
 		question += "\n Please be concise."
 	}
+	question = fileContent + question
 	return
 }
 
@@ -209,8 +219,8 @@ func searchEnabled(model string) bool {
 }
 
 func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
-	if parsed.ContainsFlagStrict("f") {
-		filename := parsed.GetFlagValueDefault("f", "")
+	if parsed.ContainsFlagStrict("out") {
+		filename := parsed.GetFlagValueDefault("out", "")
 		if filename == "" {
 			filename = "output.txt"
 		}
@@ -268,14 +278,13 @@ func main() {
 	flag.Bool("h", false, "print help help")
 	flag.Bool("multi-line", false, "input with multline")
 	flag.Bool("mul", false, "same as multi-line")
-	flag.Bool("e", false, "input with editor")
-	flag.Bool("vs", false, "input with vscode")
 	flag.Bool("code", false, "use code model (qwen-coder-plus-latest)")
 	flag.Bool("s", false, "short output")
 	flag.Bool("d", false, "deepseek model")
 	flag.Bool("clear-history", false, "clear history")
-	flag.String("f", "", "write output to file")
-	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "e", "code", "vs", "s", "d", "-clear-history")
+	flag.String("f", "", "input file names. seprated by comma.")
+	flag.String("out", "", "write output to file. default is output.txt")
+	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear-history")
 	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
@@ -376,11 +385,6 @@ func main() {
 		resp.Body.Close()
 		curr.WriteByte('\x01')
 		appendHistory(curr.String())
-		if parsed.ContainsAnyFlagStrict("e", "vs") {
-			if !utilsW.PromptYesOrNo("\ncontinue? (y/n)") {
-				return
-			}
-		}
 		fmt.Println()
 	}
 }
