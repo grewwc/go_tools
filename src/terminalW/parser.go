@@ -321,8 +321,12 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 
 func parseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	var res ParsedResults
+	normalizedBoolOptionals := make([]string, len(boolOptionals))
+	for i, boolArg := range boolOptionals {
+		normalizedBoolOptionals[i] = strings.TrimLeft(boolArg, "-")
+	}
 	// fmt.Println(boolOptionals)
-	allPositionals, boolKeys, keys, vals := classifyArguments(cmd, boolOptionals...)
+	allPositionals, boolKeys, keys, vals := classifyArguments(cmd, normalizedBoolOptionals...)
 	res.Positional = allPositionals
 
 	res.Optional = make(map[string]string)
@@ -362,6 +366,7 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	if len(numArgs) > 0 {
 		numArgs = numArgs[1:]
 		cmd = strings.ReplaceAll(cmd, fmt.Sprintf("%q", numArgs), "")
+
 		boolOptionals = append(boolOptionals, numArgs)
 	}
 
