@@ -198,7 +198,7 @@ outer:
 // if exists, return the LARGEST value
 func (r ParsedResults) GetNumArgs() int {
 	res := -1
-	p := regexp.MustCompile(`-(\d+)\s*`)
+	p := regexp.MustCompile(`-(\d+)`)
 
 	for k := range r.Optional {
 		if !p.MatchString(k) {
