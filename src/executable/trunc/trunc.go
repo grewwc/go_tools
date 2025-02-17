@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -46,10 +47,11 @@ func removeNewLine(name string) error {
 		if err != nil && err != io.EOF {
 			return err
 		}
-		line := stringsW.BytesToString(b)
-		trimLine := strings.TrimSpace(line)
-		if trimLine != "" {
-			lines = append(lines, line)
+		if len(b) > 0 {
+			line := stringsW.BytesToString(bytes.TrimSpace(b))
+			if line != "" {
+				lines = append(lines, line)
+			}
 		}
 		if err == io.EOF {
 			break
