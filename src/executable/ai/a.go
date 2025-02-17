@@ -153,8 +153,14 @@ func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 	var fileContent string
 	question = utilsW.UserInput("> ", multiLine)
 	tempParsed := terminalW.ParseArgs(fmt.Sprintf("a %s", question))
+	if tempParsed.Empty() {
+		os.Exit(0)
+	}
 	if tempParsed.GetFlagValueDefault("f", "") != "" {
 		parsed.SetFlagValue("f", tempParsed.GetFlagValueDefault("f", ""))
+	}
+	if tempParsed.ContainsFlagStrict("c") {
+		parsed.SetFlagValue("c", "true")
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {
 		files := parsed.MustGetFlagVal("f")
@@ -163,6 +169,9 @@ func getQuestion(parsed *terminalW.ParsedResults) (question string) {
 				fileContent += utilsW.ReadString(file) + "\n"
 			}
 		}
+	}
+	if parsed.ContainsFlagStrict("c") {
+		fileContent += utilsW.ReadClipboardText()
 	}
 	// short output
 	if parsed.ContainsFlagStrict("s") {
@@ -282,9 +291,10 @@ func main() {
 	flag.Bool("s", false, "short output")
 	flag.Bool("d", false, "deepseek model")
 	flag.Bool("clear-history", false, "clear history")
+	flag.Bool("c", false, "prepend content in clipboard")
 	flag.String("f", "", "input file names. seprated by comma.")
 	flag.String("out", "", "write output to file. default is output.txt")
-	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear-history")
+	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear-history", "c")
 	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return

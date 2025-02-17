@@ -346,12 +346,16 @@ func parseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	return &res
 }
 
+func emptyParsedResults() *ParsedResults {
+	return &ParsedResults{
+		Optional:   make(map[string]string),
+		Positional: containerW.NewOrderedSet(),
+	}
+}
+
 func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 	if len(os.Args) <= 1 {
-		return &ParsedResults{
-			Optional:   make(map[string]string),
-			Positional: containerW.NewOrderedSet(),
-		}
+		return emptyParsedResults()
 	}
 
 	args := make([]string, len(os.Args))
@@ -379,7 +383,7 @@ func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
 	cmd = stringsW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
 	cmdSlice := stringsW.SplitNoEmptyKeepQuote(cmd, ' ')
 	if len(cmdSlice) <= 1 {
-		return nil
+		return emptyParsedResults()
 	}
 	cmd = strings.Join(cmdSlice[1:], fmt.Sprintf("%c", sep))
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)
