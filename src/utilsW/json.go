@@ -18,6 +18,7 @@ type Json struct {
 }
 
 func NewJsonFromFile(filename string) *Json {
+	filename = ExpandUser(filename)
 	b, err := os.ReadFile(filename)
 	if err != nil {
 		panic(err)
@@ -284,9 +285,14 @@ func (j *Json) ContainsKey(key string) bool {
 }
 
 func (j Json) String() string {
+	return j.StringWithIndent("", "")
+}
+
+func (j Json) StringWithIndent(prefix, indent string) string {
 	var buf bytes.Buffer
 	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)
+	encoder.SetIndent(prefix, indent)
 	err := encoder.Encode(j.data)
 	if err != nil {
 		return fmt.Sprintf("%v", j.data)
