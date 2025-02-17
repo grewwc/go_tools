@@ -50,7 +50,7 @@ func (r *ParsedResults) GetIntFlagVal(flagName string) int {
 }
 
 func (r *ParsedResults) GetIntFlagValOrDefault(flagName string, val int) int {
-	if r.ContainsFlag(flagName) {
+	if r.ContainsFlagStrict(flagName) {
 		return r.MustGetFlagValAsInt(flagName)
 	}
 	return val
@@ -198,7 +198,7 @@ outer:
 // if exists, return the LARGEST value
 func (r ParsedResults) GetNumArgs() int {
 	res := -1
-	p := regexp.MustCompile("-(\\d+)")
+	p := regexp.MustCompile(`-(\d+)\s*`)
 
 	for k := range r.Optional {
 		if !p.MatchString(k) {
@@ -207,7 +207,8 @@ func (r ParsedResults) GetNumArgs() int {
 		k = strings.TrimLeft(k, "-")
 		kInt, err := strconv.ParseInt(k, 10, 64)
 		if err != nil {
-			log.Fatalln(err)
+			log.Println(err)
+			return -1
 		}
 		if res < int(kInt) {
 			res = int(kInt)
