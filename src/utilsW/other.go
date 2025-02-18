@@ -161,7 +161,7 @@ func UserInput(msg string, multiline bool) string {
 	line.SetCtrlCAborts(true)
 	var lines []string
 	for {
-		input, err := line.Prompt("> ")
+		input, err := line.Prompt(msg)
 		if err != nil {
 			if err == liner.ErrPromptAborted {
 				fmt.Println("Exit.")

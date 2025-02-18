@@ -471,9 +471,7 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, pre
 			newRecord.Title = title
 		}
 	}
-	fmt.Print("input the tags: ")
-	scanner.Scan()
-	tags := strings.TrimSpace(scanner.Text())
+	tags := strings.TrimSpace(utilsW.UserInput("input the tags: ", false))
 	tags = strings.ReplaceAll(tags, ",", " ")
 	var tagsRunes []rune
 	for _, r := range tags {
