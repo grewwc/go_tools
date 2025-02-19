@@ -189,10 +189,8 @@ func ReadInfo(isURL bool) string {
 		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.HiWhiteString(urls[i]), color.HiBlueString(hint))
 	}
 	_print(urlsWithNo, hints)
-	fmt.Print("\ninput the number: ")
-	scanner = bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		text := strings.TrimSpace(scanner.Text())
+	text := utilsW.UserInput("input the number: ", false)
+	for {
 		if val, err := strconv.Atoi(text); err != nil {
 			fmt.Printf("%s is not a valid choice\n", text)
 			_print(urlsWithNo, hints)
