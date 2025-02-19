@@ -48,8 +48,8 @@ func removeNewLine(name string) error {
 			return err
 		}
 		if len(b) > 0 {
-			line := stringsW.BytesToString(bytes.TrimSpace(b))
-			if line != "" {
+			line := stringsW.BytesToString(bytes.Trim(b, "\n"))
+			if stringsW.BytesToString(bytes.TrimSpace(b)) != "" {
 				lines = append(lines, line)
 			}
 		}
