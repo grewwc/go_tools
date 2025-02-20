@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -39,6 +41,8 @@ var (
 	historyFile string
 )
 
+var nonTextFile = utilsW.NewThreadSafeVal("")
+
 type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
@@ -48,6 +52,44 @@ type RequestBody struct {
 	Messages     []Message `json:"messages"`
 	EnableSearch bool      `json:"enable_search"`
 	Stream       bool      `json:"stream"`
+}
+
+func uploadQwenLongFiles(filename string) string {
+	client := &http.Client{}
+	baseUrl := "https://dashscope.aliyuncs.com/compatible-mode/v1/files"
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer file.Close()
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", filepath.Base(filename))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	io.Copy(part, file)
+	writer.WriteField("purpose", "file-extract")
+
+	writer.Close()
+	req, err := http.NewRequest("POST", baseUrl, &body)
+	if err != nil {
+		log.Println(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	j := utilsW.NewJsonFromByte(b)
+	return j.GetString("id")
 }
 
 func getText(j *utilsW.Json) string {
@@ -148,30 +190,38 @@ func modifyQuestion(question string) string {
 	return question
 }
 
-func getQuestion(parsed *terminalW.ParsedResults) (question string) {
-	multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
+func getQuestion(parsed *terminalW.ParsedResults, fromTerminal bool) (question string) {
 	var fileContent string
-	question = utilsW.UserInput("> ", multiLine)
-	tempParsed := terminalW.ParseArgs(fmt.Sprintf("a %s", question))
-	if tempParsed.Empty() {
-		os.Exit(0)
-	}
-	if tempParsed.GetFlagValueDefault("f", "") != "" {
-		parsed.SetFlagValue("f", tempParsed.GetFlagValueDefault("f", ""))
-	}
-	if tempParsed.ContainsFlagStrict("c") {
-		parsed.SetFlagValue("c", "true")
+	if fromTerminal {
+		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
+		question = utilsW.UserInput("> ", multiLine)
+		tempParsed := terminalW.ParseArgs(fmt.Sprintf("a %s", question))
+		if tempParsed.Empty() {
+			os.Exit(0)
+		}
+		if tempParsed.GetFlagValueDefault("f", "") != "" {
+			parsed.SetFlagValue("f", tempParsed.GetFlagValueDefault("f", ""))
+		}
+		if tempParsed.ContainsFlagStrict("c") {
+			parsed.SetFlagValue("c", "true")
+		}
+	} else {
+		question = strings.Join(parsed.Positional.ToStringSlice(), " ")
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {
 		files := parsed.MustGetFlagVal("f")
 		for _, file := range stringsW.SplitNoEmptyKeepQuote(files, ',') {
 			if utilsW.IsTextFile(file) {
 				fileContent += utilsW.ReadString(file) + "\n"
+			} else {
+				nonTextFile.Set(file)
 			}
 		}
+		parsed.RemoveFlagValue("f")
 	}
 	if parsed.ContainsFlagStrict("c") {
 		fileContent += utilsW.ReadClipboardText()
+		parsed.RemoveFlagValue("c")
 	}
 	// short output
 	if parsed.ContainsFlagStrict("s") {
@@ -253,6 +303,9 @@ func writeToFile(f *os.File, content string) {
 }
 
 func getModelByInput(prevModel string, input *string) string {
+	if nonTextFile.Get().(string) != "" {
+		return "qwen-long"
+	}
 	trimed := strings.TrimSpace(*input)
 	if strings.HasSuffix(trimed, " -code") {
 		*input = strings.TrimSuffix(trimed, " -code")
@@ -322,10 +375,10 @@ func main() {
 	for {
 		var question string
 		if len(args) >= 1 {
-			question = strings.Join(args, " ")
+			question = getQuestion(parsed, false)
 			args = []string{}
 		} else {
-			question = getQuestion(parsed)
+			question = getQuestion(parsed, true)
 		}
 		if strings.TrimSpace(question) == "" {
 			continue
@@ -333,8 +386,8 @@ func main() {
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
 		nextModel := getModelByInput(model, &question)
-		if nextModel != model {
-			fmt.Println("Model:", nextModel)
+		if nextModel != model && nonTextFile.Get().(string) != "" {
+			fmt.Println("Model Changed To: ", color.GreenString(nextModel))
 		}
 		question = modifyQuestion(question)
 		// 构建请求体
@@ -352,6 +405,16 @@ func main() {
 		}
 		arr := buildMessageArr(nHistory)
 		requestBody.Messages = append(requestBody.Messages, arr...)
+		file := nonTextFile.Get().(string)
+		if file != "" {
+			nonTextFile.Set("")
+			fileid := uploadQwenLongFiles(file)
+			requestBody.Messages = append(requestBody.Messages, Message{
+				Role:    "system",
+				Content: fmt.Sprintf("fileid://%s", fileid),
+			})
+			requestBody.Model = "qwen-long"
+		}
 		requestBody.Messages = append(requestBody.Messages, Message{
 			Role:    "user",
 			Content: question,

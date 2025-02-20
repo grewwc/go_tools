@@ -89,6 +89,13 @@ func (r ParsedResults) SetFlagValue(flagName string, val string) {
 	r.Optional[flagName] = val
 }
 
+func (r ParsedResults) RemoveFlagValue(flagName string) {
+	if flagName[0] != '-' {
+		flagName = "-" + flagName
+	}
+	delete(r.Optional, flagName)
+}
+
 func (r ParsedResults) GetMultiFlagValDefault(flagNames []string, defaultVal string) string {
 	var result string
 	var err error
