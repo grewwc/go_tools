@@ -40,7 +40,7 @@ var (
 	historyFile string
 )
 
-var nonTextFile = utilsW.NewThreadSafeVal("")
+var nonTextFile = utilsW.NewThreadSafeVal([]string{})
 
 type Message struct {
 	Role    string `json:"role"`
