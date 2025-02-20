@@ -58,6 +58,31 @@ func ThreeWayPartitionComparable[T typesW.Comparable](nums []T) (int, int) {
 	return lt, gt
 }
 
+func ThreeWayPartitionComparator[T any](nums []T, comparator func(a, b T) int) (int, int) {
+	r := rand.Int31n(int32(len(nums)))
+	nums[0], nums[r] = nums[r], nums[0]
+	pivot := nums[0]
+	lt, gt := 0, len(nums)-1
+	i := 1
+	for i <= gt {
+		cur := nums[i]
+		cmp := comparator(cur, pivot)
+		if cmp < 0 {
+			// swap(nums, i, lt)
+			nums[i], nums[lt] = nums[lt], nums[i] // for faster speed
+			i++
+			lt++
+		} else if cmp == 0 {
+			i++
+		} else {
+			// swap(nums, i, gt)
+			nums[i], nums[gt] = nums[gt], nums[i] // for faster speed
+			gt--
+		}
+	}
+	return lt, gt
+}
+
 // Partition partition array into two parts [lo, hi)
 func Partition[T constraints.Ordered](nums []T, lo, hi int) int {
 	if hi-lo <= 1 {

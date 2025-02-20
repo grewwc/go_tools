@@ -16,16 +16,6 @@ import (
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
-type comparedTuple containerW.Tuple
-
-func (tup *comparedTuple) Compare(other interface{}) int {
-	otherTup, ok := other.(*comparedTuple)
-	if !ok {
-		return 0
-	}
-	return ((*containerW.Tuple)(tup)).Get(0).(int) - ((*containerW.Tuple)(otherTup)).Get(0).(int)
-}
-
 func uploadSingleQwenlongFile(apiKey, filename string) (string, error) {
 	defer func() {
 		recover()
@@ -54,7 +44,7 @@ func uploadSingleQwenlongFile(apiKey, filename string) (string, error) {
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	fmt.Println("Uploading file...")
+	fmt.Println("Uploading file: ", filepath.Base(filename))
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
@@ -73,30 +63,32 @@ func uploadSingleQwenlongFile(apiKey, filename string) (string, error) {
 }
 
 func UploadQwenLongFiles(apiKey string, files []string) []string {
-	ch := make(chan *comparedTuple, len(files))
+	ch := make(chan *containerW.Tuple, len(files))
 	defer close(ch)
 	for i, file := range files {
 		file = strings.TrimSpace(file)
 		file = utilsW.ExpandUser(file)
 		go upload(ch, apiKey, file, i)
 	}
-	resultTuple := make([]*comparedTuple, 0, len(files))
+	resultTuple := make([]*containerW.Tuple, 0, len(files))
 	for i := 0; i < len(files); i++ {
 		resultTuple = append(resultTuple, <-ch)
 	}
-	sortW.QuickSortComparable[*comparedTuple](resultTuple)
+	sortW.SortComparator(resultTuple, func(a, b *containerW.Tuple) int {
+		return a.Get(0).(int) - b.Get(0).(int)
+	})
 
 	result := make([]string, len(resultTuple))
 	for i, tup := range resultTuple {
-		result[i] = ((*containerW.Tuple)(tup)).Get(1).(string)
+		result[i] = tup.Get(1).(string)
 	}
 	return result
 
 }
 
-func upload(result chan<- *comparedTuple, apiKey, filename string, order int) {
+func upload(result chan<- *containerW.Tuple, apiKey, filename string, order int) {
 	fileid := uploadSingleQwenLongFileWithRetry(apiKey, filename, 5)
-	result <- (*comparedTuple)(containerW.NewTuple(order, fileid))
+	result <- containerW.NewTuple(order, fileid)
 }
 
 func uploadSingleQwenLongFileWithRetry(apiKey, filename string, retry int) string {

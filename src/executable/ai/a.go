@@ -171,7 +171,9 @@ func getQuestion(parsed *terminalW.ParsedResults, fromTerminal bool) (question s
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {
 		files := parsed.MustGetFlagVal("f")
-		nonTextFile.Set(files)
+		parser := _ai_helpers.NewParser(files)
+		question = parser.TextFileContents() + "\n" + question
+		nonTextFile.Set(parser.NonTextFiles())
 		parsed.RemoveFlagValue("f")
 	}
 	if parsed.ContainsFlagStrict("c") {
@@ -258,7 +260,7 @@ func writeToFile(f *os.File, content string) {
 }
 
 func getModelByInput(prevModel string, input *string) string {
-	if nonTextFile.Get().(string) != "" {
+	if len(nonTextFile.Get().([]string)) > 0 {
 		return "qwen-long"
 	}
 	trimed := strings.TrimSpace(*input)
@@ -358,10 +360,9 @@ func main() {
 			EnableSearch: searchEnabled(nextModel),
 			Stream:       true,
 		}
-		file := nonTextFile.Get().(string)
-		if file != "" {
-			nonTextFile.Set("")
-			files := stringsW.SplitNoEmptyKeepQuote(file, ',')
+		files := nonTextFile.Get().([]string)
+		if len(files) > 0 {
+			nonTextFile.Set([]string{})
 			fileidArr := _ai_helpers.UploadQwenLongFiles(apiKey, files)
 			arr := make([]Message, 0, len(fileidArr))
 			for _, fileid := range fileidArr {

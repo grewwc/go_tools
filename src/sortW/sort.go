@@ -49,6 +49,22 @@ func InsertionSortComparable[T typesW.Comparable](arr []T) {
 			}
 		}
 	}
+}
+
+func InsertionSortComparator[T any](arr []T, comparator func(a, b T) int) {
+	l := len(arr)
+	if l <= 1 {
+		return
+	}
+	for i := 0; i < l-1; i++ {
+		for j := i + 1; j > 0; j-- {
+			if comparator(arr[j], arr[j-1]) < 0 {
+				arr[j], arr[j-1] = arr[j-1], arr[j]
+			} else {
+				break
+			}
+		}
+	}
 
 }
 
@@ -92,6 +108,10 @@ func QuickSort[T constraints.Ordered](arr []T) {
 // QuickSortComparable uses multi cores
 func QuickSortComparable[T typesW.Comparable](arr []T) {
 	quickSortComparable(arr, true, nil)
+}
+
+func SortComparator[T any](arr []T, comparator func(a, b T) int) {
+	quickSortComparator(arr, comparator, true, nil)
 }
 
 // ShellSort ints
@@ -275,6 +295,19 @@ func calcSortedRatioComparable[T typesW.Comparable](arr []T) float32 {
 	return float32(cnt) / float32(len(arr))
 }
 
+func calcSortedRatioComparator[T any](arr []T, comparator func(a, b T) int) float32 {
+	if len(arr) <= 1 {
+		return 1
+	}
+	cnt := 1
+	for i := 0; i < len(arr)-1; i++ {
+		if comparator(arr[i], arr[i+1]) < 0 {
+			cnt++
+		}
+	}
+	return float32(cnt) / float32(len(arr))
+}
+
 func quickSort[T constraints.Ordered](arr []T, calclRatio bool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
@@ -328,5 +361,33 @@ func quickSortComparable[T typesW.Comparable](arr []T, calcRatio bool, wg *sync.
 	wg1.Add(2)
 	quickSortComparable(left, false, &wg1)
 	quickSortComparable(right, false, &wg1)
+	wg1.Wait()
+}
+
+func quickSortComparator[T any](arr []T, comparator func(a, b T) int, calcRatio bool, wg *sync.WaitGroup) {
+	if wg != nil {
+		defer wg.Done()
+	}
+	if len(arr) < 32 {
+		InsertionSortComparator(arr, comparator)
+		return
+	}
+	if calcRatio && calcSortedRatioComparator(arr, comparator) >= 0.95 {
+		InsertionSortComparator(arr, comparator)
+		return
+	}
+
+	lt, gt := algorithmW.ThreeWayPartitionComparator(arr, comparator)
+	left, right := arr[:lt], arr[gt+1:]
+	n := 4096
+	if len(left) < n || len(right) < n {
+		quickSortComparator(left, comparator, false, nil)
+		quickSortComparator(right, comparator, false, nil)
+		return
+	}
+	wg1 := sync.WaitGroup{}
+	wg1.Add(2)
+	quickSortComparator(left, comparator, false, &wg1)
+	quickSortComparator(right, comparator, false, &wg1)
 	wg1.Wait()
 }
