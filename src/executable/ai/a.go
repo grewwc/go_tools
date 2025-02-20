@@ -7,17 +7,16 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/executable/ai/_ai_helpers"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
@@ -52,46 +51,6 @@ type RequestBody struct {
 	Messages     []Message `json:"messages"`
 	EnableSearch bool      `json:"enable_search"`
 	Stream       bool      `json:"stream"`
-}
-
-func uploadQwenLongFiles(filename string) string {
-	client := &http.Client{}
-	baseUrl := "https://dashscope.aliyuncs.com/compatible-mode/v1/files"
-	file, err := os.Open(filename)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer file.Close()
-	var body bytes.Buffer
-	writer := multipart.NewWriter(&body)
-	part, err := writer.CreateFormFile("file", filepath.Base(filename))
-	if err != nil {
-		log.Fatalln(err)
-	}
-	io.Copy(part, file)
-	writer.WriteField("purpose", "file-extract")
-
-	writer.Close()
-	req, err := http.NewRequest("POST", baseUrl, &body)
-	if err != nil {
-		log.Println(err)
-	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	fmt.Println("Uploading file...")
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(err)
-	}
-	j := utilsW.NewJsonFromByte(b)
-	fileid := j.GetString("id")
-	fmt.Println("Finished upload. Fileid: ", fileid)
-	return fileid
 }
 
 func getText(j *utilsW.Json) string {
@@ -212,13 +171,7 @@ func getQuestion(parsed *terminalW.ParsedResults, fromTerminal bool) (question s
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {
 		files := parsed.MustGetFlagVal("f")
-		for _, file := range stringsW.SplitNoEmptyKeepQuote(files, ',') {
-			if utilsW.IsTextFile(file) {
-				fileContent += utilsW.ReadString(file) + "\n"
-			} else {
-				nonTextFile.Set(file)
-			}
-		}
+		nonTextFile.Set(files)
 		parsed.RemoveFlagValue("f")
 	}
 	if parsed.ContainsFlagStrict("c") {
@@ -366,7 +319,7 @@ func main() {
 
 	var nHistory = getNumHistory(parsed)
 	var model = getModel(parsed)
-	fmt.Println("Model: ", color.GreenString(model))
+	// fmt.Println("Model: ", color.GreenString(model))
 	var curr bytes.Buffer
 
 	client := &http.Client{}
@@ -388,9 +341,9 @@ func main() {
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
 		nextModel := getModelByInput(model, &question)
-		if nextModel != model && nonTextFile.Get().(string) != "" {
-			fmt.Println("Model Changed To: ", color.GreenString(nextModel))
-		}
+		// if nextModel != model && nonTextFile.Get().(string) != "" {
+		// 	fmt.Println("Model Changed To: ", color.GreenString(nextModel))
+		// }
 		question = modifyQuestion(question)
 		// 构建请求体
 		requestBody := RequestBody{
@@ -405,17 +358,23 @@ func main() {
 			EnableSearch: searchEnabled(nextModel),
 			Stream:       true,
 		}
-		arr := buildMessageArr(nHistory)
-		requestBody.Messages = append(requestBody.Messages, arr...)
 		file := nonTextFile.Get().(string)
 		if file != "" {
 			nonTextFile.Set("")
-			fileid := uploadQwenLongFiles(file)
-			requestBody.Messages = append(requestBody.Messages, Message{
-				Role:    "system",
-				Content: fmt.Sprintf("fileid://%s", fileid),
-			})
+			files := stringsW.SplitNoEmptyKeepQuote(file, ',')
+			fileidArr := _ai_helpers.UploadQwenLongFiles(apiKey, files)
+			arr := make([]Message, 0, len(fileidArr))
+			for _, fileid := range fileidArr {
+				arr = append(arr, Message{
+					Role:    "system",
+					Content: fmt.Sprintf("fileid://%s", fileid),
+				})
+			}
+			requestBody.Messages = append(requestBody.Messages, arr...)
 			requestBody.Model = "qwen-long"
+		} else {
+			arr := buildMessageArr(nHistory)
+			requestBody.Messages = append(requestBody.Messages, arr...)
 		}
 		requestBody.Messages = append(requestBody.Messages, Message{
 			Role:    "user",
@@ -440,6 +399,7 @@ func main() {
 		curr.WriteString("assistant\x00")
 		ch := handleResponse(resp.Body)
 
+		fmt.Printf("[%s] ", color.GreenString(requestBody.Model))
 		for {
 			select {
 			case <-stopChan:
