@@ -78,7 +78,7 @@ func uploadQwenLongFiles(filename string) string {
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-
+	fmt.Println("Uploading file...")
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
@@ -89,7 +89,9 @@ func uploadQwenLongFiles(filename string) string {
 		log.Println(err)
 	}
 	j := utilsW.NewJsonFromByte(b)
-	return j.GetString("id")
+	fileid := j.GetString("id")
+	fmt.Println("Finished upload. Fileid: ", fileid)
+	return fileid
 }
 
 func getText(j *utilsW.Json) string {
