@@ -17,7 +17,12 @@ type EventBus struct {
 	mu        *sync.RWMutex
 	nameMapMu *sync.RWMutex
 	wg        *sync.WaitGroup
-	topics    *containerW.ConcurrentSet[string]
+
+	functions       *containerW.ConcurrentSet[string]
+	functionNameMap map[string]interface{}
+	funcMu          *sync.RWMutex
+
+	topics *containerW.ConcurrentSet[string]
 }
 
 func NewEventBus() *EventBus {
@@ -27,7 +32,12 @@ func NewEventBus() *EventBus {
 		mu:        &sync.RWMutex{},
 		nameMapMu: &sync.RWMutex{},
 		wg:        &sync.WaitGroup{},
-		topics:    containerW.NewConcurrentSet[string](),
+
+		functions:       containerW.NewConcurrentSet[string](),
+		functionNameMap: make(map[string]interface{}),
+		funcMu:          &sync.RWMutex{},
+
+		topics: containerW.NewConcurrentSet[string](),
 	}
 }
 
@@ -37,6 +47,17 @@ func (b *EventBus) Register(topic string, listener interface{}) {
 	}
 	type_ := reflect.TypeOf(listener)
 	if type_ == nil {
+		return
+	}
+	// function
+	if type_.Kind() == reflect.Func {
+		funcName := _utils_helpers.GetFunctionName(listener)
+		funcName = _utils_helpers.AddTopicToMethodName(topic, funcName)
+		b.functions.Add(funcName)
+		b.topics.Add(topic)
+		b.funcMu.Lock()
+		b.functionNameMap[funcName] = listener
+		b.funcMu.Unlock()
 		return
 	}
 	methods := _utils_helpers.GetMethods(listener)
@@ -70,6 +91,16 @@ func (b *EventBus) UnRegister(topic string, listener interface{}) {
 	if type_ == nil {
 		return
 	}
+	// function
+	if type_.Kind() == reflect.Func {
+		funcName := _utils_helpers.AddTopicToMethodName(topic, _utils_helpers.GetFunctionName(listener))
+		b.functions.Delete(funcName)
+		b.funcMu.Lock()
+		delete(b.functionNameMap, funcName)
+		b.funcMu.Unlock()
+		return
+	}
+
 	b.mu.RLock()
 	if _, ok := b.m[listener]; !ok {
 		return
@@ -90,6 +121,32 @@ func (b *EventBus) UnRegister(topic string, listener interface{}) {
 }
 
 func (b *EventBus) Post(topic string, args ...interface{}) {
+	// function
+outer:
+	for funcname := range b.functions.Iterate() {
+		funcname = _utils_helpers.RemoveTopicFromMethodName(topic, funcname)
+		funcname = _utils_helpers.AddTopicToMethodName(topic, funcname)
+		b.funcMu.RLock()
+		ifunc := b.functionNameMap[funcname]
+		tfunc := reflect.TypeOf(ifunc)
+		if ifunc == nil || len(args) != tfunc.NumIn() {
+			continue
+		}
+		// check arg types
+		for i := 0; i < len(args); i++ {
+			if reflect.TypeOf(args[i]).String() != tfunc.In(i).String() {
+				continue outer
+			}
+		}
+		b.wg.Add(1)
+		go func() {
+			defer b.wg.Done()
+			reflect.ValueOf(ifunc).Call(_utils_helpers.InterfaceToValue(args...))
+		}()
+		b.funcMu.RUnlock()
+		return
+	}
+
 	b.mu.RLock()
 	for obj, methodNameSet := range b.m {
 	methodLoop:

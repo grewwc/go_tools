@@ -3,6 +3,7 @@ package _utils_helpers
 import (
 	"fmt"
 	"reflect"
+	"runtime"
 	"strings"
 )
 
@@ -24,6 +25,9 @@ func GetMethods(obj interface{}) []*reflect.Method {
 	return result
 }
 
+func GetFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
 func AddTopicToMethodName(topic, methodName string) string {
 	return fmt.Sprintf("__%s__%s", topic, methodName)
 }
@@ -34,6 +38,14 @@ func RemoveTopicFromMethodName(topic, methodName string) string {
 		return methodName
 	}
 	return strings.TrimPrefix(methodName, key)
+}
+
+func InterfaceToValue(args ...interface{}) []reflect.Value {
+	result := make([]reflect.Value, 0, len(args))
+	for _, arg := range args {
+		result = append(result, reflect.ValueOf(arg))
+	}
+	return result
 }
 
 func MethodToString(topic string, m *reflect.Method) string {
