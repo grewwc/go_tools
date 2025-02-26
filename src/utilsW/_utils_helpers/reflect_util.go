@@ -3,6 +3,7 @@ package _utils_helpers
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 func GetMethods(obj interface{}) []*reflect.Method {
@@ -23,14 +24,27 @@ func GetMethods(obj interface{}) []*reflect.Method {
 	return result
 }
 
-func MethodToString(m *reflect.Method) string {
-	return fmt.Sprintf("%s_%s_%d", m.Type.String(), m.PkgPath, m.Index)
+func AddTopicToMethodName(topic, methodName string) string {
+	return fmt.Sprintf("__%s__%s", topic, methodName)
 }
 
-func MethodArrToString(methods []*reflect.Method) []string {
+func RemoveTopicFromMethodName(topic, methodName string) string {
+	key := fmt.Sprintf("__%s__", topic)
+	if !strings.HasPrefix(methodName, key) {
+		return methodName
+	}
+	return strings.TrimPrefix(methodName, key)
+}
+
+func MethodToString(topic string, m *reflect.Method) string {
+	methodName := fmt.Sprintf("%s_%s_%d", m.Type.String(), m.PkgPath, m.Index)
+	return AddTopicToMethodName(topic, methodName)
+}
+
+func MethodArrToString(topic string, methods []*reflect.Method) []string {
 	result := make([]string, 0, len(methods))
 	for _, m := range methods {
-		result = append(result, MethodToString(m))
+		result = append(result, MethodToString(topic, m))
 	}
 	return result
 }

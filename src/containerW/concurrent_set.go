@@ -153,3 +153,13 @@ func (s *ConcurrentSet[T]) Clear() {
 	s.data.data = make(map[interface{}]bool, 8)
 	s.mu.Unlock()
 }
+
+func (s *ConcurrentSet[T]) ToSlice() []T {
+	res := make([]T, 0, s.Size())
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for k := range s.data.data {
+		res = append(res, k.(T))
+	}
+	return res
+}

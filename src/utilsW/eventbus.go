@@ -17,6 +17,7 @@ type EventBus struct {
 	mu        *sync.RWMutex
 	nameMapMu *sync.RWMutex
 	wg        *sync.WaitGroup
+	topics    *containerW.ConcurrentSet[string]
 }
 
 func NewEventBus() *EventBus {
@@ -26,10 +27,11 @@ func NewEventBus() *EventBus {
 		mu:        &sync.RWMutex{},
 		nameMapMu: &sync.RWMutex{},
 		wg:        &sync.WaitGroup{},
+		topics:    containerW.NewConcurrentSet[string](),
 	}
 }
 
-func (b *EventBus) Register(listener interface{}) {
+func (b *EventBus) Register(topic string, listener interface{}) {
 	if listener == nil {
 		return
 	}
@@ -38,7 +40,8 @@ func (b *EventBus) Register(listener interface{}) {
 		return
 	}
 	methods := _utils_helpers.GetMethods(listener)
-	methodNames := _utils_helpers.MethodArrToString(methods)
+	methodNames := _utils_helpers.MethodArrToString(topic, methods)
+	b.topics.Add(topic)
 	b.mu.RLock()
 	if s, ok := b.m[listener]; !ok {
 		b.mu.RUnlock()
@@ -59,7 +62,7 @@ func (b *EventBus) Register(listener interface{}) {
 	}
 }
 
-func (b *EventBus) UnRegister(listener interface{}) {
+func (b *EventBus) UnRegister(topic string, listener interface{}) {
 	if listener == nil {
 		return
 	}
@@ -72,7 +75,8 @@ func (b *EventBus) UnRegister(listener interface{}) {
 		return
 	}
 	methods := _utils_helpers.GetMethods(listener)
-	methodNames := _utils_helpers.MethodArrToString(methods)
+	methodNames := _utils_helpers.MethodArrToString(topic, methods)
+	b.topics.Delete(topic)
 	b.m[listener].DeleteAll(methodNames...)
 	b.mu.RUnlock()
 
@@ -85,13 +89,18 @@ func (b *EventBus) UnRegister(listener interface{}) {
 	}
 }
 
-func (b *EventBus) Post(args ...interface{}) {
+func (b *EventBus) Post(topic string, args ...interface{}) {
 	b.mu.RLock()
-	for obj, methodNames := range b.m {
+	for obj, methodNameSet := range b.m {
 	methodLoop:
-		for methodName := range methodNames.Iterate() {
+		for methodName := range methodNameSet.Iterate() {
+			methodName = _utils_helpers.RemoveTopicFromMethodName(topic, methodName)
+			methodName = _utils_helpers.AddTopicToMethodName(topic, methodName)
 			b.nameMapMu.RLock()
 			method := b.nameMap[methodName]
+			if method == nil {
+				continue
+			}
 			b.nameMapMu.RUnlock()
 			in := []reflect.Value{
 				reflect.ValueOf(obj),
@@ -120,10 +129,20 @@ func (b *EventBus) Post(args ...interface{}) {
 	defer b.mu.RUnlock()
 }
 
+func (b *EventBus) BroadCast(args ...interface{}) {
+	for _, topic := range b.ListTopics() {
+		b.Post(topic, args...)
+	}
+}
+
 func (b *EventBus) Wait() {
 	b.wg.Wait()
 }
 
 func (b *EventBus) WaitTimeout(duration time.Duration) error {
 	return TimeoutWait(b.wg, duration)
+}
+
+func (b *EventBus) ListTopics() []string {
+	return b.topics.ToSlice()
 }
