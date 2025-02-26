@@ -25,7 +25,7 @@ func (s *Set) Contains(item interface{}) bool {
 	return false
 }
 
-func (s Set) Iterate() <-chan interface{} {
+func (s *Set) Iterate() <-chan interface{} {
 	c := make(chan interface{})
 	go func() {
 		defer close(c)
@@ -36,7 +36,7 @@ func (s Set) Iterate() <-chan interface{} {
 	return c
 }
 
-func (s Set) MutualExclude(another Set) bool {
+func (s *Set) MutualExclude(another *Set) bool {
 	for k := range s.data {
 		if another.Contains(k) {
 			return false
@@ -59,7 +59,7 @@ func (s *Set) DeleteAll(items ...interface{}) {
 	}
 }
 
-func (s Set) Intersect(another Set) *Set {
+func (s *Set) Intersect(another *Set) *Set {
 	result := NewSet()
 	for k := range s.data {
 		if another.Contains(k) {
@@ -69,7 +69,7 @@ func (s Set) Intersect(another Set) *Set {
 	return result
 }
 
-func (s Set) Union(another Set) *Set {
+func (s *Set) Union(another *Set) *Set {
 	result := NewSet()
 	for k := range s.data {
 		result.Add(k)
@@ -80,7 +80,7 @@ func (s Set) Union(another Set) *Set {
 	return result
 }
 
-func (s Set) IsSuperSet(another Set) bool {
+func (s *Set) IsSuperSet(another *Set) bool {
 	for k := range another.data {
 		if !s.Contains(k) {
 			return false
@@ -89,7 +89,7 @@ func (s Set) IsSuperSet(another Set) bool {
 	return true
 }
 
-func (s Set) IsSubSet(another Set) bool {
+func (s *Set) IsSubSet(another *Set) bool {
 	return another.IsSuperSet(s)
 }
 
@@ -113,7 +113,7 @@ func (s *Set) String() string {
 	return fmt.Sprintf("%v\n", res)
 }
 
-func (s Set) ShallowCopy() *Set {
+func (s *Set) ShallowCopy() *Set {
 	result := NewSet()
 	for k := range s.data {
 		result.Add(k)
@@ -136,7 +136,7 @@ func (s Set) ToSlice() []interface{} {
 }
 
 // ToStringSlice is not type safe
-func (s Set) ToStringSlice() []string {
+func (s *Set) ToStringSlice() []string {
 	res := make([]string, 0, s.Size())
 	for k := range s.data {
 		res = append(res, k.(string))
@@ -144,7 +144,7 @@ func (s Set) ToStringSlice() []string {
 	return res
 }
 
-func (s Set) Equals(another Set) bool {
+func (s *Set) Equals(another *Set) bool {
 	return s.IsSubSet(another) && s.IsSubSet(another)
 }
 
