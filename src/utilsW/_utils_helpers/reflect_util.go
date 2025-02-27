@@ -1,10 +1,13 @@
 package _utils_helpers
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/grewwc/go_tools/src/stringsW"
 )
 
 func GetMethods(obj interface{}) []*reflect.Method {
@@ -37,7 +40,8 @@ func RemoveTopicFromMethodName(topic, methodName string) string {
 	if !strings.HasPrefix(methodName, key) {
 		return methodName
 	}
-	return strings.TrimPrefix(methodName, key)
+	b := stringsW.StringToBytes(methodName)
+	return stringsW.BytesToString(bytes.TrimPrefix(b, stringsW.StringToBytes(key)))
 }
 
 func InterfaceToValue(args ...interface{}) []reflect.Value {
