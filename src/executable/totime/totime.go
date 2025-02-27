@@ -34,7 +34,7 @@ func main() {
 	}
 	unixTime, err := strconv.Atoi(posArr[0])
 	if err != nil {
-		fmt.Println(utilsW.ToUnix(posArr[0]))
+		fmt.Println(utilsW.ToUnix(posArr[0]), "s")
 		return
 	}
 	res := time.Unix(int64(unixTime), 0)
