@@ -28,7 +28,10 @@ type EventBus struct {
 	parallel chan struct{}
 }
 
-func NewEventBus() *EventBus {
+func NewEventBus(n_parallel int) *EventBus {
+	if n_parallel <= 0 {
+		panic("n_parallel must greater than 0")
+	}
 	result := &EventBus{
 		m:         make(map[interface{}]*containerW.ConcurrentSet[string]),
 		nameMap:   make(map[string]*reflect.Method),
@@ -42,7 +45,7 @@ func NewEventBus() *EventBus {
 
 		topics: containerW.NewConcurrentSet[string](),
 
-		parallel: make(chan struct{}, 32),
+		parallel: make(chan struct{}, n_parallel),
 	}
 	runtime.SetFinalizer(result, func(obj *EventBus) {
 		if obj != nil {
@@ -150,8 +153,12 @@ outer:
 			}
 		}
 		b.wg.Add(1)
+		b.parallel <- struct{}{}
 		go func() {
-			defer b.wg.Done()
+			defer func() {
+				<-b.parallel
+				b.wg.Done()
+			}()
 			reflect.ValueOf(ifunc).Call(_utils_helpers.InterfaceToValue(args...))
 		}()
 		b.funcMu.RUnlock()
