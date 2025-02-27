@@ -153,8 +153,8 @@ outer:
 			}
 		}
 		b.wg.Add(1)
-		b.parallel <- struct{}{}
 		go func() {
+			b.parallel <- struct{}{}
 			defer func() {
 				<-b.parallel
 				b.wg.Done()
@@ -195,8 +195,8 @@ outer:
 				continue
 			}
 			b.wg.Add(1)
-			b.parallel <- struct{}{}
 			go func(method *reflect.Method) {
+				b.parallel <- struct{}{}
 				defer func() {
 					<-b.parallel
 					b.wg.Done()
