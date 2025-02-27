@@ -2,6 +2,7 @@ package utilsW
 
 import (
 	"reflect"
+	"runtime"
 	"sync"
 	"time"
 
@@ -23,10 +24,12 @@ type EventBus struct {
 	funcMu          *sync.RWMutex
 
 	topics *containerW.ConcurrentSet[string]
+
+	parallel chan struct{}
 }
 
 func NewEventBus() *EventBus {
-	return &EventBus{
+	result := &EventBus{
 		m:         make(map[interface{}]*containerW.ConcurrentSet[string]),
 		nameMap:   make(map[string]*reflect.Method),
 		mu:        &sync.RWMutex{},
@@ -38,7 +41,15 @@ func NewEventBus() *EventBus {
 		funcMu:          &sync.RWMutex{},
 
 		topics: containerW.NewConcurrentSet[string](),
+
+		parallel: make(chan struct{}, 32),
 	}
+	runtime.SetFinalizer(result, func(obj *EventBus) {
+		if obj != nil {
+			close(obj.parallel)
+		}
+	})
+	return result
 }
 
 func (b *EventBus) Register(topic string, listener interface{}) {
@@ -177,8 +188,12 @@ outer:
 				continue
 			}
 			b.wg.Add(1)
+			b.parallel <- struct{}{}
 			go func(method *reflect.Method) {
-				defer b.wg.Done()
+				defer func() {
+					<-b.parallel
+					b.wg.Done()
+				}()
 				method.Func.Call(in)
 			}(method)
 		}
