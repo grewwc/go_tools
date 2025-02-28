@@ -1,6 +1,10 @@
 package stringsW
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/grewwc/go_tools/src/stringsW"
+)
 
 // if target is in slice, return true
 // else return false
@@ -123,6 +127,26 @@ func AnyHasPrefix(str string, sub ...string) bool {
 		}
 	}
 	return false
+}
+
+func TrimAfter(str, pattern string) string {
+	bStr := StringToBytes(str)
+	bPattern := StringToBytes(pattern)
+	indices := KmpSearchBytes(bStr, bPattern)
+	if len(indices) == 0 {
+		return str
+	}
+	return stringsW.BytesToString(bStr[:indices[0]])
+}
+
+func TrimBefore(str, pattern string) string {
+	bStr := StringToBytes(str)
+	bPattern := StringToBytes(pattern)
+	indices := KmpSearchBytes(bStr, bPattern)
+	if len(indices) == 0 {
+		return str
+	}
+	return SubStringQuiet(str, GetLastItem[int](indices)+len(bPattern)+1, len(bStr))
 }
 
 func AllHasPrefix(str string, sub ...string) bool {

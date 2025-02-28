@@ -91,9 +91,9 @@ func ReplaceAllOutQuoteUnchange(s string, old, new rune) string {
 	return res.String()
 }
 
-func GetLastItem(slice []string) string {
+func GetLastItem[T any](slice []T) T {
 	if len(slice) < 1 {
-		return ""
+		return *new(T)
 	}
 	return slice[len(slice)-1]
 }
