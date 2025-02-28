@@ -148,6 +148,7 @@ func PromptYesOrNo(msg string) bool {
 }
 
 func UserInput(msg string, multiline bool) string {
+	defer RunCmd("stty sane", nil)
 	line := liner.NewLiner()
 	line.SetMultiLineMode(multiline)
 	defer line.Close()
