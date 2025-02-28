@@ -2,8 +2,6 @@ package stringsW
 
 import (
 	"strings"
-
-	"github.com/grewwc/go_tools/src/stringsW"
 )
 
 // if target is in slice, return true
@@ -136,7 +134,7 @@ func TrimAfter(str, pattern string) string {
 	if len(indices) == 0 {
 		return str
 	}
-	return stringsW.BytesToString(bStr[:indices[0]])
+	return BytesToString(bStr[:indices[0]])
 }
 
 func TrimBefore(str, pattern string) string {
