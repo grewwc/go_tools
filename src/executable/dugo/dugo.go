@@ -28,7 +28,9 @@ var lowerSizeBound float64 = -1
 
 var threadControl = make(chan struct{}, 50)
 
-var excludes *containerW.Set = containerW.NewSet()
+var excludes *containerW.ConcurrentSet[string] = containerW.NewConcurrentSet[string]()
+
+var types *containerW.ConcurrentSet[string] = containerW.NewConcurrentSet[string]()
 
 func listFile(path string) ([]os.DirEntry, error) {
 	threadControl <- struct{}{}
@@ -218,8 +220,23 @@ func getExcludeFiles(parsed *terminalW.ParsedResults) {
 	}
 }
 
+func getTypes(parsed *terminalW.ParsedResults) {
+	t := parsed.GetFlagValueDefault("t", "")
+	for _, file := range stringsW.SplitNoEmpty(t, ",") {
+		file = strings.Trim(file, " ")
+		if !strings.HasPrefix(file, ".") {
+			file = "." + file
+		}
+		types.Add(file)
+	}
+}
+
 func valid(file string) bool {
-	return !excludes.Contains(file)
+	notExcluded := !excludes.Contains(file)
+	if !types.Empty() {
+		return notExcluded && types.Contains(filepath.Ext(file))
+	}
+	return notExcluded
 }
 
 func main() {
@@ -228,6 +245,7 @@ func main() {
 	fs.Bool("d", false, "only list directries")
 	fs.Bool("f", false, "only list regular files")
 	fs.String("gt", "", "size greater than. (1.3g, 1m, 1K)")
+	fs.String("t", "", "file types (e.g.: '.txt, pdf')")
 	fs.String("ex", "", "exclude files or dirs (including subdirs having same name)")
 
 	parsed := terminalW.ParseArgsCmd("v", "d", "f")
@@ -249,6 +267,7 @@ func main() {
 	onlyDir = parsed.ContainsAllFlagStrict("d")
 	verbose = parsed.ContainsAllFlagStrict("v") || onlyDir || onlyFile
 	getExcludeFiles(parsed)
+	getTypes(parsed)
 
 	if verbose {
 		rootDir := getFirstDir(parsed)
