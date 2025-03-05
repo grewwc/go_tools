@@ -1,11 +1,20 @@
 package utilsW
 
 import (
+	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/typesW"
 )
 
 type ThreadLocal[T any] struct {
 	m typesW.IConcurrentMap[int, T]
+}
+
+func NewThreadLocal[T any](val T) *ThreadLocal[T] {
+	result := &ThreadLocal[T]{
+		m: containerW.NewMutexMap[int, T](),
+	}
+	result.m.Put(Goid(), val)
+	return result
 }
 
 func (t *ThreadLocal[T]) Set(val T) {
