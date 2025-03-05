@@ -8,7 +8,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/algorithmW"
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/containerW/typesW"
+	"github.com/grewwc/go_tools/src/typesW"
 	"golang.org/x/exp/constraints"
 )
 

@@ -3,8 +3,8 @@ package algorithmW
 import (
 	"math/rand"
 
-	"github.com/grewwc/go_tools/src/containerW/typesW"
 	"github.com/grewwc/go_tools/src/randW"
+	"github.com/grewwc/go_tools/src/typesW"
 	"golang.org/x/exp/constraints"
 )
 

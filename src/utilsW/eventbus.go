@@ -7,18 +7,15 @@ import (
 	"time"
 
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/containerW/typesW"
+	"github.com/grewwc/go_tools/src/typesW"
 	"github.com/grewwc/go_tools/src/utilsW/_utils_helpers"
 )
 
 type Subscribe interface{}
 
 type EventBus struct {
-	// m map[interface{}]*containerW.ConcurrentSet[string]
-	m typesW.IConcurrentMap[any, *containerW.ConcurrentSet[string]]
-	// nameMap   map[string]*reflect.Method
+	m       typesW.IConcurrentMap[any, *containerW.ConcurrentSet[string]]
 	nameMap typesW.IConcurrentMap[string, *reflect.Method]
-	mu      *sync.RWMutex
 	wg      *sync.WaitGroup
 
 	functions       *containerW.ConcurrentSet[string]
@@ -35,10 +32,8 @@ func NewEventBus(n_parallel int) *EventBus {
 		panic("n_parallel must greater than 0")
 	}
 	result := &EventBus{
-		// m:       make(map[interface{}]*containerW.ConcurrentSet[string]),
 		m:       containerW.NewMutexMap[any, *containerW.ConcurrentSet[string]](),
 		nameMap: containerW.NewMutexMap[string, *reflect.Method](),
-		mu:      &sync.RWMutex{},
 		wg:      &sync.WaitGroup{},
 
 		functions:       containerW.NewConcurrentSet[string](),
@@ -79,19 +74,15 @@ func (b *EventBus) Register(topic string, listener interface{}) {
 	methods := _utils_helpers.GetMethods(listener)
 	methodNames := _utils_helpers.MethodArrToString(topic, methods)
 	b.topics.Add(topic)
-	b.mu.RLock()
 	if !b.m.Contains(listener) {
 		b.m.Put(listener, containerW.NewConcurrentSet(methodNames...))
 	} else {
 		b.m.Get(listener).AddAll(methodNames...)
 	}
 	if len(methods) > 0 {
-		// b.nameMapMu.Lock()
 		for i := 0; i < len(methods); i++ {
-			// b.nameMap[methodNames[i]] = methods[i]
 			b.nameMap.Put(methodNames[i], methods[i])
 		}
-		// b.nameMapMu.Unlock()
 	}
 }
 
@@ -113,7 +104,6 @@ func (b *EventBus) UnRegister(topic string, listener interface{}) {
 		return
 	}
 
-	b.mu.RLock()
 	if !b.m.Contains(listener) {
 		return
 	}
@@ -121,16 +111,9 @@ func (b *EventBus) UnRegister(topic string, listener interface{}) {
 	methodNames := _utils_helpers.MethodArrToString(topic, methods)
 	b.topics.Delete(topic)
 	b.m.Get(listener).DeleteAll(methodNames...)
-	// b.m[listener].DeleteAll(methodNames...)
-	b.mu.RUnlock()
 
 	if len(methods) > 0 {
 		b.nameMap.DeleteAll(methodNames...)
-		// b.nameMapMu.Lock()
-		// for _, name := range methodNames {
-		// 	delete(b.nameMap, name)
-		// }
-		// b.nameMapMu.Unlock()
 	}
 }
 
@@ -165,7 +148,6 @@ outer:
 		return
 	}
 
-	// b.mu.RLock()
 	for obj := range b.m.Iterate() {
 		methodNameSet := b.m.Get(obj)
 	methodLoop:
@@ -207,7 +189,6 @@ outer:
 			}(method)
 		}
 	}
-	// defer b.mu.RUnlock()
 }
 
 func (b *EventBus) BroadCast(args ...interface{}) {

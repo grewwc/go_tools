@@ -5,9 +5,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/grewwc/go_tools/src/containerW/typesW"
 	"github.com/grewwc/go_tools/src/randW"
 	"github.com/grewwc/go_tools/src/sortW"
+	"github.com/grewwc/go_tools/src/typesW"
 )
 
 const (
