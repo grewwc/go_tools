@@ -41,6 +41,10 @@ var (
 	historyFile string
 )
 
+var (
+	fileidArr []string
+)
+
 var nonTextFile = utilsW.NewThreadSafeVal([]string{})
 
 type Message struct {
@@ -242,7 +246,7 @@ func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
 		if filename == "" {
 			filename = "output.txt"
 		}
-		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			panic(err)
 		}
@@ -360,18 +364,18 @@ func main() {
 			Stream:       true,
 		}
 		files := nonTextFile.Get().([]string)
-		if len(files) > 0 {
+		if len(files) > 0 || len(fileidArr) > 0 {
 			nonTextFile.Set([]string{})
-			fileidArr := _ai_helpers.UploadQwenLongFiles(apiKey, files)
-			arr := make([]Message, 0, len(fileidArr))
-			for _, fileid := range fileidArr {
-				arr = append(arr, Message{
-					Role:    "system",
-					Content: fmt.Sprintf("fileid://%s", fileid),
-				})
+			if len(files) > 0 {
+				fileidArr = _ai_helpers.UploadQwenLongFiles(apiKey, files)
 			}
-			requestBody.Messages = append(requestBody.Messages, arr...)
-			requestBody.Model = "qwen-long"
+			fileids := strings.Join(fileidArr, ",")
+			msg := Message{
+				Role:    "system",
+				Content: fmt.Sprintf("fileid://%s", fileids),
+			}
+			requestBody.Messages = append(requestBody.Messages, msg)
+			requestBody.Model = QWEN_LONG
 		} else {
 			arr := buildMessageArr(nHistory)
 			requestBody.Messages = append(requestBody.Messages, arr...)
