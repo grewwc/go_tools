@@ -158,10 +158,10 @@ func getQuestion(parsed *terminalW.ParsedResults, fromTerminal bool) (question s
 		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
 		question = utilsW.UserInput("> ", multiLine)
 		tempParsed := terminalW.ParseArgs(fmt.Sprintf("a %s", question))
-		if tempParsed.Empty() {
-			utilsW.RunCmd("stty sane", os.Stdin)
-			os.Exit(0)
-		}
+		// if tempParsed.Empty() {
+		// 	utilsW.RunCmd("stty sane", os.Stdin)
+		// 	os.Exit(0)
+		// }
 		if tempParsed.GetFlagValueDefault("f", "") != "" {
 			parsed.SetFlagValue("f", tempParsed.GetFlagValueDefault("f", ""))
 		}
