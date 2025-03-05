@@ -30,7 +30,7 @@ func LsDir(fname string, filter func(filename string) bool, postProcess func(fil
 	}
 	infos, err := os.ReadDir(fname)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 	res := make([]string, 0, len(infos))
 	for _, info := range infos {
@@ -41,8 +41,7 @@ func LsDir(fname string, filter func(filename string) bool, postProcess func(fil
 		if postProcess != nil {
 			name = postProcess(name)
 		}
-		slashName := filepath.ToSlash(name)
-		res = append(res, slashName)
+		res = append(res, name)
 	}
 	return res
 }
@@ -55,7 +54,7 @@ func LsDirGlob(fname string) map[string][]string {
 	}
 	res := make(map[string][]string)
 	for _, name := range names {
-		name = filepath.ToSlash(name)
+		// name = filepath.ToSlash(name)
 		if !IsDir(name) {
 			// fmt.Println("here", name)
 			// res["./"] = append(res["./"], name)

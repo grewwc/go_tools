@@ -125,43 +125,37 @@ func checkOneDirectory(root string) {
 }
 
 func getOnlyDirectories(root string) []string {
-	result := make([]string, 0)
-	for _, file := range utilsW.LsDir(root, nil, nil) {
-		if !utilsW.IsDir(file) {
-			continue
-		}
-		result = append(result, filepath.Join(root, file))
-	}
-	return result
+	return utilsW.LsDir(root,
+		func(filename string) bool { return utilsW.IsDir(filename) },
+		func(filename string) string { return filepath.Join(root, filename) })
 }
 
 func getOnlyFiles(root string) []string {
-	result := make([]string, 0)
-	for _, file := range utilsW.LsDir(root, func(file string) bool { return !utilsW.IsDir(file) }, nil) {
-		result = append(result, filepath.Join(root, file))
-	}
-	return result
+	return utilsW.LsDir(root,
+		func(file string) bool { return !utilsW.IsDir(file) },
+		func(filename string) string {
+			return filepath.Join(root, filename)
+		})
 }
 
 func getDirAndFiles(root string) []string {
-	result := make([]string, 0)
-	for _, file := range utilsW.LsDir(root, nil, nil) {
-		if excludes.Contains(file) {
-			continue
-		}
-		result = append(result, filepath.Join(root, file))
-	}
-	return result
+	return utilsW.LsDir(root,
+		func(filename string) bool { return !excludes.Contains(filename) },
+		func(filename string) string { return filepath.Join(root, filename) })
 }
 
 func parseSize(size string) float64 {
 	if len(size) == 0 {
 		return -1
 	}
+	val, err := strconv.Atoi(size)
+	if err == nil {
+		return float64(val)
+	}
 	size, unit := size[:len(size)-1], string(size[len(size)-1])
 	sizeFloat, err := strconv.ParseFloat(size, 64)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	unit = strings.ToLower(unit)
 	switch unit {
@@ -179,7 +173,7 @@ func checkOneFile(f string) {
 	if !valid(f) {
 		return
 	}
-	info, err := os.Stat(filepath.ToSlash(f))
+	info, err := os.Stat(f)
 	if err != nil {
 		log.Println(color.RedString("failed get file info: %s", f))
 		return
