@@ -32,3 +32,11 @@ func (t *ThreadLocal[T]) Get() T {
 func (t *ThreadLocal[T]) GetOrDefault(defaultVal T) T {
 	return t.m.GetOrDefault(Goid(), defaultVal)
 }
+
+func (t *ThreadLocal[T]) Remove() {
+	t.m.Delete(Goid())
+}
+
+func (t *ThreadLocal[T]) Contains() bool {
+	return t.m.Contains(Goid())
+}

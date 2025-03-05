@@ -99,3 +99,9 @@ func (m *MutexMap[K, V]) Iterate() <-chan K {
 	}()
 	return ch
 }
+
+func (m *MutexMap[K, V]) Clear() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.data = make(map[any]any)
+}

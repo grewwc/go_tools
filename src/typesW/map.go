@@ -10,6 +10,7 @@ type IMap[K, V any] interface {
 	Size() int
 	DeleteAll(keys ...K)
 	Iterate() <-chan (K)
+	Clear()
 }
 type IConcurrentMap[K, V any] interface {
 	IMap[K, V]
