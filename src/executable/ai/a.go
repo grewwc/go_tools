@@ -33,6 +33,7 @@ const (
 	QWEN_PLUS              = "qwen-plus"
 	QWEN_MAX               = "qwen-max"
 	QWEN_CODER_PLUS_LATEST = "qwen-coder-plus-latest"
+	QWEN_LONG              = "qwen-long"
 )
 
 var (
@@ -262,7 +263,10 @@ func writeToFile(f *os.File, content string) {
 
 func getModelByInput(prevModel string, input *string) string {
 	if len(nonTextFile.Get().([]string)) > 0 {
-		return "qwen-long"
+		return QWEN_LONG
+	}
+	if prevModel == QWEN_LONG {
+		return QWEN_LONG
 	}
 	trimed := strings.TrimSpace(*input)
 	if strings.HasSuffix(trimed, " -code") {
@@ -344,6 +348,7 @@ func main() {
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
 		nextModel := getModelByInput(model, &question)
+		model = nextModel
 		// if nextModel != model && nonTextFile.Get().(string) != "" {
 		// 	fmt.Println("Model Changed To: ", color.GreenString(nextModel))
 		// }
