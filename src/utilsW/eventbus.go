@@ -7,17 +7,19 @@ import (
 	"time"
 
 	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/containerW/typesW"
 	"github.com/grewwc/go_tools/src/utilsW/_utils_helpers"
 )
 
 type Subscribe interface{}
 
 type EventBus struct {
-	m         map[interface{}]*containerW.ConcurrentSet[string]
-	nameMap   map[string]*reflect.Method
-	mu        *sync.RWMutex
-	nameMapMu *sync.RWMutex
-	wg        *sync.WaitGroup
+	// m map[interface{}]*containerW.ConcurrentSet[string]
+	m typesW.IConcurrentMap[any, *containerW.ConcurrentSet[string]]
+	// nameMap   map[string]*reflect.Method
+	nameMap typesW.IConcurrentMap[string, *reflect.Method]
+	mu      *sync.RWMutex
+	wg      *sync.WaitGroup
 
 	functions       *containerW.ConcurrentSet[string]
 	functionNameMap map[string]interface{}
@@ -33,11 +35,11 @@ func NewEventBus(n_parallel int) *EventBus {
 		panic("n_parallel must greater than 0")
 	}
 	result := &EventBus{
-		m:         make(map[interface{}]*containerW.ConcurrentSet[string]),
-		nameMap:   make(map[string]*reflect.Method),
-		mu:        &sync.RWMutex{},
-		nameMapMu: &sync.RWMutex{},
-		wg:        &sync.WaitGroup{},
+		// m:       make(map[interface{}]*containerW.ConcurrentSet[string]),
+		m:       containerW.NewMutexMap[any, *containerW.ConcurrentSet[string]](),
+		nameMap: containerW.NewMutexMap[string, *reflect.Method](),
+		mu:      &sync.RWMutex{},
+		wg:      &sync.WaitGroup{},
 
 		functions:       containerW.NewConcurrentSet[string](),
 		functionNameMap: make(map[string]interface{}),
@@ -78,22 +80,18 @@ func (b *EventBus) Register(topic string, listener interface{}) {
 	methodNames := _utils_helpers.MethodArrToString(topic, methods)
 	b.topics.Add(topic)
 	b.mu.RLock()
-	if s, ok := b.m[listener]; !ok {
-		b.mu.RUnlock()
-		s := containerW.NewConcurrentSet(methodNames...)
-		b.mu.Lock()
-		b.m[listener] = s
-		b.mu.Unlock()
+	if !b.m.Contains(listener) {
+		b.m.Put(listener, containerW.NewConcurrentSet(methodNames...))
 	} else {
-		b.mu.RUnlock()
-		s.AddAll(methodNames...)
+		b.m.Get(listener).AddAll(methodNames...)
 	}
 	if len(methods) > 0 {
-		b.nameMapMu.Lock()
+		// b.nameMapMu.Lock()
 		for i := 0; i < len(methods); i++ {
-			b.nameMap[methodNames[i]] = methods[i]
+			// b.nameMap[methodNames[i]] = methods[i]
+			b.nameMap.Put(methodNames[i], methods[i])
 		}
-		b.nameMapMu.Unlock()
+		// b.nameMapMu.Unlock()
 	}
 }
 
@@ -116,21 +114,23 @@ func (b *EventBus) UnRegister(topic string, listener interface{}) {
 	}
 
 	b.mu.RLock()
-	if _, ok := b.m[listener]; !ok {
+	if !b.m.Contains(listener) {
 		return
 	}
 	methods := _utils_helpers.GetMethods(listener)
 	methodNames := _utils_helpers.MethodArrToString(topic, methods)
 	b.topics.Delete(topic)
-	b.m[listener].DeleteAll(methodNames...)
+	b.m.Get(listener).DeleteAll(methodNames...)
+	// b.m[listener].DeleteAll(methodNames...)
 	b.mu.RUnlock()
 
 	if len(methods) > 0 {
-		b.nameMapMu.Lock()
-		for _, name := range methodNames {
-			delete(b.nameMap, name)
-		}
-		b.nameMapMu.Unlock()
+		b.nameMap.DeleteAll(methodNames...)
+		// b.nameMapMu.Lock()
+		// for _, name := range methodNames {
+		// 	delete(b.nameMap, name)
+		// }
+		// b.nameMapMu.Unlock()
 	}
 }
 
@@ -165,18 +165,20 @@ outer:
 		return
 	}
 
-	b.mu.RLock()
-	for obj, methodNameSet := range b.m {
+	// b.mu.RLock()
+	for obj := range b.m.Iterate() {
+		methodNameSet := b.m.Get(obj)
 	methodLoop:
 		for methodName := range methodNameSet.Iterate() {
 			methodName = _utils_helpers.RemoveTopicFromMethodName(topic, methodName)
 			methodName = _utils_helpers.AddTopicToMethodName(topic, methodName)
-			b.nameMapMu.RLock()
-			method := b.nameMap[methodName]
+			// b.nameMapMu.RLock()
+			// method := b.nameMap[methodName]
+			method := b.nameMap.GetOrDefault(methodName, nil)
 			if method == nil {
 				continue
 			}
-			b.nameMapMu.RUnlock()
+			// b.nameMapMu.RUnlock()
 			in := []reflect.Value{
 				reflect.ValueOf(obj),
 				reflect.ValueOf(0),
@@ -205,7 +207,7 @@ outer:
 			}(method)
 		}
 	}
-	defer b.mu.RUnlock()
+	// defer b.mu.RUnlock()
 }
 
 func (b *EventBus) BroadCast(args ...interface{}) {
