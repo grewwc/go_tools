@@ -252,15 +252,6 @@ func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
 	}
 }
 
-func writeToFile(f *os.File, content string) {
-	if f == nil {
-		return
-	}
-	if _, err := io.WriteString(f, content); err != nil {
-		panic(err)
-	}
-}
-
 func getModelByInput(prevModel string, input *string) string {
 	if len(nonTextFile.Get().([]string)) > 0 {
 		return QWEN_LONG
@@ -331,8 +322,10 @@ func main() {
 
 	client := &http.Client{}
 	var f *os.File = getWriteResultFile(parsed)
+	var out io.Writer = os.Stdout
 	if f != nil {
 		defer f.Close()
+		out = io.MultiWriter(out, f)
 	}
 	for {
 		var question string
@@ -418,8 +411,9 @@ func main() {
 					goto end
 				}
 				curr.WriteString(content)
-				fmt.Print(content)
-				writeToFile(f, content)
+				fmt.Fprint(out, content)
+				// fmt.Print(content)
+				// writeToFile(f, content)
 				time.Sleep(0)
 			}
 		}
