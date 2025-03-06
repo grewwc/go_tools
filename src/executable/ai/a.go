@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -27,15 +27,6 @@ const (
 	defaultNumHistory = 4
 )
 
-const (
-	DEEPSEEK               = "deepseek-r1"
-	QWEN_MAX_LASTEST       = "qwen-max-latest"
-	QWEN_PLUS              = "qwen-plus"
-	QWEN_MAX               = "qwen-max"
-	QWEN_CODER_PLUS_LATEST = "qwen-coder-plus-latest"
-	QWEN_LONG              = "qwen-long"
-)
-
 var (
 	apiKey      string
 	historyFile string
@@ -45,7 +36,9 @@ var (
 	fileidArr []string
 )
 
-var nonTextFile = utilsW.NewThreadSafeVal([]string{})
+var (
+	thinking int32 = 0
+)
 
 type Message struct {
 	Role    string `json:"role"`
@@ -66,7 +59,18 @@ func getText(j *utilsW.Json) string {
 	delta := choices.GetIndex(0).GetJson("delta")
 	content := delta.GetString("content")
 	if content == "" && delta.ContainsKey("reasoning_content") {
-		return delta.GetString("reasoning_content")
+		// thinking
+		content := delta.GetString("reasoning_content")
+		if content != "" && atomic.LoadInt32(&thinking) == 0 {
+			content = fmt.Sprintf("%s\n%s", color.YellowString("Thinking"), content)
+			atomic.AddInt32(&thinking, 1)
+		}
+		return content
+	} else {
+		if atomic.LoadInt32(&thinking) == 1 {
+			content = fmt.Sprintf("\n%s\n%s", color.YellowString("Finished Thinking."), content)
+			atomic.AddInt32(&thinking, -1)
+		}
 	}
 	return content
 }
@@ -179,7 +183,7 @@ func getQuestion(parsed *terminalW.ParsedResults, fromTerminal bool) (question s
 		files := parsed.MustGetFlagVal("f")
 		parser := _ai_helpers.NewParser(files)
 		question = parser.TextFileContents() + "\n" + question
-		nonTextFile.Set(parser.NonTextFiles())
+		_ai_helpers.NonTextFile.Set(parser.NonTextFiles())
 		parsed.RemoveFlagValue("f")
 	}
 	if parsed.ContainsFlagStrict("c") {
@@ -194,50 +198,8 @@ func getQuestion(parsed *terminalW.ParsedResults, fromTerminal bool) (question s
 	return
 }
 
-func getModel(parsed *terminalW.ParsedResults) string {
-	if parsed.ContainsFlagStrict("code") {
-		return QWEN_CODER_PLUS_LATEST
-	}
-	if parsed.ContainsFlagStrict("d") {
-		return DEEPSEEK
-	}
-	n := parsed.GetNumArgs()
-	switch n {
-	case 1:
-		return QWEN_PLUS
-	case 2:
-		return QWEN_MAX
-	case 3:
-		return QWEN_MAX_LASTEST
-	case 4:
-		return QWEN_CODER_PLUS_LATEST
-	case 5:
-		return DEEPSEEK
-	}
-	model := parsed.GetFlagValueDefault("m", QWEN_PLUS)
-
-	switch model {
-	case QWEN_PLUS, "1":
-		return QWEN_PLUS
-	case QWEN_MAX, "2":
-		return QWEN_MAX
-	case QWEN_MAX_LASTEST, "3":
-		return QWEN_MAX_LASTEST
-	case QWEN_CODER_PLUS_LATEST, "4":
-		return QWEN_CODER_PLUS_LATEST
-	case DEEPSEEK, "5":
-		return DEEPSEEK
-	default:
-		return QWEN_PLUS
-	}
-}
-
 func getNumHistory(parsed *terminalW.ParsedResults) int {
 	return parsed.GetIntFlagValOrDefault("history", defaultNumHistory)
-}
-
-func searchEnabled(model string) bool {
-	return model == QWEN_MAX || model == QWEN_MAX_LASTEST || model == QWEN_PLUS
 }
 
 func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
@@ -254,32 +216,6 @@ func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
 	} else {
 		return nil
 	}
-}
-
-func getModelByInput(prevModel string, input *string) string {
-	if len(nonTextFile.Get().([]string)) > 0 {
-		return QWEN_LONG
-	}
-	if prevModel == QWEN_LONG {
-		return QWEN_LONG
-	}
-	trimed := strings.TrimSpace(*input)
-	if strings.HasSuffix(trimed, " -code") {
-		*input = strings.TrimSuffix(trimed, " -code")
-		return QWEN_CODER_PLUS_LATEST
-	}
-	if strings.HasSuffix(trimed, " -d") {
-		*input = strings.TrimSuffix(trimed, " -d")
-		return DEEPSEEK
-	}
-
-	p := regexp.MustCompile(` -\d$`)
-	if found := p.FindString(trimed); found != "" {
-		*input = p.ReplaceAllString(trimed, "")
-		return getModel(terminalW.ParseArgs(fmt.Sprintf("a %s", found)))
-	}
-
-	return prevModel
 }
 
 func signalStop(sigChan <-chan os.Signal, stopChan chan struct{}) {
@@ -300,17 +236,17 @@ func main() {
 	flag.Bool("code", false, "use code model (qwen-coder-plus-latest)")
 	flag.Bool("s", false, "short output")
 	flag.Bool("d", false, "deepseek model")
-	flag.Bool("clear-history", false, "clear history")
+	flag.Bool("clear", false, "clear history")
 	flag.Bool("c", false, "prepend content in clipboard")
 	flag.String("f", "", "input file names. seprated by comma.")
 	flag.String("out", "", "write output to file. default is output.txt")
-	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear-history", "c")
+	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear", "c")
 	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
 	}
 
-	if parsed.ContainsFlagStrict("-clear-history") {
+	if parsed.ContainsFlagStrict("-clear") {
 		if err := os.Remove(historyFile); err != nil {
 			log.Fatalln(err)
 		}
@@ -320,8 +256,7 @@ func main() {
 	args := parsed.Positional.ToStringSlice()
 
 	var nHistory = getNumHistory(parsed)
-	var model = getModel(parsed)
-	// fmt.Println("Model: ", color.GreenString(model))
+	var model = _ai_helpers.GetModel(parsed)
 	var curr bytes.Buffer
 
 	client := &http.Client{}
@@ -344,11 +279,8 @@ func main() {
 		}
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
-		nextModel := getModelByInput(model, &question)
+		nextModel := _ai_helpers.GetModelByInput(model, &question)
 		model = nextModel
-		// if nextModel != model && nonTextFile.Get().(string) != "" {
-		// 	fmt.Println("Model Changed To: ", color.GreenString(nextModel))
-		// }
 		question = modifyQuestion(question)
 		// 构建请求体
 		requestBody := RequestBody{
@@ -360,12 +292,12 @@ func main() {
 					Content: "You are a helpful assistant.",
 				},
 			},
-			EnableSearch: searchEnabled(nextModel),
+			EnableSearch: _ai_helpers.SearchEnabled(nextModel),
 			Stream:       true,
 		}
-		files := nonTextFile.Get().([]string)
+		files := _ai_helpers.NonTextFile.Get().([]string)
 		if len(files) > 0 || len(fileidArr) > 0 {
-			nonTextFile.Set([]string{})
+			_ai_helpers.NonTextFile.Set([]string{})
 			if len(files) > 0 {
 				fileidArr = _ai_helpers.UploadQwenLongFiles(apiKey, files)
 			}
@@ -375,7 +307,7 @@ func main() {
 				Content: fmt.Sprintf("fileid://%s", fileids),
 			}
 			requestBody.Messages = append(requestBody.Messages, msg)
-			requestBody.Model = QWEN_LONG
+			requestBody.Model = _ai_helpers.QWEN_LONG
 		} else {
 			arr := buildMessageArr(nHistory)
 			requestBody.Messages = append(requestBody.Messages, arr...)
@@ -386,19 +318,19 @@ func main() {
 		})
 		jsonData, err := json.Marshal(requestBody)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 		// 创建 POST 请求
 		req, err := http.NewRequest("POST", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", bytes.NewBuffer(jsonData))
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		req.Header.Set("Content-Type", "application/json")
 		// 发送请求
 		resp, err := client.Do(req)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 		curr.WriteString("assistant\x00")
 		ch := handleResponse(resp.Body)
