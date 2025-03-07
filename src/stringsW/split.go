@@ -100,7 +100,7 @@ func GetLastItem[T any](slice []T) T {
 
 func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string {
 	if len(token) == 0 {
-		panic("token should not be empty")
+		log.Fatalln("token should not be empty")
 	}
 	ch := make(chan string)
 	tokenBytes := StringToBytes(token)
@@ -118,7 +118,7 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 				break
 			}
 			if err != nil && err != io.EOF {
-				log.Fatal(err)
+				log.Fatalln(err)
 				break
 			}
 			end := (err == io.EOF)
@@ -129,7 +129,7 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 				curr = append(curr, b[0])
 			}
 			if _, err := buf.Write(b); err != nil {
-				panic(err)
+				log.Fatalln(err)
 			}
 			if bytes.Equal(curr, tokenBytes) {
 				buf.Truncate(buf.Len() - len(tokenBytes))
@@ -139,7 +139,7 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 				}
 				if keepToken {
 					if _, err := buf.Write(curr); err != nil {
-						panic(err)
+						log.Fatalln(err)
 					}
 				}
 				curr = make([]byte, 0, len(tokenBytes))
