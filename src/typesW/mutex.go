@@ -25,10 +25,10 @@ func NewReentrantMutex() *ReentrantMutex {
 func (m *ReentrantMutex) Lock() {
 	current := goid.Get()
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	// 如果当前goroutine已经是持有者，直接增加计数
 	if m.owner == current {
 		m.count++
+		m.mu.Unlock()
 		return
 	}
 
@@ -40,16 +40,16 @@ func (m *ReentrantMutex) Lock() {
 	// 成为新持有者
 	m.owner = current
 	m.count = 1
+	m.mu.Unlock()
 }
 
 // Unlock 释放锁
 func (m *ReentrantMutex) Unlock() {
 	current := goid.Get()
 	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	// 检查是否是当前持有者
 	if m.owner != current {
+		m.mu.Unlock()
 		return
 	}
 
@@ -58,6 +58,9 @@ func (m *ReentrantMutex) Unlock() {
 	if m.count == 0 {
 		// 当计数为0时，释放锁并唤醒等待者
 		m.owner = 0
-		m.waiters.Signal()
+		m.mu.Unlock()
+		m.waiters.Broadcast()
+	} else {
+		m.mu.Unlock()
 	}
 }
