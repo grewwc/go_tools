@@ -1,48 +1,75 @@
 package containerW
 
-type UF struct {
-	id    []int
-	sz    []int
-	count int
+import "github.com/grewwc/go_tools/src/typesW"
+
+type UF[T comparable] struct {
+	id          typesW.IMap[T, T]
+	sz          typesW.IMap[T, int]
+	group_count int
 }
 
-func NewUF(n int) *UF {
-	id := make([]int, n)
-	for i := range id {
-		id[i] = i
-	}
-	sz := make([]int, n)
-	return &UF{id, sz, n}
+func NewUF[T comparable](nodes ...T) *UF[T] {
+	id := NewMap[T, T]()
+	sz := NewMap[T, int]()
+	ret := &UF[T]{id, sz, 0}
+	ret.AddNodes(nodes...)
+	return ret
 }
 
-func (uf *UF) Union(p, q int) {
-	if !uf.Connected(p, q) {
-		pid, qid := uf.root(p), uf.root(q)
+func (uf *UF[T]) Union(i, j T) {
+	uf.AddNode(i)
+	uf.AddNode(j)
+	if !uf.IsConnected(i, j) {
+		pid, qid := uf.root(i), uf.root(j)
 		id, sz := uf.id, uf.sz
-		if sz[pid] < sz[qid] {
-			id[pid] = qid
-			sz[qid] += sz[pid]
+		sz1, sz2 := sz.Get(pid), sz.Get(qid)
+		if sz1 < sz2 {
+			id.Put(pid, qid)
+			sz.Put(qid, sz1+sz2)
 		} else {
-			id[qid] = pid
-			sz[pid] += sz[qid]
+			id.Put(qid, pid)
+			sz.Put(pid, sz1+sz2)
 		}
-		uf.count--
+		uf.group_count--
 	}
 }
 
-func (uf *UF) Connected(p, q int) bool {
-	return uf.root(p) == uf.root(q)
+func (uf *UF[T]) AddNode(node T) bool {
+	if uf.id.Contains(node) {
+		return false
+	}
+	uf.id.Put(node, node)
+	uf.group_count++
+	return true
 }
 
-func (uf *UF) root(i int) int {
-	id := uf.id 
-	for id[i] != i {
-		id[i] = id[id[i]]
-		i = id[i]
+func (uf *UF[T]) AddNodes(nodes ...T) {
+	for _, node := range nodes {
+		uf.AddNode(node)
+	}
+}
+
+func (uf *UF[T]) IsConnected(i, j T) bool {
+	return uf.root(i) == uf.root(j)
+}
+
+func (uf *UF[T]) root(i T) T {
+	id := uf.id
+	for id.GetOrDefault(i, i) != i {
+		id.Put(i, id.GetOrDefault(id.GetOrDefault(i, i), i))
+		i = id.GetOrDefault(i, i)
 	}
 	return i
 }
 
-func (uf *UF) Components() int {
-	return uf.count
+func (uf *UF[T]) NumNodes() int {
+	return uf.id.Size()
+}
+
+func (uf *UF[T]) NumGroups() int {
+	return uf.group_count
+}
+
+func (uf *UF[T]) Contains(node T) bool {
+	return uf.id.Contains(node)
 }

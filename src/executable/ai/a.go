@@ -51,6 +51,10 @@ type RequestBody struct {
 	Stream       bool      `json:"stream"`
 }
 
+var (
+	nHistory int
+)
+
 func getText(j *utilsW.Json) string {
 	choices := j.GetJson("choices")
 	if choices.Len() == 0 {
@@ -160,24 +164,23 @@ func modifyQuestion(question string) string {
 	return question
 }
 
-func getQuestion(parsed *terminalW.ParsedResults, fromTerminal bool) (question string) {
+func getQuestion(parsed *terminalW.ParsedResults, userInput bool) (question string) {
 	var fileContent string
-	if fromTerminal {
+	if userInput {
 		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
 		question = utilsW.UserInput("> ", multiLine)
-		tempParsed := terminalW.ParseArgs(fmt.Sprintf("a %s", question))
-		// if tempParsed.Empty() {
-		// 	utilsW.RunCmd("stty sane", os.Stdin)
-		// 	os.Exit(0)
-		// }
+		tempParsed := terminalW.ParseArgs(fmt.Sprintf("a %s", question), "x", "c")
 		if tempParsed.GetFlagValueDefault("f", "") != "" {
 			parsed.SetFlagValue("f", tempParsed.GetFlagValueDefault("f", ""))
 		}
 		if tempParsed.ContainsFlagStrict("c") {
 			parsed.SetFlagValue("c", "true")
 		}
+		question = strings.Join(tempParsed.Positional.ToStringSlice(), " ")
+		nHistory = getNumHistory(tempParsed)
 	} else {
 		question = strings.Join(parsed.Positional.ToStringSlice(), " ")
+		nHistory = getNumHistory(parsed)
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {
 		files := parsed.MustGetFlagVal("f")
@@ -199,6 +202,9 @@ func getQuestion(parsed *terminalW.ParsedResults, fromTerminal bool) (question s
 }
 
 func getNumHistory(parsed *terminalW.ParsedResults) int {
+	if parsed.ContainsFlagStrict("x") {
+		return 0
+	}
 	return parsed.GetIntFlagValOrDefault("history", defaultNumHistory)
 }
 
@@ -238,9 +244,10 @@ func main() {
 	flag.Bool("d", false, "deepseek model")
 	flag.Bool("clear", false, "clear history")
 	flag.Bool("c", false, "prepend content in clipboard")
+	flag.Bool("x", false, "ask with history")
 	flag.String("f", "", "input file names. seprated by comma.")
 	flag.String("out", "", "write output to file. default is output.txt")
-	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear", "c")
+	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear", "c", "x")
 	if parsed.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
@@ -255,7 +262,6 @@ func main() {
 
 	args := parsed.Positional.ToStringSlice()
 
-	var nHistory = getNumHistory(parsed)
 	var model = _ai_helpers.GetModel(parsed)
 	var curr bytes.Buffer
 
