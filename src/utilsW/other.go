@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,6 +19,7 @@ import (
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/stringsW"
 	"github.com/peterh/liner"
+	"github.com/petermattis/goid"
 )
 
 func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
@@ -241,29 +241,8 @@ func RunCmdWithTimeout(cmd string, timeout time.Duration) (string, error) {
 }
 
 // Goid
-
-// copied from stackoverflow: https://stackoverflow.com/questions/75361134/how-can-i-get-a-goroutines-runtime-id
 func Goid() int {
-	buf := make([]byte, 32)
-	n := runtime.Stack(buf, false)
-	buf = buf[:n]
-	// goroutine 1 [running]: ...
-
-	buf, ok := bytes.CutPrefix(buf, stringsW.StringToBytes("goroutine "))
-	if !ok {
-		return -1
-	}
-
-	i := bytes.IndexByte(buf, ' ')
-	if i < 0 {
-		return -1
-	}
-
-	res, err := strconv.Atoi(string(buf[:i]))
-	if err != nil {
-		return -1
-	}
-	return res
+	return int(goid.Get())
 }
 
 func ReadClipboardText() string {
