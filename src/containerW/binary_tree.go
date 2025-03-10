@@ -402,7 +402,7 @@ func (t *RbTree[T]) fixDelete(x, parent *treeNode[T]) {
 
 // SearchRange search vals in ranges between [lower, upper].
 // Both inclusive.
-func (t *RbTree[T]) SearchRange(lower, upper int) []T {
+func (t *RbTree[T]) SearchRange(lower, upper T) []T {
 	st := NewDeque()
 	curr := t.root
 	ret := make([]T, 0, 16)

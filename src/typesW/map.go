@@ -12,6 +12,12 @@ type IMap[K, V any] interface {
 	Iterate() <-chan (K)
 	Clear()
 }
+
+type ISortedMap[K, V any] interface {
+	IMap[K, V]
+	SearchRange(lower, upper K) []K
+}
+
 type IConcurrentMap[K, V any] interface {
 	IMap[K, V]
 }

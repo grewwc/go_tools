@@ -96,3 +96,14 @@ func (m *SortedMap[K, V]) Iterate() <-chan K {
 func (m *SortedMap[K, V]) Clear() {
 	m.rbTree.Clear()
 }
+
+func (m *SortedMap[K, V]) SearchRange(lower, upper K) []K {
+	lowerEntry := sortedMapEntry[K, V]{k: lower}
+	upperEntry := sortedMapEntry[K, V]{k: upper}
+	entry := m.rbTree.SearchRange(&lowerEntry, &upperEntry)
+	ret := make([]K, 0, len(entry))
+	for _, e := range entry {
+		ret = append(ret, e.k)
+	}
+	return ret
+}
