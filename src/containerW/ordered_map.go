@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// OrderedMap is a map that maintains the order of insertion.
 type OrderedMap struct {
 	m map[interface{}]*list.Element
 	l *list.List

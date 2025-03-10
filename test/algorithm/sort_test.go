@@ -5,6 +5,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/randW"
 	"github.com/grewwc/go_tools/src/sortW"
 	"github.com/grewwc/go_tools/src/typesW"
@@ -18,6 +19,20 @@ func TestShellSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		arr := randW.RandInt(0, 100, 500)
 		sortW.ShellSort(arr)
+		if !sort.IntsAreSorted(arr) {
+			t.Errorf("arr is not sorted, %v", arr)
+		}
+	}
+}
+
+func TestTreeSort(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		st := containerW.NewRbTree[int](nil)
+		arr := randW.RandInt(0, 100, 500)
+		for _, val := range arr {
+			st.Insert(val)
+		}
+		arr = st.SearchRange(0, 100)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}

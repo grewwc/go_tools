@@ -1,6 +1,9 @@
 package containerW
 
-import "container/list"
+import (
+	"container/list"
+	"log"
+)
 
 type Deque struct {
 	data *list.List
@@ -21,7 +24,7 @@ func (dq *Deque) PushBack(item interface{}) {
 func (dq *Deque) Front() interface{} {
 	front := dq.data.Front()
 	if front == nil {
-		panic("empty deque")
+		log.Fatalln("empty deque")
 	}
 	return front.Value
 }
