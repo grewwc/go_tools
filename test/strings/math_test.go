@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grewwc/go_tools/src/randW"
+	"github.com/grewwc/go_tools/src/numW"
 	"github.com/grewwc/go_tools/src/stringsW"
 )
 
 func TestPlus(t *testing.T) {
 	for i := 0; i < 1000; i++ {
-		arr := randW.RandInt(-1000, 1000, 2)
+		arr := numW.RandInt(-1000, 1000, 2)
 		a, b := arr[0], arr[1]
 		res := stringsW.Plus(strconv.Itoa(a), strconv.Itoa(b))
 		if strconv.Itoa(a+b) != res {
@@ -23,7 +23,7 @@ func TestPlus(t *testing.T) {
 
 func TestMinus(t *testing.T) {
 	for i := 0; i < 1000; i++ {
-		arr := randW.RandInt(-1000, 1000, 2)
+		arr := numW.RandInt(-1000, 1000, 2)
 		a, b := arr[0], arr[1]
 		ba := big.NewInt(int64(a))
 		bb := big.NewInt(int64(b))
@@ -37,7 +37,7 @@ func TestMinus(t *testing.T) {
 
 func TestMul(t *testing.T) {
 	for i := 0; i < 1000; i++ {
-		arr := randW.RandInt(-1000, 1000, 2)
+		arr := numW.RandInt(-1000, 1000, 2)
 		a, b := arr[0], arr[1]
 		ba := big.NewInt(int64(a))
 		bb := big.NewInt(int64(b))
@@ -52,7 +52,7 @@ func TestMul(t *testing.T) {
 
 func TestDiv(t *testing.T) {
 	for i := 0; i < 1000; i++ {
-		arr := randW.RandInt(-100, 100, 2)
+		arr := numW.RandInt(-100, 100, 2)
 		a, b := arr[0], arr[1]
 		if b == 0 {
 			continue

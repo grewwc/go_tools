@@ -3,7 +3,7 @@ package algorithmW
 import (
 	"math/rand"
 
-	"github.com/grewwc/go_tools/src/randW"
+	"github.com/grewwc/go_tools/src/numW"
 	"github.com/grewwc/go_tools/src/typesW"
 	"golang.org/x/exp/constraints"
 )
@@ -89,7 +89,7 @@ func Partition[T constraints.Ordered](nums []T, lo, hi int) int {
 		return lo
 	}
 	start := lo - 1
-	r := randW.RandInt(lo, hi, 1)[0]
+	r := numW.RandInt(lo, hi, 1)[0]
 	nums[r], nums[hi-1] = nums[hi-1], nums[r]
 	pivot := nums[hi-1]
 	for i := lo; i < hi-1; i++ {

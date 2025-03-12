@@ -176,6 +176,9 @@ func getQuestion(parsed *terminalW.ParsedResults, userInput bool) (question stri
 		if tempParsed.ContainsFlagStrict("c") {
 			parsed.SetFlagValue("c", "true")
 		}
+		if tempParsed.ContainsFlagStrict("s") {
+			parsed.SetFlagValue("s", "true")
+		}
 		question = strings.Join(tempParsed.Positional.ToStringSlice(), " ")
 		nHistory = getNumHistory(tempParsed)
 	} else {
@@ -196,6 +199,7 @@ func getQuestion(parsed *terminalW.ParsedResults, userInput bool) (question stri
 	// short output
 	if parsed.ContainsFlagStrict("s") {
 		question += "\n Please be concise."
+		parsed.RemoveFlagValue("s")
 	}
 	question = fileContent + question
 	return
