@@ -1,4 +1,4 @@
-package randW
+package numW
 
 import (
 	"math/rand"

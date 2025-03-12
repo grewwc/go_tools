@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/grewwc/go_tools/src/randW"
+	"github.com/grewwc/go_tools/src/numW"
 	"github.com/grewwc/go_tools/src/stringsW"
 )
 
@@ -16,7 +16,7 @@ func TestFindAll(t *testing.T) {
 
 func genRandomStrings(n int) string {
 	allChars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	indices := randW.RandInt(0, len(allChars), n)
+	indices := numW.RandInt(0, len(allChars), n)
 	buf := make([]byte, len(indices))
 	for i, idx := range indices {
 		buf[i] = allChars[idx]

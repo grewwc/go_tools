@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/randW"
+	"github.com/grewwc/go_tools/src/numW"
 	"github.com/grewwc/go_tools/src/sortW"
 	"github.com/grewwc/go_tools/src/typesW"
 )
@@ -17,7 +17,7 @@ const (
 
 func TestShellSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		arr := randW.RandInt(0, 100, 500)
+		arr := numW.RandInt(0, 100, 500)
 		sortW.ShellSort(arr)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
@@ -28,7 +28,7 @@ func TestShellSort(t *testing.T) {
 func TestTreeSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		st := containerW.NewRbTree[int](nil)
-		arr := randW.RandInt(0, 100, 500)
+		arr := numW.RandInt(0, 100, 500)
 		for _, val := range arr {
 			st.Insert(val)
 		}
@@ -41,7 +41,7 @@ func TestTreeSort(t *testing.T) {
 
 func TestHeapSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		arr := randW.RandInt(-100, 100, 500)
+		arr := numW.RandInt(-100, 100, 500)
 		sortW.HeapSort(arr, false)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
@@ -51,7 +51,7 @@ func TestHeapSort(t *testing.T) {
 
 func TestQuickSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		arr := randW.RandInt(0, 500, 1000)
+		arr := numW.RandInt(0, 500, 1000)
 		sortW.QuickSort(arr)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
@@ -61,7 +61,7 @@ func TestQuickSort(t *testing.T) {
 
 func TestRadixSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		arr := randW.RandInt(0, 500, 1000)
+		arr := numW.RandInt(0, 500, 1000)
 		sortW.RadixSort(arr)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
@@ -71,7 +71,7 @@ func TestRadixSort(t *testing.T) {
 
 func TestCountSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		arr := randW.RandInt(-500, 500, 10000)
+		arr := numW.RandInt(-500, 500, 10000)
 		sortW.CountSort(arr)
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
@@ -81,7 +81,7 @@ func TestCountSort(t *testing.T) {
 
 func TestShellSortComparable(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		intsArr := randW.RandInt(0, 100, 500)
+		intsArr := numW.RandInt(0, 100, 500)
 		arr := make([]typesW.Comparable, 0, len(intsArr))
 		for _, v := range intsArr {
 			arr = append(arr, typesW.IntComparable(v))
@@ -95,7 +95,7 @@ func TestShellSortComparable(t *testing.T) {
 
 func TestQuickSortComparable(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		intsArr := randW.RandInt(0, 100, 500)
+		intsArr := numW.RandInt(0, 100, 500)
 		arr := make([]typesW.Comparable, 0, len(intsArr))
 		for _, v := range intsArr {
 			arr = append(arr, typesW.IntComparable(v))
@@ -108,7 +108,7 @@ func TestQuickSortComparable(t *testing.T) {
 }
 
 func BenchmarkQuickSort(b *testing.B) {
-	arr := randW.RandInt(0, 10000, N)
+	arr := numW.RandInt(0, 10000, N)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		rand.Shuffle(len(arr), func(i, j int) {
@@ -120,7 +120,7 @@ func BenchmarkQuickSort(b *testing.B) {
 }
 
 func BenchmarkShellSort(b *testing.B) {
-	arr := randW.RandFloat64(N)
+	arr := numW.RandFloat64(N)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		rand.Shuffle(len(arr), func(i, j int) {
@@ -132,7 +132,7 @@ func BenchmarkShellSort(b *testing.B) {
 }
 
 func BenchmarkSort(b *testing.B) {
-	arr := randW.RandInt(0, 10000, N)
+	arr := numW.RandInt(0, 10000, N)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		rand.Shuffle(len(arr), func(i, j int) {
