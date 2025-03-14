@@ -180,6 +180,9 @@ func getQuestion(parsed *terminalW.ParsedResults, userInput bool) (question stri
 			parsed.SetFlagValue("s", "true")
 		}
 		question = strings.Join(tempParsed.Positional.ToStringSlice(), " ")
+		if tempParsed.GetNumArgs() != -1 {
+			question = fmt.Sprintf("%s -%d", question, tempParsed.GetNumArgs())
+		}
 		nHistory = getNumHistory(tempParsed)
 	} else {
 		question = strings.Join(parsed.Positional.ToStringSlice(), " ")
@@ -228,16 +231,9 @@ func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
 	}
 }
 
-func signalStop(sigChan <-chan os.Signal, stopChan chan struct{}) {
-	<-sigChan
-	close(stopChan)
-}
-
 func main() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	stopChan := make(chan struct{})
-	go signalStop(sigChan, stopChan)
 	flag.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
 	flag.String("m", "", "model name. (qwen-plus[1, default], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5])")
 	flag.Bool("h", false, "print help help")
@@ -348,9 +344,7 @@ func main() {
 		fmt.Printf("[%s] ", color.GreenString(requestBody.Model))
 		for {
 			select {
-			case <-stopChan:
-				stopChan = make(chan struct{})
-				go signalStop(sigChan, stopChan)
+			case <-sigChan:
 				goto end
 			case content, ok := <-ch:
 				if !ok {
