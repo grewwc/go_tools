@@ -36,7 +36,7 @@ func TestMinus(t *testing.T) {
 }
 
 func TestMul(t *testing.T) {
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10000; i++ {
 		arr := numW.RandInt(-1000, 1000, 2)
 		a, b := arr[0], arr[1]
 		ba := big.NewInt(int64(a))

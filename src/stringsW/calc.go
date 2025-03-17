@@ -1,6 +1,7 @@
 package stringsW
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -161,7 +162,7 @@ func Minus(a, b string) string {
 }
 
 func mul(s1, s2 string) string {
-	var hold int16
+	var hold string = "0"
 	m, n := len(s1), len(s2)
 	res := make([]byte, m+n)
 	for k := 0; k < m+n; k++ {
@@ -176,10 +177,17 @@ func mul(s1, s2 string) string {
 			if j < 0 {
 				break
 			}
-			hold += int16(s1[m-1-i]-'0') * int16(s2[n-1-j]-'0')
+			tmp := int16(s1[m-1-i]-'0') * int16(s2[n-1-j]-'0')
+			hold = Plus(hold, fmt.Sprintf("%d", tmp))
+			// hold += int16(s1[m-1-i]-'0') * int16(s2[n-1-j]-'0')
 		}
-		res[m+n-1-k] = byte(hold%10) + '0'
-		hold /= 10
+		// res[m+n-1-k] = byte(hold%10) + '0'
+		res[m+n-1-k] = hold[len(hold)-1]
+		// hold /= 10
+		hold = hold[:len(hold)-1]
+		if len(hold) == 0 {
+			hold = "0"
+		}
 	}
 	return BytesToString(res)
 }
