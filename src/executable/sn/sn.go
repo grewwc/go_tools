@@ -98,7 +98,7 @@ func upload(wg *sync.WaitGroup, filename, ossKey string, recursive, force bool) 
 	fmt.Println("done")
 }
 
-func download(filename, ossKey string, recursive, force bool, ch <-chan struct{}) {
+func download(filename, ossKey string, ch <-chan struct{}, retryCount int) {
 	defer func() {
 		<-ch
 	}()
@@ -120,17 +120,22 @@ func download(filename, ossKey string, recursive, force bool, ch <-chan struct{}
 	}
 	fmt.Printf(">>> begin downloading %s \n", color.GreenString(filepath.Base(filename)))
 	if err = bucket.GetObjectToFile(key, filename); err != nil {
-		panic(err)
+		if retryCount <= 0 {
+			panic(err)
+		} else {
+			download(filename, ossKey, ch, retryCount)
+			return
+		}
 	}
 	fmt.Printf("<<< done downloading %s \n", color.GreenString(filepath.Base(filename)))
 }
 
 func handleLs(args []string) {
 	if len(args) == 0 {
-		ls("", 0)
+		ls("", 0, 3)
 	} else {
 		for _, arg := range args {
-			ls(arg, 2)
+			ls(arg, 2, 3)
 		}
 	}
 }
@@ -154,10 +159,16 @@ func handleLs(args []string) {
 // 	}
 // }
 
-func ls(dir string, prefixSpace int) {
+func ls(dir string, prefixSpace, retryCount int) {
 	result, err := bucket.ListObjectsV2()
 	if err != nil {
-		panic(err)
+		retryCount--
+		if retryCount <= 0 {
+			panic(err)
+		} else {
+			ls(dir, prefixSpace, retryCount)
+			return
+		}
 	}
 	if len(dir) > 0 && dir[len(dir)-1] != '/' {
 		dir += "/"
@@ -224,7 +235,7 @@ func handleCp(args []string, recursive, force bool) {
 		ch := make(chan struct{}, 10)
 		for _, name := range args[1:n] {
 			ch <- struct{}{}
-			download(name, firstName, recursive, force, ch)
+			download(name, firstName, ch, 3)
 		}
 		close(ch)
 	} else {
