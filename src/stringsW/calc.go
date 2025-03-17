@@ -160,6 +160,30 @@ func Minus(a, b string) string {
 	return str
 }
 
+func mul(s1, s2 string) string {
+	var hold int16
+	m, n := len(s1), len(s2)
+	res := make([]byte, m+n)
+	for k := 0; k < m+n; k++ {
+		for i := 0; i <= k; i++ {
+			if i >= m {
+				break
+			}
+			j := k - i
+			if j >= n {
+				continue
+			}
+			if j < 0 {
+				break
+			}
+			hold += int16(s1[m-1-i]-'0') * int16(s2[n-1-j]-'0')
+		}
+		res[m+n-1-k] = byte(hold%10) + '0'
+		hold /= 10
+	}
+	return BytesToString(res)
+}
+
 func Mul(a, b string) string {
 	a, b = strings.TrimSpace(a), strings.TrimSpace(b)
 	if len(a) == 0 || len(b) == 0 {
@@ -177,44 +201,13 @@ func Mul(a, b string) string {
 	// handle dot for float number
 	_, _, numDot := countDotdigit(a, b, false)
 	a, b = strings.ReplaceAll(a, ".", ""), strings.ReplaceAll(b, ".", "")
-	// a, b = strings.TrimLeft(a, "0"), strings.TrimLeft(b, "0")
 	a, _ = removeLeadingZero(a)
 	b, _ = removeLeadingZero(b)
-	carry := make([]int, len(a)+len(b)+1)
-	res := make([]byte, len(a)+len(b)+1)
 
-	for i := len(a) - 1; i >= 0; i-- {
-		for j := len(b) - 1; j >= 0; j-- {
-			idx := i + j + 2
-			valA := int(a[i] - '0')
-			valB := int(b[j] - '0')
-			val := valA*valB + carry[idx] + int(res[idx])
-			carry[idx] = 0
-			if val >= 10 {
-				carry[idx-1] += val / 10
-				val %= 10
-			}
-			res[idx] = byte(val)
-		}
-	}
-	for i := len(carry) - 1; i >= 0; i-- {
-		res[i] += byte(carry[i])
-		if res[i] >= 10 {
-			carry[i-1] += int(res[i] / 10)
-			res[i] %= 10
-		}
-	}
-	idx := 0
-	for idx+1 < len(res) && res[idx] == 0 {
-		idx++
-	}
-	for i := idx; i < len(res); i++ {
-		res[i] += '0'
-	}
-	res = res[idx:]
-	str := BytesToString(res)
+	str := mul(a, b)
 	str = prependLeadingZero(str, numDot)
 	str = removeSuffixZero(str)
+	str, _ = removeLeadingZero(str)
 	if isMinus {
 		str = "-" + str
 	}
