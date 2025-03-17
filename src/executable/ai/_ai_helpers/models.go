@@ -16,7 +16,7 @@ const (
 	QWEN_MAX               = "qwen-max"
 	QWEN_CODER_PLUS_LATEST = "qwen-coder-plus-latest"
 	QWEN_LONG              = "qwen-long"
-	QWQ_32b                = "qwq-32b"
+	QWQ                    = "qwq-plus-latest"
 )
 
 func GetModel(parsed *terminalW.ParsedResults) string {
@@ -39,7 +39,7 @@ func GetModel(parsed *terminalW.ParsedResults) string {
 	case 5:
 		return DEEPSEEK
 	}
-	model := parsed.GetFlagValueDefault("m", QWQ_32b)
+	model := parsed.GetFlagValueDefault("m", QWQ)
 
 	switch model {
 	case QWEN_PLUS, "1":
@@ -53,7 +53,7 @@ func GetModel(parsed *terminalW.ParsedResults) string {
 	case DEEPSEEK, "5":
 		return DEEPSEEK
 	default:
-		return QWQ_32b
+		return QWQ
 	}
 }
 
