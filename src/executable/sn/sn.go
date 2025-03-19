@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -98,7 +99,7 @@ func upload(wg *sync.WaitGroup, filename, ossKey string, recursive, force bool) 
 	fmt.Println("done")
 }
 
-func download(filename, ossKey string, ch <-chan struct{}, retryCount int) {
+func download(filename, ossKey string, ch chan struct{}, retryCount int) {
 	defer func() {
 		<-ch
 	}()
@@ -123,7 +124,9 @@ func download(filename, ossKey string, ch <-chan struct{}, retryCount int) {
 		if retryCount <= 0 {
 			panic(err)
 		} else {
+			log.Println(err)
 			retryCount--
+			ch <- struct{}{}
 			download(filename, ossKey, ch, retryCount)
 			return
 		}
