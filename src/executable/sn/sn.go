@@ -35,7 +35,7 @@ var (
 
 func init() {
 	config := utilsW.GetAllConfig()
-	endpoint = config.GetOrDefault("oss.endpoing", "oss-cn-hangzhou.aliyuncs.com").(string)
+	endpoint = config.GetOrDefault("oss.endpoint", "oss-cn-hangzhou.aliyuncs.com").(string)
 	ak = config.GetOrDefault("oss.ak", "").(string)
 	sk = config.GetOrDefault("oss.sk", "").(string)
 	if ak == "" || sk == "" {
