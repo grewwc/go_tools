@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 
@@ -38,7 +37,6 @@ func TestTrie(t *testing.T) {
 	words := generateRandomWord()
 	// add to trie
 	for _, word := range words {
-		fmt.Println("insert", word)
 		trie.Insert(word)
 	}
 
