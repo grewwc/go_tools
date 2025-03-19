@@ -19,8 +19,11 @@ type IHeap[T any] interface {
 	Next() T
 }
 
-func newHeapCap[T any](cap int) *Heap[T] {
-	return &Heap[T]{data: make([]T, 1, cap+1)}
+func newHeapCap[T any](cap int, cmp typesW.CompareFunc) *Heap[T] {
+	return &Heap[T]{
+		data: make([]T, 1, cap+1),
+		cmp:  cmp,
+	}
 }
 
 func (h *Heap[T]) Size() int {
@@ -87,6 +90,9 @@ func sink[T any](arr []T, idx int, cmp typesW.CompareFunc) {
 	}
 }
 
-func NewHeap[T constraints.Ordered]() IHeap[T] {
-	return newHeapCap[T](0)
+func NewHeap[T constraints.Ordered](cmp typesW.CompareFunc) IHeap[T] {
+	if cmp == nil {
+		cmp = typesW.CreateDefaultCmp[T]()
+	}
+	return newHeapCap[T](8, cmp)
 }
