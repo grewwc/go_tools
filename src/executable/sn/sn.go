@@ -123,6 +123,7 @@ func download(filename, ossKey string, ch <-chan struct{}, retryCount int) {
 		if retryCount <= 0 {
 			panic(err)
 		} else {
+			retryCount--
 			download(filename, ossKey, ch, retryCount)
 			return
 		}
