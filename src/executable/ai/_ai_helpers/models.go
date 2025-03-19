@@ -20,7 +20,7 @@ const (
 )
 
 func getDefaultModel() string {
-	return QWEN_MAX_LASTEST
+	return QWQ
 }
 
 func GetModel(parsed *terminalW.ParsedResults) string {
