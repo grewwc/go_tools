@@ -1,5 +1,7 @@
 package containerW
 
+import "github.com/grewwc/go_tools/src/typesW"
+
 type sortedMapEntry[K any, V any] struct {
 	k K
 	v V
@@ -9,9 +11,9 @@ type SortedMap[K any, V any] struct {
 	rbTree *RbTree[*sortedMapEntry[K, V]]
 }
 
-func NewSortedMap[K, V any](cmp compareFunc) *SortedMap[K, V] {
+func NewSortedMap[K, V any](cmp typesW.CompareFunc) *SortedMap[K, V] {
 	if cmp == nil {
-		cmp = createDefaultCmp[K]()
+		cmp = typesW.CreateDefaultCmp[K]()
 	}
 	cmpWrapper := func(a, b interface{}) int {
 		return cmp(a.(*sortedMapEntry[K, V]).k, b.(*sortedMapEntry[K, V]).k)

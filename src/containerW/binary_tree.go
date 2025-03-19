@@ -1,16 +1,13 @@
 package containerW
 
 import (
-	"reflect"
-	"strings"
+	"github.com/grewwc/go_tools/src/typesW"
 )
 
 const (
 	black = iota
 	red
 )
-
-type compareFunc = func(a, b interface{}) int
 
 type treeNode[T any] struct {
 	val         T
@@ -21,7 +18,7 @@ type treeNode[T any] struct {
 
 type RbTree[T any] struct {
 	root *treeNode[T]
-	cmp  compareFunc
+	cmp  typesW.CompareFunc
 	size int
 }
 
@@ -35,29 +32,9 @@ func newTreeNode[T any](val T) *treeNode[T] {
 	}
 }
 
-func createDefaultCmp[T any]() compareFunc {
-	var cmp compareFunc
-	realType := reflect.TypeOf(*new(T))
-	switch realType.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		cmp = func(a, b interface{}) int {
-			return a.(int) - b.(int)
-		}
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		cmp = func(a, b interface{}) int {
-			return int(a.(uint) - b.(uint))
-		}
-	case reflect.String:
-		cmp = func(a, b interface{}) int {
-			return strings.Compare(a.(string), b.(string))
-		}
-	}
-	return cmp
-}
-
-func NewRbTree[T any](cmp compareFunc) *RbTree[T] {
+func NewRbTree[T any](cmp typesW.CompareFunc) *RbTree[T] {
 	if cmp == nil {
-		cmp = createDefaultCmp[T]()
+		cmp = typesW.CreateDefaultCmp[T]()
 	}
 	return &RbTree[T]{
 		root: nil,

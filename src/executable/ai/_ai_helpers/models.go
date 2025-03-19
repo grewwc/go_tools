@@ -19,6 +19,10 @@ const (
 	QWQ                    = "qwq-plus-latest"
 )
 
+func getDefaultModel() string {
+	return QWEN_MAX_LASTEST
+}
+
 func GetModel(parsed *terminalW.ParsedResults) string {
 	if parsed.ContainsFlagStrict("code") {
 		return QWEN_CODER_PLUS_LATEST
@@ -28,6 +32,8 @@ func GetModel(parsed *terminalW.ParsedResults) string {
 	}
 	n := parsed.GetNumArgs()
 	switch n {
+	case 0:
+		return QWQ
 	case 1:
 		return QWEN_PLUS
 	case 2:
@@ -39,9 +45,11 @@ func GetModel(parsed *terminalW.ParsedResults) string {
 	case 5:
 		return DEEPSEEK
 	}
-	model := parsed.GetFlagValueDefault("m", QWQ)
+	model := parsed.GetFlagValueDefault("m", getDefaultModel())
 
 	switch model {
+	case QWQ, "0":
+		return QWQ
 	case QWEN_PLUS, "1":
 		return QWEN_PLUS
 	case QWEN_MAX, "2":
@@ -53,7 +61,7 @@ func GetModel(parsed *terminalW.ParsedResults) string {
 	case DEEPSEEK, "5":
 		return DEEPSEEK
 	default:
-		return QWQ
+		return getDefaultModel()
 	}
 }
 
