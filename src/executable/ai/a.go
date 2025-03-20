@@ -235,8 +235,8 @@ func main() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	flag.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
-	flag.String("m", "", "model name. (qwen-plus[1, default], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5])")
-	flag.Bool("h", false, "print help help")
+	flag.String("m", "", "model name. (qwq-plus[0, default, configured by \"ai.model.default\"], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5])")
+	flag.Bool("h", false, "print help info")
 	flag.Bool("multi-line", false, "input with multline")
 	flag.Bool("mul", false, "same as multi-line")
 	flag.Bool("code", false, "use code model (qwen-coder-plus-latest)")

@@ -20,7 +20,8 @@ const (
 )
 
 func getDefaultModel() string {
-	return QWQ
+	config := utilsW.GetAllConfig()
+	return config.GetOrDefault("ai.model.default", QWQ).(string)
 }
 
 func GetModel(parsed *terminalW.ParsedResults) string {
