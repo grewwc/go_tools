@@ -55,6 +55,11 @@ var (
 	nHistory int
 )
 
+var (
+	thinkingTag    = color.YellowString("<thinking>")
+	endThinkingTag = color.YellowString("<end thinking>")
+)
+
 func getText(j *utilsW.Json) string {
 	choices := j.GetJson("choices")
 	if choices.Len() == 0 {
@@ -66,13 +71,13 @@ func getText(j *utilsW.Json) string {
 		// thinking
 		content := delta.GetString("reasoning_content")
 		if content != "" && atomic.LoadInt32(&thinking) == 0 {
-			content = fmt.Sprintf("%s\n%s", color.YellowString("Thinking"), content)
+			content = fmt.Sprintf("\n%s\n%s", thinkingTag, content)
 			atomic.AddInt32(&thinking, 1)
 		}
 		return content
 	} else {
 		if atomic.LoadInt32(&thinking) == 1 {
-			content = fmt.Sprintf("\n%s\n%s", color.YellowString("Finished Thinking."), content)
+			content = fmt.Sprintf("\n%s\n%s", endThinkingTag, content)
 			atomic.AddInt32(&thinking, -1)
 		}
 	}
@@ -254,9 +259,7 @@ func main() {
 	}
 
 	if parsed.ContainsFlagStrict("-clear") {
-		if err := os.Remove(historyFile); err != nil {
-			log.Fatalln(err)
-		}
+		_ = os.Remove(historyFile)
 		return
 	}
 
@@ -327,7 +330,7 @@ func main() {
 			log.Fatalln(err)
 		}
 		// 创建 POST 请求
-		req, err := http.NewRequest("POST", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", bytes.NewBuffer(jsonData))
+		req, err := http.NewRequest("POST", _ai_helpers.GetEndpoint(), bytes.NewBuffer(jsonData))
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -350,10 +353,13 @@ func main() {
 				if !ok {
 					goto end
 				}
-				curr.WriteString(content)
 				fmt.Fprint(out, content)
-				// fmt.Print(content)
-				// writeToFile(f, content)
+				if atomic.LoadInt32(&thinking) == 1 {
+					continue
+				}
+				content = strings.Replace(content, endThinkingTag, "", 1)
+				content = strings.Trim(content, "\n")
+				curr.WriteString(content)
 				time.Sleep(0)
 			}
 		}

@@ -19,9 +19,18 @@ const (
 	QWQ                    = "qwq-plus-latest"
 )
 
+const (
+	QWEN_ENDPOINT = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+)
+
 func getDefaultModel() string {
 	config := utilsW.GetAllConfig()
 	return config.GetOrDefault("ai.model.default", QWQ).(string)
+}
+
+func GetEndpoint() string {
+	config := utilsW.GetAllConfig()
+	return config.GetOrDefault("ai.model.endpoint", QWEN_ENDPOINT).(string)
 }
 
 func GetModel(parsed *terminalW.ParsedResults) string {
