@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -948,57 +947,56 @@ func filterTags(tags []tag, prefix []string) []tag {
 
 func main() {
 	var n int64 = 100
-	fs := flag.NewFlagSet("fs", flag.ExitOnError)
-	fs.Bool("i", false, "insert a record")
-	fs.String("ct", "", "change a record title")
-	fs.String("u", "", "update a record")
-	fs.String("d", "", "delete a record")
-	fs.Int("n", 100, "# of records to list")
-	fs.Bool("h", false, "print help information")
-	fs.String("push", "objectID to push", "push to remote db (may take a while)")
-	fs.String("pull", "objectID to pull", "pull from remote db (may take a while)")
-	fs.Bool("r", false, "reverse sort")
-	fs.Bool("all", false, "including all record")
-	fs.Bool("a", false, "shortcut for -all")
-	fs.String("f", "", "finish a record")
-	fs.String("nf", "", "set a record UNFINISHED")
-	fs.String("hold", "", "hold a record for later finish")
-	fs.String("unhold", "", "unhold a record (reverse operation for the -hold)")
-	fs.String("p", "", "set a record my problem")
-	fs.String("np", "", "set a record NOT my problem")
-	fs.String("t", "", "search by tags")
-	fs.Bool("include-finished", false, "include finished record")
-	fs.Bool("include-hold", false, "include held record")
-	fs.String("add-tag", "", "add tags for a record")
-	fs.String("del-tag", "", "delete tags for a record")
-	fs.String("clean-tag", "", "clean all the records having the tag")
-	fs.Bool("tags", false, "list all tags")
-	fs.Bool("and", false, "use and logic to match tags")
-	fs.Bool("v", false, "verbose (show modify/add time, verbose)")
-	fs.String("file", "", "read title from a file, for '-u' & '-ct', file serve as bool, for '-i', needs to pass filename")
-	fs.Bool("e", false, "read from editor")
-	fs.String("title", "", "search by title")
-	fs.String("c", "", "content (alias for title)")
-	fs.String("out", "", fmt.Sprintf("output to text file (default is %s)", defaultTxtOutputName))
-	fs.Bool("my", false, "only list my problem")
-	fs.Bool("remote", false, "operate on the remote server")
-	fs.Bool("prev", false, "operate based on the previous ObjectIDs")
-	fs.Bool("count", false, "only print the count, not the result")
-	fs.Bool("prefix", false, "tag prefix")
-	fs.Bool("pre", false, "tag prefix (short for -prefix)")
-	fs.Bool("binary", false, "if the title is binary file")
-	fs.Bool("b", false, "shortcut for -binary")
-	fs.Bool("force", false, "force overwrite")
-	fs.Bool("sp", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tags)", specialTagPatterns.ToSlice()))
-	fs.Bool("onlyhold", false, "list only the hold rerods")
-	fs.String("ex", "", "exclude some tag prefix when list tags")
-	fs.Bool("code", false, "if use vscode as input editor (default false)")
-
 	parser := terminalW.NewParser()
+	parser.Bool("i", false, "insert a record")
+	parser.String("ct", "", "change a record title")
+	parser.String("u", "", "update a record")
+	parser.String("d", "", "delete a record")
+	parser.Int("n", 100, "# of records to list")
+	parser.Bool("h", false, "print help information")
+	parser.String("push", "objectID to push", "push to remote db (may take a while)")
+	parser.String("pull", "objectID to pull", "pull from remote db (may take a while)")
+	parser.Bool("r", false, "reverse sort")
+	parser.Bool("all", false, "including all record")
+	parser.Bool("a", false, "shortcut for -all")
+	parser.String("f", "", "finish a record")
+	parser.String("nf", "", "set a record UNFINISHED")
+	parser.String("hold", "", "hold a record for later finish")
+	parser.String("unhold", "", "unhold a record (reverse operation for the -hold)")
+	parser.String("p", "", "set a record my problem")
+	parser.String("np", "", "set a record NOT my problem")
+	parser.String("t", "", "search by tags")
+	parser.Bool("include-finished", false, "include finished record")
+	parser.Bool("include-hold", false, "include held record")
+	parser.String("add-tag", "", "add tags for a record")
+	parser.String("del-tag", "", "delete tags for a record")
+	parser.String("clean-tag", "", "clean all the records having the tag")
+	parser.Bool("tags", false, "list all tags")
+	parser.Bool("and", false, "use and logic to match tags")
+	parser.Bool("v", false, "verbose (show modify/add time, verbose)")
+	parser.String("file", "", "read title from a file, for '-u' & '-ct', file serve as bool, for '-i', needs to pass filename")
+	parser.Bool("e", false, "read from editor")
+	parser.String("title", "", "search by title")
+	parser.String("c", "", "content (alias for title)")
+	parser.String("out", "", fmt.Sprintf("output to text file (default is %s)", defaultTxtOutputName))
+	parser.Bool("my", false, "only list my problem")
+	parser.Bool("remote", false, "operate on the remote server")
+	parser.Bool("prev", false, "operate based on the previous ObjectIDs")
+	parser.Bool("count", false, "only print the count, not the result")
+	parser.Bool("prefix", false, "tag prefix")
+	parser.Bool("pre", false, "tag prefix (short for -prefix)")
+	parser.Bool("binary", false, "if the title is binary file")
+	parser.Bool("b", false, "shortcut for -binary")
+	parser.Bool("force", false, "force overwrite")
+	parser.Bool("sp", false, fmt.Sprintf("if list tags started with special: %v (config in .configW->special.tags)", specialTagPatterns.ToSlice()))
+	parser.Bool("onlyhold", false, "list only the hold rerods")
+	parser.String("ex", "", "exclude some tag prefix when list tags")
+	parser.Bool("code", false, "if use vscode as input editor (default false)")
+
 	parser.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"sp", "include-held", "onlyhold", "p", "code", "pre")
-
+		"sp", "include-held", "onlyhold", "p", "code", "pre", "force")
+	// fmt.Println(parser.Optional)
 	// default behavior
 	// re
 	if parser.Empty() {
@@ -1024,7 +1022,7 @@ func main() {
 	}
 
 	if parser.ContainsFlagStrict("h") {
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 

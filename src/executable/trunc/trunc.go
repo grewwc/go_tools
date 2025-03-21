@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -118,19 +117,18 @@ func getStringSlice(s string) []string {
 }
 
 func main() {
-	fs := flag.NewFlagSet("fs", flag.ExitOnError)
-	fs.Bool("f", false, "force")
-	fs.Bool("v", false, "verbose")
-	fs.Bool("h", false, "print help info")
-	fs.Bool("newline", false, "only remove newline")
-	fs.String("include", "", "only trucnate files with the extension, e.g.: -include \".log, .txt\"")
-	fs.String("exclude", "", "only trucnate files without the extension, e.g.: -exclude \".log, .txt\"")
 	parser := terminalW.NewParser()
+	parser.Bool("f", false, "force")
+	parser.Bool("v", false, "verbose")
+	parser.Bool("h", false, "print help info")
+	parser.Bool("newline", false, "only remove newline")
+	parser.String("include", "", "only trucnate files with the extension, e.g.: -include \".log, .txt\"")
+	parser.String("exclude", "", "only trucnate files without the extension, e.g.: -exclude \".log, .txt\"")
 	parser.ParseArgsCmd("v", "h", "f", "newline")
 	var root string
 	var err error
 	if parser.Empty() || parser.ContainsFlagStrict("h") {
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		printHelp()
 		return
 	}

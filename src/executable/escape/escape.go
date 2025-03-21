@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/url"
 
@@ -10,14 +9,13 @@ import (
 )
 
 func main() {
-	fs := flag.NewFlagSet("fs", flag.ExitOnError)
-	fs.Bool("un", false, "unescape the url string")
-	fs.Bool("p", false, "PathEscape (default is QueryEscape)")
 	parser := terminalW.NewParser()
+	parser.Bool("un", false, "unescape the url string")
+	parser.Bool("p", false, "PathEscape (default is QueryEscape)")
 	parser.ParseArgsCmd("un", "p")
 	escape := true
 	if parser.Empty() || parser.ContainsFlagStrict("h") {
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 	if parser.ContainsFlag("un") {

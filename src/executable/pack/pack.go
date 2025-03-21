@@ -3,7 +3,6 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -109,27 +108,26 @@ func clean(fname string) {
 	}
 }
 
-func printHelp(fs *flag.FlagSet) {
-	fs.PrintDefaults()
+func printHelp(parser *terminalW.Parser) {
+	parser.PrintDefaults()
 	fmt.Printf("%s dest.tar.gz source_dir\n", utilsW.BaseNoExt(utilsW.GetCurrentFileName()))
 }
 
 func main() {
-	fs := flag.NewFlagSet("parser", flag.ExitOnError)
-	fs.String("ex", "", "exclude file/directory")
-	fs.String("exclude", "", "exclude file/directory, (i.e.: ${somedir}/.git, NOT .git")
-	fs.Bool("v", false, "verbose")
-	fs.Bool("u", false, "untar. (e.g: untar src.tar.gz dest_directory)")
-	fs.Bool("h", false, "print help info")
-	fs.Bool("clean", true, "clean the zipped file if error occurs")
-	fs.Bool("l", false, "only list files in the tar.gz")
-	fs.String("nt", "", "exclude file type. separated by comma, dot is NOT required.")
-	fs.String("t", "", "only include file type, if set, ignore -nt & -ex. separated by comma, dot is NOT required.")
 	parser := terminalW.NewParser()
+	parser.String("ex", "", "exclude file/directory")
+	parser.String("exclude", "", "exclude file/directory, (i.e.: ${somedir}/.git, NOT .git")
+	parser.Bool("v", false, "verbose")
+	parser.Bool("u", false, "untar. (e.g: untar src.tar.gz dest_directory)")
+	parser.Bool("h", false, "print help info")
+	parser.Bool("clean", true, "clean the zipped file if error occurs")
+	parser.Bool("l", false, "only list files in the tar.gz")
+	parser.String("nt", "", "exclude file type. separated by comma, dot is NOT required.")
+	parser.String("t", "", "only include file type, if set, ignore -nt & -ex. separated by comma, dot is NOT required.")
 	parser.ParseArgsCmd("v", "u", "h", "clean", "l")
 	// fmt.Println(parser)
 	if parser == nil || parser.ContainsFlagStrict("h") {
-		printHelp(fs)
+		printHelp(parser)
 		return
 	}
 
@@ -191,7 +189,7 @@ func main() {
 	srcNames := []string{}
 	var srcName string
 	if len(args) < 1 {
-		printHelp(fs)
+		printHelp(parser)
 		return
 	}
 	outName := args[0]
@@ -217,7 +215,7 @@ func main() {
 
 		if !parser.ContainsFlagStrict("l") {
 			if len(args) < 2 {
-				printHelp(fs)
+				printHelp(parser)
 			}
 			prefix = args[1]
 		}
@@ -238,7 +236,7 @@ func main() {
 	if len(args) > 2 {
 		srcNames = args[1:]
 	} else if len(args) <= 1 {
-		printHelp(fs)
+		printHelp(parser)
 		return
 	} else {
 		srcName = args[1]

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -234,15 +233,15 @@ func valid(file string) bool {
 }
 
 func main() {
-	fs := flag.NewFlagSet("fs", flag.ExitOnError)
-	fs.Bool("v", false, "list directries seperately")
-	fs.Bool("d", false, "only list directries")
-	fs.Bool("f", false, "only list regular files")
-	fs.String("gt", "", "size greater than. (1.3g, 1m, 1K)")
-	fs.String("t", "", "file types (e.g.: '.txt, pdf')")
-	fs.String("ex", "", "exclude files or dirs (including subdirs having same name)")
 	parser := terminalW.NewParser()
-	parser.ParseArgsCmd("v", "d", "f")
+	parser.Bool("v", false, "list directries seperately")
+	parser.Bool("d", false, "only list directries")
+	parser.Bool("f", false, "only list regular files")
+	parser.String("gt", "", "size greater than. (1.3g, 1m, 1K)")
+	parser.String("t", "", "file types (e.g.: '.txt, pdf')")
+	parser.String("ex", "", "exclude files or dirs (including subdirs having same name)")
+	parser.Bool("h", false, "print help info")
+	parser.ParseArgsCmd("v", "d", "f", "h")
 
 	args := make([]string, 0)
 	verbose := false
@@ -253,7 +252,7 @@ func main() {
 		args = append(args, ".")
 		goto check
 	} else if parser.ContainsFlagStrict("h") {
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 

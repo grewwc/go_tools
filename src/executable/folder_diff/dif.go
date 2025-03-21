@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/md5"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,14 +39,14 @@ func newFileSet(rootDir string, parser *terminalW.Parser) *containerW.OrderedSet
 
 func main() {
 
-	flag.Bool("line", false, "if print by new line (default false)")
-	flag.Bool("md5", false, "if print file md5 value (default false)")
-	flag.String("ext", "", "file extension to compare (default all file types)")
-	flag.Bool("h", false, "print help info")
 	parser := terminalW.NewParser()
+	parser.Bool("line", false, "if print by new line (default false)")
+	parser.Bool("md5", false, "if print file md5 value (default false)")
+	parser.String("ext", "", "file extension to compare (default all file types)")
+	parser.Bool("h", false, "print help info")
 	parser.ParseArgsCmd("-line", "-md5", "-h")
-	if parser == nil || parser.ContainsAllFlagStrict("h") {
-		flag.PrintDefaults()
+	if parser.Empty() || parser.ContainsAllFlagStrict("h") {
+		parser.PrintDefaults()
 		return
 	}
 	if len(os.Args) < 3 {

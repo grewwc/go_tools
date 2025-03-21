@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -78,15 +77,14 @@ func base64ToImage(fname, outName string) {
 }
 
 func main() {
-	fs := flag.NewFlagSet("fs", flag.ExitOnError)
-	fs.Bool("f", true, "get content from file")
-	fs.Bool("c", false, "get content from clipboard")
-	fs.String("out", "", "output file name")
-	fs.Bool("toimg", false, "")
 	parser := terminalW.NewParser()
+	parser.Bool("f", true, "get content from file")
+	parser.Bool("c", false, "get content from clipboard")
+	parser.String("out", "", "output file name")
+	parser.Bool("toimg", false, "")
 	parser.ParseArgsCmd("f", "toimg", "c")
 	if parser.ContainsAnyFlagStrict("h") {
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 	isURL := true

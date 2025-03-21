@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -211,21 +210,20 @@ func main() {
 	var onlyCount bool
 	var patternStr string
 
-	fs := flag.NewFlagSet("parser", flag.ExitOnError)
-	fs.Bool("l", false, "show more detailed information")
-	fs.Bool("a", false, "list hidden file")
-	fs.Bool("t", false, "sort files by last modified date")
-	fs.Bool("rt", false, "sort files by earlist modified date")
-	fs.Bool("h", false, "print help information")
-	fs.Bool("du", false, "if set, calculate size of all subdirs/subfiles")
-	fs.String("ne", "", "types/extensions that will not be listed. e.g.: -ne \"py png, jpg\"")
-	fs.String("e", "", "types/extensions that will be listed")
-	fs.Bool("c", false, "only count the total number of files")
-	fs.Bool("N", false, "sort files by number in file")
-	fs.Bool("d", false, "only list directories")
-	fs.Bool("f", false, "only list normal files")
-	fs.String("re", "", "use regular expression to parse files to be listed")
 	parser := terminalW.NewParser()
+	parser.Bool("l", false, "show more detailed information")
+	parser.Bool("a", false, "list hidden file")
+	parser.Bool("t", false, "sort files by last modified date")
+	parser.Bool("rt", false, "sort files by earlist modified date")
+	parser.Bool("h", false, "print help information")
+	parser.Bool("du", false, "if set, calculate size of all subdirs/subfiles")
+	parser.String("ne", "", "types/extensions that will not be listed. e.g.: -ne \"py png, jpg\"")
+	parser.String("e", "", "types/extensions that will be listed")
+	parser.Bool("c", false, "only count the total number of files")
+	parser.Bool("N", false, "sort files by number in file")
+	parser.Bool("d", false, "only list directories")
+	parser.Bool("f", false, "only list normal files")
+	parser.String("re", "", "use regular expression to parse files to be listed")
 	parser.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h", "G")
 
 	coloredStrings := containerW.NewOrderedMap()
@@ -234,7 +232,7 @@ func main() {
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)
 
 	var args []string
-	if parser == nil {
+	if parser.Empty() {
 		args = []string{"./"}
 		goto skipTo
 	}
@@ -302,7 +300,7 @@ func main() {
 	}
 
 	if parser.ContainsFlagStrict("h") {
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 

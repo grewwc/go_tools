@@ -7,23 +7,23 @@ type sortedMapEntry[K any, V any] struct {
 	v V
 }
 
-type SortedMap[K any, V any] struct {
+type TreeMap[K any, V any] struct {
 	rbTree *RbTree[*sortedMapEntry[K, V]]
 }
 
-func NewSortedMap[K, V any](cmp typesW.CompareFunc) *SortedMap[K, V] {
+func NewTreeMap[K, V any](cmp typesW.CompareFunc) *TreeMap[K, V] {
 	if cmp == nil {
 		cmp = typesW.CreateDefaultCmp[K]()
 	}
 	cmpWrapper := func(a, b interface{}) int {
 		return cmp(a.(*sortedMapEntry[K, V]).k, b.(*sortedMapEntry[K, V]).k)
 	}
-	return &SortedMap[K, V]{
+	return &TreeMap[K, V]{
 		rbTree: NewRbTree[*sortedMapEntry[K, V]](cmpWrapper),
 	}
 }
 
-func (m *SortedMap[K, V]) Get(key K) V {
+func (m *TreeMap[K, V]) Get(key K) V {
 	ret := m.rbTree.Search(&sortedMapEntry[K, V]{k: key})
 	if ret == nil {
 		return *new(V)
@@ -31,7 +31,7 @@ func (m *SortedMap[K, V]) Get(key K) V {
 	return ret.val.v
 }
 
-func (m *SortedMap[K, V]) GetOrDefault(key K, defaultVal V) V {
+func (m *TreeMap[K, V]) GetOrDefault(key K, defaultVal V) V {
 	ret := m.rbTree.Search(&sortedMapEntry[K, V]{k: key})
 	if ret == nil {
 		return defaultVal
@@ -39,11 +39,11 @@ func (m *SortedMap[K, V]) GetOrDefault(key K, defaultVal V) V {
 	return ret.val.v
 }
 
-func (m *SortedMap[K, V]) Contains(key K) bool {
+func (m *TreeMap[K, V]) Contains(key K) bool {
 	return m.rbTree.Contains(&sortedMapEntry[K, V]{k: key})
 }
 
-func (m *SortedMap[K, V]) Put(key K, value V) bool {
+func (m *TreeMap[K, V]) Put(key K, value V) bool {
 	node := sortedMapEntry[K, V]{k: key, v: value}
 	n := m.rbTree.Search(&node)
 	if n == nil {
@@ -54,7 +54,7 @@ func (m *SortedMap[K, V]) Put(key K, value V) bool {
 	return true
 }
 
-func (m *SortedMap[K, V]) PutIfAbsent(key K, value V) bool {
+func (m *TreeMap[K, V]) PutIfAbsent(key K, value V) bool {
 	node := sortedMapEntry[K, V]{k: key, v: value}
 	if m.rbTree.Contains(&node) {
 		return false
@@ -63,11 +63,11 @@ func (m *SortedMap[K, V]) PutIfAbsent(key K, value V) bool {
 	return true
 }
 
-func (m *SortedMap[K, V]) Size() int {
+func (m *TreeMap[K, V]) Size() int {
 	return m.rbTree.size
 }
 
-func (m *SortedMap[K, V]) Delete(key K) bool {
+func (m *TreeMap[K, V]) Delete(key K) bool {
 	node := sortedMapEntry[K, V]{k: key}
 	n := m.rbTree.Search(&node)
 	if n == nil {
@@ -77,13 +77,13 @@ func (m *SortedMap[K, V]) Delete(key K) bool {
 	return true
 }
 
-func (m *SortedMap[K, V]) DeleteAll(keys ...K) {
+func (m *TreeMap[K, V]) DeleteAll(keys ...K) {
 	for _, key := range keys {
 		m.Delete(key)
 	}
 }
 
-func (m *SortedMap[K, V]) Iterate() <-chan K {
+func (m *TreeMap[K, V]) Iterate() <-chan K {
 	ch := make(chan K)
 	go func() {
 		defer close(ch)
@@ -95,11 +95,11 @@ func (m *SortedMap[K, V]) Iterate() <-chan K {
 	return ch
 }
 
-func (m *SortedMap[K, V]) Clear() {
+func (m *TreeMap[K, V]) Clear() {
 	m.rbTree.Clear()
 }
 
-func (m *SortedMap[K, V]) SearchRange(lower, upper K) []K {
+func (m *TreeMap[K, V]) SearchRange(lower, upper K) []K {
 	lowerEntry := sortedMapEntry[K, V]{k: lower}
 	upperEntry := sortedMapEntry[K, V]{k: upper}
 	entry := m.rbTree.SearchRange(&lowerEntry, &upperEntry)

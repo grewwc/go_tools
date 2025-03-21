@@ -25,14 +25,16 @@ func init() {
 
 func main() {
 	parser := terminalW.NewParser()
-	parser.ParseArgsCmd("f", "force")
-	var force bool
-	if !parser.Empty() {
-		force = parser.ContainsFlag("f") || parser.ContainsFlag("force")
-		for fname := range parser.Positional.Iterate() {
-			fnameStr := fname.(string)
-			forceRebuildName.Add(fnameStr + ".go")
-		}
+	parser.Bool("h", false, "print help information")
+	parser.Bool("f", false, "force rebuild (shortcut form)")
+	parser.Bool("a", false, "force rebuild all")
+	parser.Bool("force", false, "force rebuilds")
+	parser.ParseArgsCmd("f", "force", "a", "h")
+	var force bool = parser.ContainsFlag("f") || parser.ContainsFlag("force")
+	var all bool = parser.ContainsFlagStrict("a")
+	for fname := range parser.Positional.Iterate() {
+		fnameStr := fname.(string)
+		forceRebuildName.Add(fnameStr + ".go")
 	}
 
 	subdirs := utilsW.LsDir(utilsW.GetDirOfTheFile(), nil, nil)
@@ -73,7 +75,7 @@ func main() {
 			executableFilename += ".exe"
 		}
 		// fmt.Println("what", filename, forceRebuildName)
-		if (!force && !forceRebuildName.Contains(filename)) &&
+		if (!all && !force && !forceRebuildName.Contains(filename)) &&
 			(utilsW.IsExist(executableFilename) && utilsW.IsNewer(executableFilename, filename)) {
 			continue
 		}

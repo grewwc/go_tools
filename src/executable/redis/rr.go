@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 
@@ -92,16 +91,16 @@ type hGetByKeyAction func(*redis.Client, string, ...string) []interface{}
 
 func main() {
 	var n = 10
-	flag.Bool("h", false, "print help info")
-	flag.String("get", "", "get action")
-	flag.String("hget", "", "hget action")
-	flag.String("hkeys", "", "hkeys action")
-	flag.Int("n", n, "max number of keys")
-	flag.String("keys", "*", "show keys")
 	parser := terminalW.NewParser()
+	parser.Bool("h", false, "print help info")
+	parser.String("get", "", "get action")
+	parser.String("hget", "", "hget action")
+	parser.String("hkeys", "", "hkeys action")
+	parser.Int("n", n, "max number of keys")
+	parser.String("keys", "*", "show keys")
 	parser.ParseArgsCmd("h")
-	if parser == nil || parser.ContainsFlagStrict("h") {
-		flag.PrintDefaults()
+	if parser.Empty() || parser.ContainsFlagStrict("h") {
+		parser.PrintDefaults()
 		return
 	}
 	defer func() {

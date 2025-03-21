@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
 	"os/exec"
@@ -12,13 +11,14 @@ import (
 )
 
 func install() {
-	flag.Bool("h", false, "print help information")
-	flag.Bool("f", false, "force rebuild (shortcut form)")
-	flag.Bool("force", false, "force rebuilds")
 	parser := terminalW.NewParser()
-	parser.ParseArgsCmd("h", "-f", "force")
+	parser.Bool("h", false, "print help information")
+	parser.Bool("f", false, "force rebuild (shortcut form)")
+	parser.Bool("a", false, "force rebuild all")
+	parser.Bool("force", false, "force rebuilds")
+	parser.ParseArgsCmd("h", "-f", "force", "a")
 	if parser.ContainsFlagStrict("h") {
-		flag.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 	filename := filepath.Join(utilsW.GetDirOfTheFile(), "src", "executable", "build.go")

@@ -3,7 +3,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"log"
 	"math"
@@ -173,32 +172,31 @@ func main() {
 	var num int64 = 5
 	var isReg = false
 	var isIgnoreCase = false
-	fs := flag.NewFlagSet("parser", flag.ExitOnError)
-	fs.Int64("n", terminalW.NumPrint, "number of found results to print")
-	fs.String("t", "", "what type of file to search")
-	fs.Bool("v", false, "if print error")
-	fs.String("d", ".", "root directory for searching")
-	fs.Bool("re", false, `turn on regular expression (use "\" instead of "\\") `)
-	fs.Bool("ignore", false, "ignore upper/lower case")
-	fs.Bool("i", false, "ignore upper/lower case (shortcut for -ignore)")
-	fs.Int("level", math.MaxInt32, `number of directory levels to search. current directory's level is 0`)
-	fs.Bool("strict", false, "find exact the same matches (after triming space)")
-	fs.String("nt", "", "check files which are not some types")
-	fs.Bool("word", false, "only match the concrete word, is a shortcut for -re")
-	fs.Bool("all", false, "shortcut for -n=-1")
-	fs.Bool("a", false, "shortcut for -all")
-	fs.String("f", "", "check only these files/directories") // this flag will override -t
-	fs.String("nf", "", "don't check these files/directories")
-	fs.Int("l", 1, "how many lines more read to match")
-	fs.Int("p", 4, "how many threads to use")
+	parser := terminalW.NewParser()
+	parser.Int64("n", terminalW.NumPrint, "number of found results to print")
+	parser.String("t", "", "what type of file to search")
+	parser.Bool("v", false, "if print error")
+	parser.String("d", ".", "root directory for searching")
+	parser.Bool("re", false, `turn on regular expression (use "\" instead of "\\") `)
+	parser.Bool("ignore", false, "ignore upper/lower case")
+	parser.Bool("i", false, "ignore upper/lower case (shortcut for -ignore)")
+	parser.Int("level", math.MaxInt32, `number of directory levels to search. current directory's level is 0`)
+	parser.Bool("strict", false, "find exact the same matches (after triming space)")
+	parser.String("nt", "", "check files which are not some types")
+	parser.Bool("word", false, "only match the concrete word, is a shortcut for -re")
+	parser.Bool("all", false, "shortcut for -n=-1")
+	parser.Bool("a", false, "shortcut for -all")
+	parser.String("f", "", "check only these files/directories") // this flag will override -t
+	parser.String("nf", "", "don't check these files/directories")
+	parser.Int("l", 1, "how many lines more read to match")
+	parser.Int("p", 4, "how many threads to use")
 
 	fmt.Println()
-	parser := terminalW.NewParser()
 
 	parser.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word", "i", "a")
 	// fmt.Println("here", parser)
 	if parser == nil {
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 
@@ -234,7 +232,7 @@ func main() {
 	case 1:
 		target = args[0]
 	default:
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 	target = strings.ReplaceAll(target, `\\`, `\`)
@@ -249,7 +247,7 @@ func main() {
 		if !wordPattern.MatchString(target) {
 			// fmt.Println("here", target)
 			fmt.Println("You should pass in a word if set \"-word\" option")
-			fs.PrintDefaults()
+			parser.PrintDefaults()
 			os.Exit(1)
 		}
 		target = fmt.Sprintf("\\b%s\\b", target)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -40,13 +39,13 @@ func getN(parser *terminalW.Parser) int {
 }
 
 func main() {
-	flag.Int("n", defaultN, "num of histories to print")
-	flag.Bool("a", false, "print all histories")
-	flag.Bool("h", false, "print help info")
 	parser := terminalW.NewParser()
+	parser.Int("n", defaultN, "num of histories to print")
+	parser.Bool("a", false, "print all histories")
+	parser.Bool("h", false, "print help info")
 	parser.ParseArgsCmd("h", "a")
 	if parser.ContainsFlagStrict("h") {
-		flag.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 	n := getN(parser)

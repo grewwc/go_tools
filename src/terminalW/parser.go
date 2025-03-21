@@ -170,7 +170,6 @@ func (r *Parser) ContainsFlagStrict(flagName string) bool {
 	if _, exists := r.Optional[flagName]; exists {
 		return true
 	}
-
 	return false
 }
 
@@ -342,15 +341,15 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	// flag.Parse()
 	normalizedBoolOptionals := make([]string, len(boolOptionals))
 	for i, boolArg := range boolOptionals {
-		normalizedBoolOptionals[i] = strings.TrimLeft(boolArg, "-")
+		normalizedBoolOptionals[i] = strings.TrimLeft(boolArg, string(dash))
 	}
 	r.VisitAll(func(f *flag.Flag) {
-		key := fmt.Sprintf("%s%c", f.Name, sep)
-		fmt.Println("search", cmd, key)
+		key := fmt.Sprintf("-%s", f.Name)
+		// fmt.Println("search", cmd, key)
 		indices := stringsW.KmpSearch(cmd, key)
 		if len(indices) >= 1 {
 			for _, idx := range indices {
-				substr := stringsW.SubStringQuiet(cmd, idx-1, idx+len(f.Name))
+				substr := stringsW.SubStringQuiet(cmd, idx, idx+len(key))
 				cmd = strings.ReplaceAll(cmd, substr, fmt.Sprintf("%c%s", dash, f.Name))
 			}
 		}
@@ -364,6 +363,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	// fmt.Println("keys", keys)
 	// fmt.Println("vals", vals)
 	for i, key := range keys {
+		key = strings.ReplaceAll(key, string(dash), "-")
 		if i < len(vals) {
 			r.Optional[key] = vals[i]
 		} else {
@@ -371,6 +371,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 		}
 	}
 	for _, key := range boolKeys {
+		key = strings.ReplaceAll(key, string(dash), "-")
 		r.Optional[key] = ""
 	}
 }

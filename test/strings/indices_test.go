@@ -1,6 +1,7 @@
 package test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/grewwc/go_tools/src/numW"
@@ -11,7 +12,9 @@ func TestFindAll(t *testing.T) {
 	allString := "test.exe \"program dir\" -f file -a something night -v"
 	substr := "something"
 	result := stringsW.FindAll(allString, substr)
-	t.Log(result)
+	if strings.Index(allString, substr) != result[0] {
+		t.Errorf("FindAll(%q, %q) = %v, want %v", allString, substr, result, strings.Index(allString, substr))
+	}
 }
 
 func genRandomStrings(n int) string {

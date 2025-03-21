@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"strconv"
 	"time"
@@ -16,12 +15,11 @@ const (
 )
 
 func main() {
-	fs := flag.NewFlagSet("fs", flag.ExitOnError)
-	fs.Bool("ts", false, "get current timestamp")
 	parser := terminalW.NewParser()
+	parser.Bool("ts", false, "get current timestamp")
 	parser.ParseArgsCmd()
 	if parser.Empty() || parser.ContainsFlagStrict("-h") {
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		fmt.Println(color.GreenString(helpMsg))
 		return
 	}

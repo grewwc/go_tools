@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -248,10 +247,9 @@ func handleCp(args []string, recursive, force bool) {
 }
 
 func main() {
-	fs := flag.NewFlagSet("flag", flag.ExitOnError)
-	fs.Bool("r", false, "recursive")
-	fs.Bool("f", false, "force")
 	parser := terminalW.NewParser()
+	parser.Bool("r", false, "recursive")
+	parser.Bool("f", false, "force")
 	parser.ParseArgsCmd("r", "f")
 	if parser.Empty() {
 		printHelp()

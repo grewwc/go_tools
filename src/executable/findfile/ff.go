@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"flag"
 	"fmt"
 	"log"
 	"math"
@@ -172,28 +171,27 @@ OUTER:
 
 func main() {
 	var err error
-	fs := flag.NewFlagSet("parser", flag.ExitOnError)
-	fs.Int64("n", 10, "number of found results to print, -10 for short")
-	fs.Bool("v", false, "if print error")
-	fs.String("d", ".", "root directory for searching")
-	fs.String("i", "", "ignore case")
-	fs.String("ex", "", "exclude file patterns (glob )")
-	fs.Bool("a", false, "list all matches (has the highest priority)")
-	fs.Int("p", 4, "how many threads to use")
-	fs.Bool("dir", false, "only search directories")
-	fs.Bool("h", false, "print this help")
-	fs.Bool("md5", false, "print md5 value")
-	fs.Bool("abs", false, "print absolute path")
 	parser := terminalW.NewParser()
+	parser.Int64("n", 10, "number of found results to print, -10 for short")
+	parser.Bool("v", false, "if print error")
+	parser.String("d", ".", "root directory for searching")
+	parser.String("i", "", "ignore case")
+	parser.String("ex", "", "exclude file patterns (glob )")
+	parser.Bool("a", false, "list all matches (has the highest priority)")
+	parser.Int("p", 4, "how many threads to use")
+	parser.Bool("dir", false, "only search directories")
+	parser.Bool("h", false, "print this help")
+	parser.Bool("md5", false, "print md5 value")
+	parser.Bool("abs", false, "print absolute path")
 	parser.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs")
 
-	if parser == nil {
-		fs.PrintDefaults()
+	if parser.Empty() {
+		parser.PrintDefaults()
 		return
 	}
 
 	if parser.ContainsFlagStrict("h") {
-		fs.PrintDefaults()
+		parser.PrintDefaults()
 		return
 	}
 

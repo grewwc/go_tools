@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"math"
 	"strconv"
@@ -236,8 +235,8 @@ func test() {
 }
 
 func main() {
-	flag.Int("prec", 16, "division precision. default is: 16")
 	parser := terminalW.NewParser()
+	parser.Int("prec", 16, "division precision. default is: 16")
 	parser.ParseArgsCmd()
 	defer func() {
 		if err := recover(); err != nil {
@@ -245,7 +244,7 @@ func main() {
 		}
 	}()
 	if parser.Empty() {
-		flag.PrintDefaults()
+		parser.PrintDefaults()
 		fmt.Println("c '1+2'")
 		return
 	}
