@@ -24,3 +24,10 @@ func (t *Tuple) Get(idx int) interface{} {
 	}
 	return t.data[idx]
 }
+
+func (t *Tuple) Set(idx int, val interface{}) {
+	if idx >= t.Size() {
+		return
+	}
+	t.data[idx] = val
+}

@@ -67,6 +67,10 @@ func (m *TreeMap[K, V]) Size() int {
 	return m.rbTree.size
 }
 
+func (m *TreeMap[K, V]) Len() int {
+	return m.Size()
+}
+
 func (m *TreeMap[K, V]) Delete(key K) bool {
 	node := sortedMapEntry[K, V]{k: key}
 	n := m.rbTree.Search(&node)

@@ -145,7 +145,7 @@ func (s *Set) ToStringSlice() []string {
 }
 
 func (s *Set) Equals(another *Set) bool {
-	return s.IsSubSet(another) && s.IsSubSet(another)
+	return s.IsSubSet(another) && another.IsSubSet(s)
 }
 
 func NewSet(items ...interface{}) *Set {
