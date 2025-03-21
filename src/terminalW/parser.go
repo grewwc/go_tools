@@ -3,6 +3,7 @@ package terminalW
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -15,15 +16,25 @@ import (
 )
 
 const (
-	sep = '\x00'
+	sep  = '\x00'
+	dash = '\x10'
 )
 
-type ParsedResults struct {
+type Parser struct {
 	Optional   map[string]string
 	Positional *containerW.OrderedSet
+	*flag.FlagSet
 }
 
-func (r ParsedResults) GetFlagVal(flagName string) (string, error) {
+func NewParser() *Parser {
+	return &Parser{
+		Optional:   make(map[string]string),
+		Positional: containerW.NewOrderedSet(),
+		FlagSet:    flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
+	}
+}
+
+func (r *Parser) GetFlagVal(flagName string) (string, error) {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
@@ -33,7 +44,7 @@ func (r ParsedResults) GetFlagVal(flagName string) (string, error) {
 	return "", errors.New("not exist")
 }
 
-func (r ParsedResults) MustGetFlagValAsInt(flagName string) int {
+func (r *Parser) MustGetFlagValAsInt(flagName string) int {
 	resStr, err := r.GetFlagVal(flagName)
 	if err != nil {
 		panic(err)
@@ -45,22 +56,22 @@ func (r ParsedResults) MustGetFlagValAsInt(flagName string) int {
 	return res
 }
 
-func (r *ParsedResults) GetIntFlagVal(flagName string) int {
+func (r *Parser) GetIntFlagVal(flagName string) int {
 	return r.MustGetFlagValAsInt(flagName)
 }
 
-func (r *ParsedResults) GetIntFlagValOrDefault(flagName string, val int) int {
+func (r *Parser) GetIntFlagValOrDefault(flagName string, val int) int {
 	if r.ContainsFlagStrict(flagName) {
 		return r.MustGetFlagValAsInt(flagName)
 	}
 	return val
 }
 
-func (r *ParsedResults) Empty() bool {
+func (r *Parser) Empty() bool {
 	return len(r.Optional) == 0 && r.Positional.Empty()
 }
 
-func (r ParsedResults) MustGetFlagValAsInt64(flagName string) (res int64) {
+func (r *Parser) MustGetFlagValAsInt64(flagName string) (res int64) {
 	resStr, err := r.GetFlagVal(flagName)
 	if err != nil {
 		panic(err)
@@ -72,7 +83,7 @@ func (r ParsedResults) MustGetFlagValAsInt64(flagName string) (res int64) {
 	return
 }
 
-func (r ParsedResults) GetFlagValueDefault(flagName string, defaultVal string) string {
+func (r *Parser) GetFlagValueDefault(flagName string, defaultVal string) string {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
@@ -82,21 +93,21 @@ func (r ParsedResults) GetFlagValueDefault(flagName string, defaultVal string) s
 	return defaultVal
 }
 
-func (r ParsedResults) SetFlagValue(flagName string, val string) {
+func (r *Parser) SetFlagValue(flagName string, val string) {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
 	r.Optional[flagName] = val
 }
 
-func (r ParsedResults) RemoveFlagValue(flagName string) {
+func (r *Parser) RemoveFlagValue(flagName string) {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
 	delete(r.Optional, flagName)
 }
 
-func (r ParsedResults) GetMultiFlagValDefault(flagNames []string, defaultVal string) string {
+func (r *Parser) GetMultiFlagValDefault(flagNames []string, defaultVal string) string {
 	var result string
 	var err error
 	for _, flagName := range flagNames {
@@ -107,7 +118,7 @@ func (r ParsedResults) GetMultiFlagValDefault(flagNames []string, defaultVal str
 	return defaultVal
 }
 
-func (r ParsedResults) MustGetFlagVal(flagName string) string {
+func (r *Parser) MustGetFlagVal(flagName string) string {
 	res, err := r.GetFlagVal(flagName)
 	if err != nil {
 		panic(err)
@@ -115,7 +126,7 @@ func (r ParsedResults) MustGetFlagVal(flagName string) string {
 	return res
 }
 
-func (r ParsedResults) GetFlags() *containerW.OrderedSet {
+func (r *Parser) GetFlags() *containerW.OrderedSet {
 	res := containerW.NewOrderedSet()
 	for k := range r.Optional {
 		res.Add(k)
@@ -123,7 +134,7 @@ func (r ParsedResults) GetFlags() *containerW.OrderedSet {
 	return res
 }
 
-func (r ParsedResults) GetBooleanArgs() *containerW.OrderedSet {
+func (r *Parser) GetBooleanArgs() *containerW.OrderedSet {
 	res := containerW.NewOrderedSet()
 	for k, v := range r.Optional {
 		if v == "" {
@@ -140,7 +151,7 @@ func (r ParsedResults) GetBooleanArgs() *containerW.OrderedSet {
 
 // ContainsFlag checks if an optional flag is set
 // "main.exe -force" ==> [ContainsFlag("-f") == true, ContainsFlag("-force") == true]
-func (r ParsedResults) ContainsFlag(flagName string) bool {
+func (r *Parser) ContainsFlag(flagName string) bool {
 	flagName = stringsW.StripPrefix(flagName, "-")
 	buf := bytes.NewBufferString("")
 	for option := range r.Optional {
@@ -152,7 +163,7 @@ func (r ParsedResults) ContainsFlag(flagName string) bool {
 // ContainsFlagStrict checks if an optional flag is set
 // if startswith "--", then use the full name (including the leading "--")
 // "main.exe -force" ==> [ContainsFlag("-f") == false, ContainsFlag("-force") == true]
-func (r ParsedResults) ContainsFlagStrict(flagName string) bool {
+func (r *Parser) ContainsFlagStrict(flagName string) bool {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
@@ -163,7 +174,7 @@ func (r ParsedResults) ContainsFlagStrict(flagName string) bool {
 	return false
 }
 
-func (r ParsedResults) ContainsAnyFlagStrict(flagNames ...string) bool {
+func (r *Parser) ContainsAnyFlagStrict(flagNames ...string) bool {
 	for _, flagName := range flagNames {
 		if r.ContainsFlagStrict(flagName) {
 			return true
@@ -172,7 +183,7 @@ func (r ParsedResults) ContainsAnyFlagStrict(flagNames ...string) bool {
 	return false
 }
 
-func (r ParsedResults) ContainsAllFlagStrict(flagNames ...string) bool {
+func (r *Parser) ContainsAllFlagStrict(flagNames ...string) bool {
 	for _, flagName := range flagNames {
 		if !r.ContainsFlagStrict(flagName) {
 			return false
@@ -183,7 +194,7 @@ func (r ParsedResults) ContainsAllFlagStrict(flagNames ...string) bool {
 
 // CoExists “-lrt”， args = ["l", "r", "t"]，return true
 // args 的顺序无关
-func (r ParsedResults) CoExists(args ...string) bool {
+func (r *Parser) CoExists(args ...string) bool {
 outer:
 	for optional := range r.Optional {
 		optional = strings.TrimPrefix(optional, "-")
@@ -203,7 +214,7 @@ outer:
 
 // GetNumArgs return -1 to signal "there is NO num args (e.g.: -10)"
 // if exists, return the LARGEST value
-func (r ParsedResults) GetNumArgs() int {
+func (r *Parser) GetNumArgs() int {
 	res := -1
 	p := regexp.MustCompile(`-(\d+)`)
 
@@ -225,7 +236,7 @@ func (r ParsedResults) GetNumArgs() int {
 }
 
 func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
-	key = strings.TrimPrefix(key, "-")
+	key = strings.TrimPrefix(key, string(dash))
 	// fmt.Println("test", key)
 	if key == "" {
 		return true
@@ -271,7 +282,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 			if ch == sep {
 				continue
 			}
-			if ch == '-' {
+			if ch == dash {
 				mode = optionalKeyMode
 				kBuf.WriteRune(ch)
 			} else {
@@ -327,43 +338,46 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 	return positionals, boolKeys, keys, vals
 }
 
-func parseArgs(cmd string, boolOptionals ...string) *ParsedResults {
-	var res ParsedResults
+func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
+	// flag.Parse()
 	normalizedBoolOptionals := make([]string, len(boolOptionals))
 	for i, boolArg := range boolOptionals {
 		normalizedBoolOptionals[i] = strings.TrimLeft(boolArg, "-")
 	}
+	r.VisitAll(func(f *flag.Flag) {
+		key := fmt.Sprintf("%s%c", f.Name, sep)
+		fmt.Println("search", cmd, key)
+		indices := stringsW.KmpSearch(cmd, key)
+		if len(indices) >= 1 {
+			for _, idx := range indices {
+				substr := stringsW.SubStringQuiet(cmd, idx-1, idx+len(f.Name))
+				cmd = strings.ReplaceAll(cmd, substr, fmt.Sprintf("%c%s", dash, f.Name))
+			}
+		}
+	})
+
 	// fmt.Println(boolOptionals)
 	allPositionals, boolKeys, keys, vals := classifyArguments(cmd, normalizedBoolOptionals...)
-	res.Positional = allPositionals
+	r.Positional = allPositionals
 
-	res.Optional = make(map[string]string)
+	r.Optional = make(map[string]string)
 	// fmt.Println("keys", keys)
 	// fmt.Println("vals", vals)
 	for i, key := range keys {
 		if i < len(vals) {
-			res.Optional[key] = vals[i]
+			r.Optional[key] = vals[i]
 		} else {
-			res.Optional[key] = ""
+			r.Optional[key] = ""
 		}
 	}
 	for _, key := range boolKeys {
-		res.Optional[key] = ""
-	}
-
-	return &res
-}
-
-func emptyParsedResults() *ParsedResults {
-	return &ParsedResults{
-		Optional:   make(map[string]string),
-		Positional: containerW.NewOrderedSet(),
+		r.Optional[key] = ""
 	}
 }
 
-func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
+func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 	if len(os.Args) <= 1 {
-		return emptyParsedResults()
+		return
 	}
 
 	args := make([]string, len(os.Args))
@@ -382,18 +396,18 @@ func ParseArgsCmd(boolOptionals ...string) *ParsedResults {
 		boolOptionals = append(boolOptionals, numArgs)
 	}
 
-	return ParseArgs(cmd, boolOptionals...)
+	r.ParseArgs(cmd, boolOptionals...)
 }
 
 // ParseArgs takes command line as argument, not from terminal directly
 // cmd contains the Programs itself
-func ParseArgs(cmd string, boolOptionals ...string) *ParsedResults {
+func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	cmd = stringsW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
 	cmdSlice := stringsW.SplitNoEmptyKeepQuote(cmd, ' ')
 	if len(cmdSlice) <= 1 {
-		return emptyParsedResults()
+		return
 	}
 	cmd = strings.Join(cmdSlice[1:], fmt.Sprintf("%c", sep))
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)
-	return parseArgs(cmd, boolOptionals...)
+	r.parseArgs(cmd, boolOptionals...)
 }

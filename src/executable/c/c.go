@@ -237,22 +237,23 @@ func test() {
 
 func main() {
 	flag.Int("prec", 16, "division precision. default is: 16")
-	parsed := terminalW.ParseArgsCmd()
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd()
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
 		}
 	}()
-	if parsed.Empty() {
+	if parser.Empty() {
 		flag.PrintDefaults()
 		fmt.Println("c '1+2'")
 		return
 	}
 
-	expr := parsed.Positional.ToStringSlice()[0]
-	prec = parsed.GetIntFlagValOrDefault("prec", 16)
-	if parsed.GetNumArgs() != -1 {
-		prec = parsed.GetNumArgs()
+	expr := parser.Positional.ToStringSlice()[0]
+	prec = parser.GetIntFlagValOrDefault("prec", 16)
+	if parser.GetNumArgs() != -1 {
+		prec = parser.GetNumArgs()
 	}
 
 	res := calc(stringsW.StringToBytes(processInputStr(expr)))

@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -169,26 +168,27 @@ func modifyQuestion(question string) string {
 	return question
 }
 
-func getQuestion(parsed *terminalW.ParsedResults, userInput bool) (question string) {
+func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 	var fileContent string
 	if userInput {
 		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
 		question = utilsW.UserInput("> ", multiLine)
-		tempParsed := terminalW.ParseArgs(fmt.Sprintf("a %s", question), "x", "c")
-		if tempParsed.GetFlagValueDefault("f", "") != "" {
-			parsed.SetFlagValue("f", tempParsed.GetFlagValueDefault("f", ""))
+		tempParser := terminalW.NewParser()
+		tempParser.ParseArgs(fmt.Sprintf("a %s", question), "x", "c")
+		if tempParser.GetFlagValueDefault("f", "") != "" {
+			parsed.SetFlagValue("f", tempParser.GetFlagValueDefault("f", ""))
 		}
-		if tempParsed.ContainsFlagStrict("c") {
+		if tempParser.ContainsFlagStrict("c") {
 			parsed.SetFlagValue("c", "true")
 		}
-		if tempParsed.ContainsFlagStrict("s") {
+		if tempParser.ContainsFlagStrict("s") {
 			parsed.SetFlagValue("s", "true")
 		}
-		question = strings.Join(tempParsed.Positional.ToStringSlice(), " ")
-		if tempParsed.GetNumArgs() != -1 {
-			question = fmt.Sprintf("%s -%d", question, tempParsed.GetNumArgs())
+		question = strings.Join(tempParser.Positional.ToStringSlice(), " ")
+		if tempParser.GetNumArgs() != -1 {
+			question = fmt.Sprintf("%s -%d", question, tempParser.GetNumArgs())
 		}
-		nHistory = getNumHistory(tempParsed)
+		nHistory = getNumHistory(tempParser)
 	} else {
 		question = strings.Join(parsed.Positional.ToStringSlice(), " ")
 		nHistory = getNumHistory(parsed)
@@ -213,14 +213,14 @@ func getQuestion(parsed *terminalW.ParsedResults, userInput bool) (question stri
 	return
 }
 
-func getNumHistory(parsed *terminalW.ParsedResults) int {
+func getNumHistory(parsed *terminalW.Parser) int {
 	if parsed.ContainsFlagStrict("x") {
 		return 0
 	}
 	return parsed.GetIntFlagValOrDefault("history", defaultNumHistory)
 }
 
-func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
+func getWriteResultFile(parsed *terminalW.Parser) *os.File {
 	if parsed.ContainsFlagStrict("out") {
 		filename := parsed.GetFlagValueDefault("out", "")
 		if filename == "" {
@@ -239,37 +239,38 @@ func getWriteResultFile(parsed *terminalW.ParsedResults) *os.File {
 func main() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	flag.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
-	flag.String("m", "", "model name. (qwq-plus[0, default, configured by \"ai.model.default\"], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5])")
-	flag.Bool("h", false, "print help info")
-	flag.Bool("multi-line", false, "input with multline")
-	flag.Bool("mul", false, "same as multi-line")
-	flag.Bool("code", false, "use code model (qwen-coder-plus-latest)")
-	flag.Bool("s", false, "short output")
-	flag.Bool("d", false, "deepseek model")
-	flag.Bool("clear", false, "clear history")
-	flag.Bool("c", false, "prepend content in clipboard")
-	flag.Bool("x", false, "ask with history")
-	flag.String("f", "", "input file names. seprated by comma.")
-	flag.String("out", "", "write output to file. default is output.txt")
-	parsed := terminalW.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear", "c", "x")
-	if parsed.ContainsFlagStrict("h") {
-		flag.PrintDefaults()
+	parser := terminalW.NewParser()
+	parser.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
+	parser.String("m", "", "model name. (qwq-plus[0, default, configured by \"ai.model.default\"], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5])")
+	parser.Bool("h", false, "print help info")
+	parser.Bool("multi-line", false, "input with multline")
+	parser.Bool("mul", false, "same as multi-line")
+	parser.Bool("code", false, "use code model (qwen-coder-plus-latest)")
+	parser.Bool("s", false, "short output")
+	parser.Bool("d", false, "deepseek model")
+	parser.Bool("clear", false, "clear history")
+	parser.Bool("c", false, "prepend content in clipboard")
+	parser.Bool("x", false, "ask with history")
+	parser.String("f", "", "input file names. seprated by comma.")
+	parser.String("out", "", "write output to file. default is output.txt")
+	parser.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear", "c", "x")
+	if parser.ContainsFlagStrict("h") {
+		parser.PrintDefaults()
 		return
 	}
 
-	if parsed.ContainsFlagStrict("-clear") {
+	if parser.ContainsFlagStrict("-clear") {
 		_ = os.Remove(historyFile)
 		return
 	}
 
-	args := parsed.Positional.ToStringSlice()
+	args := parser.Positional.ToStringSlice()
 
-	var model = _ai_helpers.GetModel(parsed)
+	var model = _ai_helpers.GetModel(parser)
 	var curr bytes.Buffer
 
 	client := &http.Client{}
-	var f *os.File = getWriteResultFile(parsed)
+	var f *os.File = getWriteResultFile(parser)
 	var out io.Writer = os.Stdout
 	if f != nil {
 		defer f.Close()
@@ -278,10 +279,10 @@ func main() {
 	for {
 		var question string
 		if len(args) >= 1 {
-			question = getQuestion(parsed, false)
+			question = getQuestion(parser, false)
 			args = []string{}
 		} else {
-			question = getQuestion(parsed, true)
+			question = getQuestion(parser, true)
 		}
 		if strings.TrimSpace(question) == "" {
 			continue

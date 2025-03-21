@@ -125,20 +125,20 @@ func main() {
 	fs.Bool("newline", false, "only remove newline")
 	fs.String("include", "", "only trucnate files with the extension, e.g.: -include \".log, .txt\"")
 	fs.String("exclude", "", "only trucnate files without the extension, e.g.: -exclude \".log, .txt\"")
-
-	parsed := terminalW.ParseArgsCmd("v", "h", "f", "newline")
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("v", "h", "f", "newline")
 	var root string
 	var err error
-	if parsed.Empty() || parsed.ContainsFlagStrict("h") {
+	if parser.Empty() || parser.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		printHelp()
 		return
 	}
-	force = parsed.ContainsFlagStrict("f")
-	verbose = parsed.ContainsFlagStrict("v")
-	includeExt := parsed.GetFlagValueDefault("include", "")
-	excludeExt := parsed.GetFlagValueDefault("exclude", "")
-	newline = parsed.ContainsFlagStrict("newline")
+	force = parser.ContainsFlagStrict("f")
+	verbose = parser.ContainsFlagStrict("v")
+	includeExt := parser.GetFlagValueDefault("include", "")
+	excludeExt := parser.GetFlagValueDefault("exclude", "")
+	newline = parser.ContainsFlagStrict("newline")
 	if includeExt != "" {
 		e = containerW.NewSet()
 		for _, ext := range getStringSlice(includeExt) {
@@ -151,7 +151,7 @@ func main() {
 			ne.Add(strings.TrimLeft(ext, "."))
 		}
 	}
-	pos := parsed.Positional.ToStringSlice()
+	pos := parser.Positional.ToStringSlice()
 	if len(pos) > 1 {
 		fmt.Println(color.RedString("atmost 1 arg"))
 		return

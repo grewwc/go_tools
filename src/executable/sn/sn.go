@@ -251,14 +251,14 @@ func main() {
 	fs := flag.NewFlagSet("flag", flag.ExitOnError)
 	fs.Bool("r", false, "recursive")
 	fs.Bool("f", false, "force")
-
-	parsed := terminalW.ParseArgsCmd("r", "f")
-	if parsed.Empty() {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("r", "f")
+	if parser.Empty() {
 		printHelp()
 		return
 	}
 
-	args := parsed.Positional.ToStringSlice()
+	args := parser.Positional.ToStringSlice()
 	if len(args) < 1 {
 		printHelp()
 		return
@@ -266,7 +266,7 @@ func main() {
 	cmd := args[0]
 	switch cmd {
 	case "cp":
-		handleCp(args[1:], parsed.ContainsFlag("r"), parsed.ContainsFlag("f"))
+		handleCp(args[1:], parser.ContainsFlag("r"), parser.ContainsFlag("f"))
 	case "ls":
 		handleLs(args[1:])
 	case "rm":

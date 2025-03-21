@@ -125,17 +125,17 @@ func main() {
 	fs.Bool("l", false, "only list files in the tar.gz")
 	fs.String("nt", "", "exclude file type. separated by comma, dot is NOT required.")
 	fs.String("t", "", "only include file type, if set, ignore -nt & -ex. separated by comma, dot is NOT required.")
-
-	parsedResults := terminalW.ParseArgsCmd("v", "u", "h", "clean", "l")
-	// fmt.Println(parsedResults)
-	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("v", "u", "h", "clean", "l")
+	// fmt.Println(parser)
+	if parser == nil || parser.ContainsFlagStrict("h") {
 		printHelp(fs)
 		return
 	}
 
-	nt := parsedResults.GetFlagValueDefault("nt", "")
+	nt := parser.GetFlagValueDefault("nt", "")
 	nt = strings.ReplaceAll(nt, ",", " ")
-	t := parsedResults.GetFlagValueDefault("t", "")
+	t := parser.GetFlagValueDefault("t", "")
 	t = strings.ReplaceAll(t, ",", " ")
 	for _, val := range stringsW.SplitNoEmpty(nt, " ") {
 		if val[0] != '.' {
@@ -152,10 +152,10 @@ func main() {
 	}
 
 	// create tar files
-	exclude, err := parsedResults.GetFlagVal("ex")
+	exclude, err := parser.GetFlagVal("ex")
 	excludeSlice := make([]string, 0)
 	if err != nil || exclude == "" {
-		exclude, _ = parsedResults.GetFlagVal("exclude")
+		exclude, _ = parser.GetFlagVal("exclude")
 	}
 	if exclude != "" {
 		for _, ex := range stringsW.SplitNoEmptyKeepQuote(exclude, ',') {
@@ -173,7 +173,7 @@ func main() {
 		excludes = append(excludes, gs...)
 	}
 
-	verbose := parsedResults.ContainsFlagStrict("v")
+	verbose := parser.ContainsFlagStrict("v")
 	excludeSet := containerW.NewSet()
 
 	for _, ex := range excludes {
@@ -186,7 +186,7 @@ func main() {
 		})
 	}
 	// fmt.Println("excludeset", excludeSet)
-	args := parsedResults.Positional.ToStringSlice()
+	args := parser.Positional.ToStringSlice()
 	// fmt.Println("here", args)
 	srcNames := []string{}
 	var srcName string
@@ -201,21 +201,21 @@ func main() {
 		panic(msg)
 	}
 
-	if parsedResults.ContainsFlagStrict("l") {
+	if parser.ContainsFlagStrict("l") {
 		listOnly = true
 	}
 	// extract tar files
-	if parsedResults.ContainsFlagStrict("u") || listOnly {
-		if parsedResults.ContainsFlagStrict("u") {
+	if parser.ContainsFlagStrict("u") || listOnly {
+		if parser.ContainsFlagStrict("u") {
 			fmt.Println(color.GreenString("e.g: untar src.tar.gz dest_directory"))
 		}
 
-		args := parsedResults.Positional.ToStringSlice()
+		args := parser.Positional.ToStringSlice()
 		var src, prefix string
 
 		src = args[0]
 
-		if !parsedResults.ContainsFlagStrict("l") {
+		if !parser.ContainsFlagStrict("l") {
 			if len(args) < 2 {
 				printHelp(fs)
 			}
@@ -249,7 +249,7 @@ func main() {
 	}
 
 	if err != nil {
-		if parsedResults.ContainsFlagStrict("clean") {
+		if parser.ContainsFlagStrict("clean") {
 			clean(outName)
 		}
 		log.Fatalln(err)
@@ -279,13 +279,13 @@ func main() {
 
 	if len(allFiles) == 0 {
 		fmt.Println(color.RedString(fmt.Sprintf("%q don't contain any files\n", srcName)))
-		if parsedResults.ContainsFlagStrict("clean") {
+		if parser.ContainsFlagStrict("clean") {
 			clean(outName)
 		}
 		return
 	}
 	if err = utilsW.TarGz(outName, allFiles, verbose); err != nil {
-		if parsedResults.ContainsFlagStrict("clean") {
+		if parser.ContainsFlagStrict("clean") {
 			clean(outName)
 		}
 		log.Fatalln(err)

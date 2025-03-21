@@ -225,8 +225,8 @@ func main() {
 	fs.Bool("d", false, "only list directories")
 	fs.Bool("f", false, "only list normal files")
 	fs.String("re", "", "use regular expression to parse files to be listed")
-
-	parsedResults := terminalW.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h", "G")
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h", "G")
 
 	coloredStrings := containerW.NewOrderedMap()
 	indent := 4
@@ -234,25 +234,25 @@ func main() {
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)
 
 	var args []string
-	if parsedResults == nil {
+	if parser == nil {
 		args = []string{"./"}
 		goto skipTo
 	}
 
-	numFileToPrint = parsedResults.GetNumArgs()
+	numFileToPrint = parser.GetNumArgs()
 
-	args = parsedResults.Positional.ToStringSlice()
-	// fmt.Println(parsedResults)
+	args = parser.Positional.ToStringSlice()
+	// fmt.Println(parser)
 
 	if numFileToPrint == -1 {
 		numFileToPrint = math.MaxInt32
 	}
 
-	if parsedResults.ContainsFlagStrict("c") {
+	if parser.ContainsFlagStrict("c") {
 		onlyCount = true
 	}
 
-	moreIgnores, _ = parsedResults.GetFlagVal("ne")
+	moreIgnores, _ = parser.GetFlagVal("ne")
 	moreIgnores = strings.ReplaceAll(moreIgnores, ",", " ")
 	for _, moreIgnore := range stringsW.SplitNoEmpty(moreIgnores, " ") {
 		if moreIgnore[0] != '.' {
@@ -261,7 +261,7 @@ func main() {
 		ignores.Add(moreIgnore)
 	}
 
-	moreWanted, _ = parsedResults.GetFlagVal("e")
+	moreWanted, _ = parser.GetFlagVal("e")
 	moreWanted = strings.ReplaceAll(moreWanted, ",", " ")
 	for _, e := range stringsW.SplitNoEmpty(moreWanted, " ") {
 		if e[0] != '.' {
@@ -270,51 +270,51 @@ func main() {
 		wanted.Add(e)
 	}
 
-	patternStr, _ = parsedResults.GetFlagVal("re")
+	patternStr, _ = parser.GetFlagVal("re")
 	if patternStr != "" {
 		patternStr = preprocessRegexpStr(patternStr)
 		pattern = regexp.MustCompile(patternStr)
 	}
 
-	if parsedResults.ContainsFlag("t") {
-		// fmt.Println("here", parsedResults)
-		if !parsedResults.ContainsFlag("r") {
+	if parser.ContainsFlag("t") {
+		// fmt.Println("here", parser)
+		if !parser.ContainsFlag("r") {
 			sortType = _lsW.NewerFirst
 		} else {
 			sortType = _lsW.OlderFirst
 		}
 	}
 
-	if parsedResults.ContainsFlag("N") {
-		if !parsedResults.ContainsFlag("r") {
+	if parser.ContainsFlag("N") {
+		if !parser.ContainsFlag("r") {
 			sortType = _lsW.NumberSmallerFirst
 		} else {
 			sortType = _lsW.NumberLargestFirst
 		}
 	}
 
-	if parsedResults.ContainsFlag("a") {
+	if parser.ContainsFlag("a") {
 		all = true
 	}
 
-	if parsedResults.ContainsFlag("l") {
+	if parser.ContainsFlag("l") {
 		l = true
 	}
 
-	if parsedResults.ContainsFlagStrict("h") {
+	if parser.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
 
-	if parsedResults.ContainsFlag("du") {
+	if parser.ContainsFlag("du") {
 		du = true
 	}
 
-	if parsedResults.ContainsFlag("d") && !parsedResults.ContainsFlag("du") {
+	if parser.ContainsFlag("d") && !parser.ContainsFlag("du") {
 		onlyDir = true
 	}
 
-	if parsedResults.ContainsFlag("f") {
+	if parser.ContainsFlag("f") {
 		onlyFile = true
 	}
 

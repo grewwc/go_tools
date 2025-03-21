@@ -15,8 +15,9 @@ func install() {
 	flag.Bool("h", false, "print help information")
 	flag.Bool("f", false, "force rebuild (shortcut form)")
 	flag.Bool("force", false, "force rebuilds")
-	parsed := terminalW.ParseArgsCmd("h", "-f", "force")
-	if parsed.ContainsFlagStrict("h") {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("h", "-f", "force")
+	if parser.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
 	}

@@ -12,8 +12,8 @@ import (
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
-func removeSingle(filename string, parsedResults terminalW.ParsedResults) {
-	if parsedResults.ContainsFlagStrict("-rf") {
+func removeSingle(filename string, parser terminalW.Parser) {
+	if parser.ContainsFlagStrict("-rf") {
 		err := os.RemoveAll(filename)
 		if err != nil {
 			log.Println(err)
@@ -26,20 +26,21 @@ func removeSingle(filename string, parsedResults terminalW.ParsedResults) {
 	}
 }
 func main() {
-	parsedResults := terminalW.ParseArgsCmd("rf")
-	if parsedResults == nil {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("rf")
+	if parser == nil {
 		fmt.Println("usage: rm -rf ")
 		return
 	}
-	args := parsedResults.Positional.ToStringSlice()
+	args := parser.Positional.ToStringSlice()
 	for _, filename := range args {
 		for d, filenames := range utilsW.LsDirGlob(filename) {
 			if d == "./" {
 				for _, fname := range filenames {
-					removeSingle(fname, *parsedResults)
+					removeSingle(fname, *parser)
 				}
 			} else {
-				removeSingle(d, *parsedResults)
+				removeSingle(d, *parser)
 			}
 		}
 	}

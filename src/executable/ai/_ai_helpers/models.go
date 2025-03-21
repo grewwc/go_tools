@@ -33,7 +33,7 @@ func GetEndpoint() string {
 	return config.GetOrDefault("ai.model.endpoint", QWEN_ENDPOINT).(string)
 }
 
-func GetModel(parsed *terminalW.ParsedResults) string {
+func GetModel(parsed *terminalW.Parser) string {
 	if parsed.ContainsFlagStrict("code") {
 		return QWEN_CODER_PLUS_LATEST
 	}
@@ -97,7 +97,9 @@ func GetModelByInput(prevModel string, input *string) string {
 	p := regexp.MustCompile(` -\d$`)
 	if found := p.FindString(trimed); found != "" {
 		*input = p.ReplaceAllString(trimed, "")
-		return GetModel(terminalW.ParseArgs(fmt.Sprintf("a %s", found)))
+		parser := terminalW.NewParser()
+		parser.ParseArgs(fmt.Sprintf("a %s", found))
+		return GetModel(parser)
 	}
 
 	return prevModel

@@ -11,7 +11,7 @@ import (
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
-func choose(cmd *terminalW.ParsedResults) interface{} {
+func choose(cmd *terminalW.Parser) interface{} {
 	if cmd == nil {
 		return nil
 	}
@@ -98,8 +98,9 @@ func main() {
 	flag.String("hkeys", "", "hkeys action")
 	flag.Int("n", n, "max number of keys")
 	flag.String("keys", "*", "show keys")
-	parsedResults := terminalW.ParseArgsCmd("h")
-	if parsedResults == nil || parsedResults.ContainsFlagStrict("h") {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("h")
+	if parser == nil || parser.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
 	}
@@ -134,27 +135,27 @@ func main() {
 		DB:       0,           // Use default DB
 	})
 
-	act := choose(parsedResults)
+	act := choose(parser)
 	switch act.(type) {
 	// show keys
 	case showKeysAction:
-		pattern := parsedResults.GetFlagValueDefault("keys", "*")
+		pattern := parser.GetFlagValueDefault("keys", "*")
 		if pattern == "" {
 			pattern = "*"
 		}
-		keys := showKeys(rdb, pattern, int64(parsedResults.GetIntFlagValOrDefault("n", n)))
+		keys := showKeys(rdb, pattern, int64(parser.GetIntFlagValOrDefault("n", n)))
 		fmt.Printf("pattern: %s (%d found)\n", color.RedString(pattern), len(keys))
 		for _, key := range keys {
 			fmt.Printf("\t%s\n", key)
 		}
 	// show hkeys
 	case showHKeysAction:
-		key := parsedResults.GetFlagValueDefault("hkeys", "")
+		key := parser.GetFlagValueDefault("hkeys", "")
 		if key == "" {
 			fmt.Println("field is required")
 			return
 		}
-		fields := showHKeys(rdb, key, int64(parsedResults.GetIntFlagValOrDefault("n", n)))
+		fields := showHKeys(rdb, key, int64(parser.GetIntFlagValOrDefault("n", n)))
 		fmt.Printf("hkeys: %s (%d found)\n", color.RedString(key), len(fields))
 		var s string
 		for i, key := range fields {
@@ -168,17 +169,17 @@ func main() {
 		}
 	// get
 	case getKeyAction:
-		key := parsedResults.GetFlagValueDefault("get", "")
+		key := parser.GetFlagValueDefault("get", "")
 		val := getByKey(rdb, key)
 		fmt.Printf("%s: %s\n", key, color.RedString(val))
 	// hget
 	case hGetByKeyAction:
-		key := parsedResults.GetFlagValueDefault("hget", "")
+		key := parser.GetFlagValueDefault("hget", "")
 		if key == "" {
 			fmt.Println("key is required")
 			return
 		}
-		fields := parsedResults.Positional.ToStringSlice()
+		fields := parser.Positional.ToStringSlice()
 		kvList := hGetByKey(rdb, key, fields...)
 		fmt.Printf("hget key: %s\n", color.RedString(key))
 		for _, kv := range kvList {

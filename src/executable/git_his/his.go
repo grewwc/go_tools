@@ -18,22 +18,22 @@ const (
 	defaultN = 5
 )
 
-func getN(parsed *terminalW.ParsedResults) int {
-	if parsed.Empty() {
+func getN(parser *terminalW.Parser) int {
+	if parser.Empty() {
 		return -1
 	}
-	n := parsed.GetNumArgs()
+	n := parser.GetNumArgs()
 	if n != -1 {
 		return n
 	}
-	n, err := strconv.Atoi(parsed.GetFlagValueDefault("n", "-1"))
+	n, err := strconv.Atoi(parser.GetFlagValueDefault("n", "-1"))
 	if err != nil {
 		panic(err)
 	}
 	if n != -1 {
 		return n
 	}
-	if parsed.ContainsFlagStrict("a") {
+	if parser.ContainsFlagStrict("a") {
 		return math.MaxInt
 	}
 	return n
@@ -43,12 +43,13 @@ func main() {
 	flag.Int("n", defaultN, "num of histories to print")
 	flag.Bool("a", false, "print all histories")
 	flag.Bool("h", false, "print help info")
-	parsed := terminalW.ParseArgsCmd("h", "a")
-	if parsed.ContainsFlagStrict("h") {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("h", "a")
+	if parser.ContainsFlagStrict("h") {
 		flag.PrintDefaults()
 		return
 	}
-	n := getN(parsed)
+	n := getN(parser)
 	if n == -1 {
 		n = defaultN
 	}

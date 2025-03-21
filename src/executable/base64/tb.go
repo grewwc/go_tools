@@ -83,21 +83,21 @@ func main() {
 	fs.Bool("c", false, "get content from clipboard")
 	fs.String("out", "", "output file name")
 	fs.Bool("toimg", false, "")
-
-	parsed := terminalW.ParseArgsCmd("f", "toimg", "c")
-	if parsed.ContainsAnyFlagStrict("h") {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("f", "toimg", "c")
+	if parser.ContainsAnyFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
 	isURL := true
-	toImage := parsed.ContainsFlagStrict("toimg")
-	if parsed.ContainsAnyFlagStrict("f", "c") {
+	toImage := parser.ContainsFlagStrict("toimg")
+	if parser.ContainsAnyFlagStrict("f", "c") {
 		isURL = false
 	}
-	if parsed.GetFlagValueDefault("out", "") != "" {
-		outName = parsed.GetFlagValueDefault("out", "")
+	if parser.GetFlagValueDefault("out", "") != "" {
+		outName = parser.GetFlagValueDefault("out", "")
 	}
-	pos := parsed.Positional.ToStringSlice()
+	pos := parser.Positional.ToStringSlice()
 	if len(pos) > 1 {
 		fmt.Println("only 1 positional arg allowed")
 		return

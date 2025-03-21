@@ -79,15 +79,16 @@ END:
 
 func main() {
 	var numOfLines = 10
-	parsedResults := terminalW.ParseArgsCmd()
-	if parsedResults == nil {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd()
+	if parser == nil {
 		return
 	}
 
-	filenames := parsedResults.Positional.ToStringSlice()
+	filenames := parser.Positional.ToStringSlice()
 
-	if nStr, exists := parsedResults.Optional["-n"]; exists {
-		// delete(parsedResults.Optional, "-n")
+	if nStr, exists := parser.Optional["-n"]; exists {
+		// delete(parser.Optional, "-n")
 		if nStr == "" {
 			return
 		}
@@ -98,7 +99,7 @@ func main() {
 		numOfLines = int(n)
 	}
 
-	n := parsedResults.GetNumArgs()
+	n := parser.GetNumArgs()
 	if n != -1 {
 		numOfLines = n
 	}

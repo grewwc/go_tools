@@ -184,55 +184,56 @@ func main() {
 	fs.Bool("h", false, "print this help")
 	fs.Bool("md5", false, "print md5 value")
 	fs.Bool("abs", false, "print absolute path")
-	results := terminalW.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs")
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs")
 
-	if results == nil {
+	if parser == nil {
 		fs.PrintDefaults()
 		return
 	}
 
-	if results.ContainsFlagStrict("h") {
+	if parser.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
 
-	if results.ContainsFlagStrict("md5") {
+	if parser.ContainsFlagStrict("md5") {
 		printMd5 = true
 	}
 
-	verboseFlag := results.ContainsFlagStrict("v")
+	verboseFlag := parser.ContainsFlagStrict("v")
 
-	rootDir := results.GetFlagValueDefault("d", ".")
+	rootDir := parser.GetFlagValueDefault("d", ".")
 	if rootDir == "~" {
 		rootDir = expandTilda()
 		if rootDir == "" {
 			log.Fatalln("HOME is not set")
 		}
 	}
-	ignores := results.GetFlagValueDefault("ex", "")
-	caseInsensitive = results.ContainsFlag("i")
+	ignores := parser.GetFlagValueDefault("ex", "")
+	caseInsensitive = parser.ContainsFlag("i")
 
-	if results.ContainsFlagStrict("dir") {
+	if parser.ContainsFlagStrict("dir") {
 		onlyDir = true
 	}
 
-	relativePath = !results.ContainsFlagStrict("abs")
+	relativePath = !parser.ContainsFlagStrict("abs")
 
-	numPrint := results.GetNumArgs()
+	numPrint := parser.GetNumArgs()
 	if numPrint == -1 {
-		numPrint, err = strconv.Atoi(results.GetFlagValueDefault("n", "10"))
+		numPrint, err = strconv.Atoi(parser.GetFlagValueDefault("n", "10"))
 
 		if err != nil {
 			log.Fatalln(err)
 		}
 	}
 
-	if results.ContainsFlagStrict("a") {
+	if parser.ContainsFlagStrict("a") {
 		numPrint = math.MaxInt32
 	}
 
-	if results.ContainsFlagStrict("p") {
-		terminalW.ChangeThreads(results.MustGetFlagValAsInt("p"))
+	if parser.ContainsFlagStrict("p") {
+		terminalW.ChangeThreads(parser.MustGetFlagValAsInt("p"))
 	}
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
@@ -243,9 +244,9 @@ func main() {
 		temp = strings.ReplaceAll(temp, `*`, `.*`)
 		allIgnores[i] = temp
 	}
-	// fmt.Println("allIgnores", allIgnores, results)
+	// fmt.Println("allIgnores", allIgnores, parser)
 	verbose = verboseFlag
-	targets = results.Positional.ToStringSlice()
+	targets = parser.Positional.ToStringSlice()
 
 	// fmt.Println("rootDir", *rootDir)
 	allRootDirs, err := filepath.Glob(rootDir)

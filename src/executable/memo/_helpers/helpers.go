@@ -211,7 +211,7 @@ func ReadInfo(isURL bool) string {
 	return ""
 }
 
-func OrderByTime(parsed *terminalW.ParsedResults) bool {
+func OrderByTime(parsed *terminalW.Parser) bool {
 	if parsed.Empty() {
 		return false
 	}

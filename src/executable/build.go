@@ -24,11 +24,12 @@ func init() {
 }
 
 func main() {
-	parsedArgs := terminalW.ParseArgsCmd("f", "force")
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("f", "force")
 	var force bool
-	if !parsedArgs.Empty() {
-		force = parsedArgs.ContainsFlag("f") || parsedArgs.ContainsFlag("force")
-		for fname := range parsedArgs.Positional.Iterate() {
+	if !parser.Empty() {
+		force = parser.ContainsFlag("f") || parser.ContainsFlag("force")
+		for fname := range parser.Positional.Iterate() {
 			fnameStr := fname.(string)
 			forceRebuildName.Add(fnameStr + ".go")
 		}

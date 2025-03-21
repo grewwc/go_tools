@@ -195,7 +195,7 @@ func check(f string) {
 	}
 }
 
-func getFirstDir(parsed *terminalW.ParsedResults) string {
+func getFirstDir(parsed *terminalW.Parser) string {
 	if parsed.Empty() {
 		return "."
 	}
@@ -206,7 +206,7 @@ func getFirstDir(parsed *terminalW.ParsedResults) string {
 	return args[0]
 }
 
-func getExcludeFiles(parsed *terminalW.ParsedResults) {
+func getExcludeFiles(parsed *terminalW.Parser) {
 	ex := parsed.GetFlagValueDefault("ex", "")
 	for _, file := range stringsW.SplitNoEmpty(ex, ",") {
 		file = strings.Trim(file, " ")
@@ -214,7 +214,7 @@ func getExcludeFiles(parsed *terminalW.ParsedResults) {
 	}
 }
 
-func getTypes(parsed *terminalW.ParsedResults) {
+func getTypes(parsed *terminalW.Parser) {
 	t := parsed.GetFlagValueDefault("t", "")
 	for _, file := range stringsW.SplitNoEmpty(t, ",") {
 		file = strings.Trim(file, " ")
@@ -241,30 +241,30 @@ func main() {
 	fs.String("gt", "", "size greater than. (1.3g, 1m, 1K)")
 	fs.String("t", "", "file types (e.g.: '.txt, pdf')")
 	fs.String("ex", "", "exclude files or dirs (including subdirs having same name)")
-
-	parsed := terminalW.ParseArgsCmd("v", "d", "f")
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("v", "d", "f")
 
 	args := make([]string, 0)
 	verbose := false
 	onlyFile := false
 	onlyDir := false
 
-	if parsed.Empty() {
+	if parser.Empty() {
 		args = append(args, ".")
 		goto check
-	} else if parsed.ContainsFlagStrict("h") {
+	} else if parser.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
 
-	onlyFile = parsed.ContainsAllFlagStrict("f")
-	onlyDir = parsed.ContainsAllFlagStrict("d")
-	verbose = parsed.ContainsAllFlagStrict("v") || onlyDir || onlyFile
-	getExcludeFiles(parsed)
-	getTypes(parsed)
+	onlyFile = parser.ContainsAllFlagStrict("f")
+	onlyDir = parser.ContainsAllFlagStrict("d")
+	verbose = parser.ContainsAllFlagStrict("v") || onlyDir || onlyFile
+	getExcludeFiles(parser)
+	getTypes(parser)
 
 	if verbose {
-		rootDir := getFirstDir(parsed)
+		rootDir := getFirstDir(parser)
 		if onlyDir {
 			args = append(args, getOnlyDirectories(rootDir)...)
 		} else if onlyFile {
@@ -273,13 +273,13 @@ func main() {
 			args = append(args, getDirAndFiles(rootDir)...)
 		}
 	}
-	if parsed.ContainsFlagStrict("gt") {
-		lowerSizeBound = parseSize(parsed.GetFlagValueDefault("gt", "10000g"))
+	if parser.ContainsFlagStrict("gt") {
+		lowerSizeBound = parseSize(parser.GetFlagValueDefault("gt", "10000g"))
 	}
-	if len(parsed.Positional.ToStringSlice()) == 0 {
+	if len(parser.Positional.ToStringSlice()) == 0 {
 		args = append(args, ".")
 	}
-	for _, file := range parsed.Positional.ToStringSlice() {
+	for _, file := range parser.Positional.ToStringSlice() {
 		if utilsW.IsDir(file) && !onlyFile && valid(file) {
 			args = append(args, file)
 		} else if utilsW.IsRegular(file) && !onlyDir && valid(file) {

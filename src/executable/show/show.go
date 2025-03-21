@@ -11,8 +11,9 @@ import (
 )
 
 func main() {
-	parsed := terminalW.ParseArgsCmd("h")
-	if parsed.ContainsAnyFlagStrict("h") {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("h")
+	if parser.ContainsAnyFlagStrict("h") {
 		fmt.Println("print all the binary files of go_tools")
 		return
 	}

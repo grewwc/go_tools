@@ -425,7 +425,7 @@ func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, t
 	return res, written
 }
 
-func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, prev bool) {
+func update(parser *terminalW.Parser, fromFile bool, fromEditor bool, prev bool) {
 	var err error
 	var changed bool
 	var cli = client
@@ -433,7 +433,7 @@ func update(parsed *terminalW.ParsedResults, fromFile bool, fromEditor bool, pre
 		cli = atlasClient
 	}
 	scanner := bufio.NewScanner(os.Stdin)
-	id := parsed.GetFlagValueDefault("u", "")
+	id := parser.GetFlagValueDefault("u", "")
 	if prev {
 		id = _helpers.ReadInfo(false)
 		if !fromFile {
@@ -994,13 +994,14 @@ func main() {
 	fs.String("ex", "", "exclude some tag prefix when list tags")
 	fs.Bool("code", false, "if use vscode as input editor (default false)")
 
-	parsed := terminalW.ParseArgsCmd("h", "r", "all", "a",
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
 		"sp", "include-held", "onlyhold", "p", "code", "pre")
 
 	// default behavior
 	// re
-	if parsed.Empty() {
+	if parser.Empty() {
 		records, _ := listRecords(n, false, false, false, []string{"todo", "urgent"}, false, "", true, false, true)
 		for _, record := range records {
 			printSeperator()
@@ -1011,101 +1012,101 @@ func main() {
 		return
 	}
 
-	positional := parsed.Positional
-	prefix := parsed.ContainsAnyFlagStrict("prefix", "pre")
+	positional := parser.Positional
+	prefix := parser.ContainsAnyFlagStrict("prefix", "pre")
 	isWindows := utilsW.WINDOWS == utilsW.GetPlatform()
-	onlyHold := parsed.ContainsFlagStrict("onlyhold") ||
-		(parsed.ContainsFlagStrict("hold") && parsed.GetFlagValueDefault("hold", "") == "")
+	onlyHold := parser.ContainsFlagStrict("onlyhold") ||
+		(parser.ContainsFlagStrict("hold") && parser.GetFlagValueDefault("hold", "") == "")
 
-	if parsed.ContainsFlagStrict("remote") {
+	if parser.ContainsFlagStrict("remote") {
 		initAtlas()
 		remote.Set(true)
 	}
 
-	if parsed.ContainsFlagStrict("h") {
+	if parser.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
 
-	if parsed.ContainsAllFlagStrict("code") {
+	if parser.ContainsAllFlagStrict("code") {
 		useVsCode = true
 	}
 
 	// finish and unfihish
-	if parsed.ContainsFlagStrict("f") {
+	if parser.ContainsFlagStrict("f") {
 		if prefix {
-			finishRecordsByTags([]string{parsed.GetFlagValueDefault("f", "")})
+			finishRecordsByTags([]string{parser.GetFlagValueDefault("f", "")})
 			return
 		}
-		toggle(true, getObjectIdByTags([]string{parsed.GetFlagValueDefault("f", "")}), finish, parsed.ContainsFlagStrict("prev"))
+		toggle(true, getObjectIdByTags([]string{parser.GetFlagValueDefault("f", "")}), finish, parser.ContainsFlagStrict("prev"))
 		return
 	}
 
-	if parsed.ContainsFlagStrict("nf") {
-		toggle(false, getObjectIdByTags([]string{parsed.GetFlagValueDefault("nf", "")}), finish, parsed.ContainsFlagStrict("prev"))
+	if parser.ContainsFlagStrict("nf") {
+		toggle(false, getObjectIdByTags([]string{parser.GetFlagValueDefault("nf", "")}), finish, parser.ContainsFlagStrict("prev"))
 		return
 	}
 
 	// hold and unhold
-	if parsed.GetFlagValueDefault("hold", "") != "" {
+	if parser.GetFlagValueDefault("hold", "") != "" {
 		if prefix {
-			holdRecordsByTags([]string{parsed.GetFlagValueDefault("hold", "")})
+			holdRecordsByTags([]string{parser.GetFlagValueDefault("hold", "")})
 			return
 		}
-		toggle(true, getObjectIdByTags([]string{parsed.GetFlagValueDefault("hold", "")}), hold, parsed.ContainsFlagStrict("prev"))
+		toggle(true, getObjectIdByTags([]string{parser.GetFlagValueDefault("hold", "")}), hold, parser.ContainsFlagStrict("prev"))
 		return
 	}
 
-	if parsed.ContainsFlagStrict("unhold") {
-		toggle(false, getObjectIdByTags([]string{parsed.GetFlagValueDefault("unhold", "")}), hold, parsed.ContainsFlagStrict("prev"))
+	if parser.ContainsFlagStrict("unhold") {
+		toggle(false, getObjectIdByTags([]string{parser.GetFlagValueDefault("unhold", "")}), hold, parser.ContainsFlagStrict("prev"))
 		return
 	}
 
-	if parsed.ContainsFlagStrict("p") {
-		toggle(true, getObjectIdByTags([]string{parsed.GetFlagValueDefault("p", "")}), myproblem, parsed.ContainsFlagStrict("prev"))
+	if parser.ContainsFlagStrict("p") {
+		toggle(true, getObjectIdByTags([]string{parser.GetFlagValueDefault("p", "")}), myproblem, parser.ContainsFlagStrict("prev"))
 		return
 	}
 
-	if parsed.ContainsFlagStrict("np") {
-		toggle(false, getObjectIdByTags([]string{parsed.GetFlagValueDefault("np", "")}), myproblem, parsed.ContainsFlagStrict("prev"))
+	if parser.ContainsFlagStrict("np") {
+		toggle(false, getObjectIdByTags([]string{parser.GetFlagValueDefault("np", "")}), myproblem, parser.ContainsFlagStrict("prev"))
 		return
 	}
 
-	if parsed.GetNumArgs() != -1 {
-		n = int64(parsed.GetNumArgs())
+	if parser.GetNumArgs() != -1 {
+		n = int64(parser.GetNumArgs())
 	}
-	if parsed.ContainsFlagStrict("n") {
-		n = parsed.MustGetFlagValAsInt64("n")
+	if parser.ContainsFlagStrict("n") {
+		n = parser.MustGetFlagValAsInt64("n")
 	}
 
-	all := parsed.ContainsFlagStrict("all") || (parsed.ContainsFlag("a") &&
-		!parsed.ContainsFlagStrict("add-tag") && !parsed.ContainsFlagStrict("del-tag") &&
-		!parsed.ContainsFlagStrict("tags")) && !parsed.ContainsFlagStrict("binary")
+	all := parser.ContainsFlagStrict("all") || (parser.ContainsFlag("a") &&
+		!parser.ContainsFlagStrict("add-tag") && !parser.ContainsFlagStrict("del-tag") &&
+		!parser.ContainsFlagStrict("tags")) && !parser.ContainsFlagStrict("binary")
 	if all {
 		n = math.MaxInt64
 	}
-	listSpecial = parsed.ContainsFlagStrict("sp") || all
-	reverse := parsed.ContainsFlag("r") && !parsed.ContainsAnyFlagStrict("prev", "remote", "prefix", "pre")
-	includeFinished := parsed.ContainsFlagStrict("include-finished") || all
-	includeHeld := parsed.ContainsFlagStrict("include-held") || all
+	listSpecial = parser.ContainsFlagStrict("sp") || all
+	reverse := parser.ContainsFlag("r") && !parser.ContainsAnyFlagStrict("prev", "remote", "prefix", "pre")
+	includeFinished := parser.ContainsFlagStrict("include-finished") || all
+	includeHeld := parser.ContainsFlagStrict("include-held") || all
 
-	verbose := parsed.ContainsFlagStrict("v")
+	verbose := parser.ContainsFlagStrict("v")
 	tags := []string{}
-	listTagsAndOrderByTime := _helpers.OrderByTime(parsed)
-	if parsed.ContainsFlagStrict("out") {
-		txtOutputName, _ = parsed.GetFlagVal("out")
+	listTagsAndOrderByTime := _helpers.OrderByTime(parser)
+	if parser.ContainsFlagStrict("out") {
+		txtOutputName, _ = parser.GetFlagVal("out")
 		if txtOutputName == "" {
 			txtOutputName = defaultTxtOutputName
 		}
 	}
-	toBinary := parsed.ContainsAnyFlagStrict("binary", "b")
+	toBinary := parser.ContainsAnyFlagStrict("binary", "b")
 
-	if (parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a")) && !listTagsAndOrderByTime {
-		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parsed.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
+	if (parser.ContainsFlagStrict("t") || parser.CoExists("t", "a")) && !listTagsAndOrderByTime {
+		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parser.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
-	if parsed.ContainsFlagStrict("clean-tag") {
-		t := parsed.GetFlagValueDefault("clean-tag", "")
+	if parser.ContainsFlagStrict("clean-tag") {
+		t := parser.GetFlagValueDefault("clean-tag", "")
 		t = strings.ReplaceAll(t, ",", " ")
 		tags = stringsW.SplitNoEmpty(t, " ")
 		coloredTags := make([]string, len(tags))
@@ -1126,14 +1127,14 @@ func main() {
 	}
 
 	// list by tag name
-	if (parsed.ContainsFlagStrict("t") || parsed.CoExists("t", "a")) && !listTagsAndOrderByTime {
-		if parsed.ContainsFlagStrict("pull") {
+	if (parser.ContainsFlagStrict("t") || parser.CoExists("t", "a")) && !listTagsAndOrderByTime {
+		if parser.ContainsFlagStrict("pull") {
 			remote.Set(true)
 		}
 		var records []*record
 		// 如果是 id，特殊处理
-		if _helpers.IsObjectID(parsed.GetFlagValueDefault("t", "")) {
-			id, err := primitive.ObjectIDFromHex(parsed.GetFlagValueDefault("t", ""))
+		if _helpers.IsObjectID(parser.GetFlagValueDefault("t", "")) {
+			id, err := primitive.ObjectIDFromHex(parser.GetFlagValueDefault("t", ""))
 			if err != nil {
 				panic(err)
 			}
@@ -1142,20 +1143,20 @@ func main() {
 			records = []*record{r}
 		} else {
 			records, _ = listRecords(n, reverse, includeFinished, includeHeld,
-				tags, parsed.ContainsFlagStrict("and"), "", parsed.ContainsFlag("my") && !all, onlyHold,
-				parsed.ContainsAnyFlagStrict("prefix", "pre"))
+				tags, parser.ContainsFlagStrict("and"), "", parser.ContainsFlag("my") && !all, onlyHold,
+				parser.ContainsAnyFlagStrict("prefix", "pre"))
 		}
-		if parsed.ContainsFlagStrict("count") {
+		if parser.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
 			return
 		}
-		if !parsed.ContainsAnyFlagStrict("pull", "push") {
+		if !parser.ContainsAnyFlagStrict("pull", "push") {
 			ignoreFields := []string{"AddDate", "ModifiedDate"}
 			if verbose {
 				ignoreFields = []string{}
 			}
 			// to stdout
-			if !parsed.ContainsFlagStrict("out") && !toBinary {
+			if !parser.ContainsFlagStrict("out") && !toBinary {
 				for _, record := range records {
 					printSeperator()
 					coloringRecord(record, nil)
@@ -1172,7 +1173,7 @@ func main() {
 					filename := content[:idx]
 					title := content[idx+1:]
 					if !utilsW.IsExist(filename) ||
-						(utilsW.IsExist(filename) && parsed.ContainsFlagStrict("force")) ||
+						(utilsW.IsExist(filename) && parser.ContainsFlagStrict("force")) ||
 						(utilsW.IsExist(filename) && utilsW.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) {
 						if err := os.WriteFile(filename, []byte(title), 0666); err != nil {
 							panic(err)
@@ -1200,7 +1201,7 @@ func main() {
 			for _, r := range records {
 				go func(r *record) {
 					fmt.Printf("begin to sync %s...\n", r.ID.Hex())
-					syncByID(r.ID.Hex(), parsed.ContainsFlagStrict("push"), true)
+					syncByID(r.ID.Hex(), parser.ContainsFlagStrict("push"), true)
 					fmt.Println("finished syncing")
 					wg.Done()
 				}(r)
@@ -1210,7 +1211,7 @@ func main() {
 		return
 	}
 
-	if parsed.ContainsFlagStrict("u") || positional.Contains("u") {
+	if parser.ContainsFlagStrict("u") || positional.Contains("u") {
 		positional.Delete("u")
 		var id string
 		tags := positional.ToStringSlice()
@@ -1232,56 +1233,56 @@ func main() {
 		}
 		id = _helpers.ReadInfo(false)
 	tagIsId:
-		parsed.Optional["-u"] = id
+		parser.Optional["-u"] = id
 		if id != "" {
-			parsed.Optional["-e"] = ""
+			parser.Optional["-e"] = ""
 		}
-		update(parsed, parsed.ContainsFlagStrict("file"), parsed.ContainsFlagStrict("e"), id == "")
+		update(parser, parser.ContainsFlagStrict("file"), parser.ContainsFlagStrict("e"), id == "")
 		return
 	}
 
-	if parsed.ContainsFlagStrict("i") || parsed.CoExists("i", "e") {
-		insert(parsed.CoExists("i", "e"), parsed.GetFlagValueDefault("file", ""), "")
+	if parser.ContainsFlagStrict("i") || parser.CoExists("i", "e") {
+		insert(parser.CoExists("i", "e"), parser.GetFlagValueDefault("file", ""), "")
 		return
 	}
 
-	if parsed.ContainsFlagStrict("ct") || parsed.CoExists("ct", "e") {
-		changeTitle(parsed.ContainsFlagStrict("file"),
-			parsed.CoExists("ct", "e"),
-			parsed.GetMultiFlagValDefault([]string{"ct", "cte", "ect"}, ""),
-			parsed.ContainsFlagStrict("prev"))
+	if parser.ContainsFlagStrict("ct") || parser.CoExists("ct", "e") {
+		changeTitle(parser.ContainsFlagStrict("file"),
+			parser.CoExists("ct", "e"),
+			parser.GetMultiFlagValDefault([]string{"ct", "cte", "ect"}, ""),
+			parser.ContainsFlagStrict("prev"))
 		return
 	}
 
-	if parsed.ContainsFlagStrict("d") {
-		deleteRecord(parsed.GetFlagValueDefault("d", ""), parsed.ContainsFlagStrict("prev"))
+	if parser.ContainsFlagStrict("d") {
+		deleteRecord(parser.GetFlagValueDefault("d", ""), parser.ContainsFlagStrict("prev"))
 		return
 	}
 
-	if parsed.ContainsFlagStrict("add-tag") {
-		addTag(true, parsed.GetFlagValueDefault("add-tag", ""), parsed.ContainsFlagStrict("prev"))
+	if parser.ContainsFlagStrict("add-tag") {
+		addTag(true, parser.GetFlagValueDefault("add-tag", ""), parser.ContainsFlagStrict("prev"))
 		return
 	}
 
-	if parsed.ContainsFlagStrict("del-tag") {
-		addTag(false, parsed.GetFlagValueDefault("del-tag", ""), parsed.ContainsFlagStrict("prev"))
+	if parser.ContainsFlagStrict("del-tag") {
+		addTag(false, parser.GetFlagValueDefault("del-tag", ""), parser.ContainsFlagStrict("prev"))
 		return
 	}
 
-	if parsed.ContainsFlagStrict("push") {
+	if parser.ContainsFlagStrict("push") {
 		fmt.Println("pushing...")
-		syncByID(parsed.GetFlagValueDefault("push", ""), true, true)
+		syncByID(parser.GetFlagValueDefault("push", ""), true, true)
 		return
 	}
 
-	if parsed.ContainsFlagStrict("pull") {
+	if parser.ContainsFlagStrict("pull") {
 		fmt.Println("pulling...")
-		syncByID(parsed.GetFlagValueDefault("pull", ""), false, true)
+		syncByID(parser.GetFlagValueDefault("pull", ""), false, true)
 		return
 	}
 	// list tags, i stands for 'information'
-	if listTagsAndOrderByTime || parsed.ContainsFlagStrict("tags") || positional.Contains("tags") || positional.Contains("i") || positional.Contains("t") {
-		all = parsed.ContainsAnyFlagStrict("a", "all")
+	if listTagsAndOrderByTime || parser.ContainsFlagStrict("tags") || positional.Contains("tags") || positional.Contains("i") || positional.Contains("t") {
+		all = parser.ContainsAnyFlagStrict("a", "all")
 		var tags []tag
 		var w int
 		var err error
@@ -1317,8 +1318,8 @@ func main() {
 			// fmt.Println("tags", tags)
 			goto print
 		}
-		if parsed.GetNumArgs() != -1 {
-			n = int64(parsed.GetNumArgs())
+		if parser.GetNumArgs() != -1 {
+			n = int64(parser.GetNumArgs())
 		} else {
 			n = 100
 		}
@@ -1343,8 +1344,8 @@ func main() {
 	print:
 		_, w, err = utilsW.GetTerminalSize()
 		// filter records
-		if parsed.GetFlagValueDefault("ex", "") != "" {
-			tags = filterTags(tags, utilsW.GetCommandList(parsed.MustGetFlagVal("ex")))
+		if parser.GetFlagValueDefault("ex", "") != "" {
+			tags = filterTags(tags, utilsW.GetCommandList(parser.MustGetFlagVal("ex")))
 		}
 		for _, tag := range tags {
 			if verbose {
@@ -1381,19 +1382,19 @@ func main() {
 	}
 
 	// list by title search
-	if parsed.ContainsFlagStrict("title") || parsed.ContainsFlagStrict("c") {
-		title := parsed.GetFlagValueDefault("title", "")
+	if parser.ContainsFlagStrict("title") || parser.ContainsFlagStrict("c") {
+		title := parser.GetFlagValueDefault("title", "")
 		if title == "" {
-			title = parsed.GetFlagValueDefault("c", "")
+			title = parser.GetFlagValueDefault("c", "")
 		}
 		records, _ := listRecords(n, reverse, includeFinished, includeHeld,
-			tags, parsed.ContainsFlagStrict("and"), title, parsed.ContainsFlag("my") || all, onlyHold, prefix)
+			tags, parser.ContainsFlagStrict("and"), title, parser.ContainsFlag("my") || all, onlyHold, prefix)
 
-		if parsed.ContainsFlagStrict("count") {
+		if parser.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
 			return
 		}
-		if !parsed.ContainsFlagStrict("out") && !toBinary {
+		if !parser.ContainsFlagStrict("out") && !toBinary {
 			for _, record := range records {
 				printSeperator()
 				p := regexp.MustCompile(`(?i)` + title)
@@ -1468,8 +1469,8 @@ func main() {
 		if len(rs) == 0 {
 			insert(true, "", tag)
 		} else {
-			parsed.Optional["-u"] = rs[0].ID.Hex()
-			update(parsed, false, true, false)
+			parser.Optional["-u"] = rs[0].ID.Hex()
+			update(parser, false, true, false)
 		}
 		return
 	}

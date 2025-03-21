@@ -11,9 +11,10 @@ import (
 
 func main() {
 	commands := []string{"/C", "start", ""}
-	parsed := terminalW.ParseArgsCmd()
-	if !parsed.Empty() {
-		pos := parsed.Positional.ToStringSlice()
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd()
+	if !parser.Empty() {
+		pos := parser.Positional.ToStringSlice()
 		if len(pos) > 1 {
 			panic("can only open 1 file at a time")
 		}

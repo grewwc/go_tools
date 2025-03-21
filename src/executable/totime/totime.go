@@ -18,17 +18,18 @@ const (
 func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("ts", false, "get current timestamp")
-	parsed := terminalW.ParseArgsCmd()
-	if parsed.Empty() || parsed.ContainsFlagStrict("-h") {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd()
+	if parser.Empty() || parser.ContainsFlagStrict("-h") {
 		fs.PrintDefaults()
 		fmt.Println(color.GreenString(helpMsg))
 		return
 	}
-	if parsed.ContainsFlagStrict("ts") {
+	if parser.ContainsFlagStrict("ts") {
 		fmt.Printf("%v (ms)\n", (time.Now().Local().UnixNano())/int64(1e6))
 		return
 	}
-	posArr := parsed.Positional.ToStringSlice()
+	posArr := parser.Positional.ToStringSlice()
 	if len(posArr) != 1 {
 		panic(helpMsg)
 	}

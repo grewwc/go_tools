@@ -13,23 +13,24 @@ func main() {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	fs.Bool("un", false, "unescape the url string")
 	fs.Bool("p", false, "PathEscape (default is QueryEscape)")
-	parsed := terminalW.ParseArgsCmd("un", "p")
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("un", "p")
 	escape := true
-	if parsed.Empty() || parsed.ContainsFlagStrict("h") {
+	if parser.Empty() || parser.ContainsFlagStrict("h") {
 		fs.PrintDefaults()
 		return
 	}
-	if parsed.ContainsFlag("un") {
+	if parser.ContainsFlag("un") {
 		escape = false
 	}
 	var res string
 	var err error
-	pos := parsed.Positional.ToStringSlice()
+	pos := parser.Positional.ToStringSlice()
 	if len(pos) != 1 {
 		panic("must have 1 positional argument")
 	}
 	if escape {
-		if parsed.ContainsFlagStrict("p") {
+		if parser.ContainsFlagStrict("p") {
 			res = url.PathEscape(pos[0])
 		} else {
 			res = url.QueryEscape(pos[0])
@@ -38,7 +39,7 @@ func main() {
 		return
 	}
 	// unescape
-	if parsed.ContainsFlagStrict("p") {
+	if parser.ContainsFlagStrict("p") {
 		res, err = url.PathUnescape(pos[0])
 	} else {
 		res, err = url.QueryUnescape(pos[0])

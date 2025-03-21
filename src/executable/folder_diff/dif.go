@@ -18,15 +18,15 @@ func calcMd5(filename string) string {
 	return fmt.Sprintf("%x", md5.Sum(b))
 }
 
-func newFileSet(rootDir string, parsedResults *terminalW.ParsedResults) *containerW.OrderedSet {
+func newFileSet(rootDir string, parser *terminalW.Parser) *containerW.OrderedSet {
 	s := containerW.NewOrderedSet()
 	files := utilsW.LsDir(rootDir, nil, nil)
-	chooseExt := parsedResults.GetFlagValueDefault("ext", "") != ""
-	printMd5 := parsedResults.ContainsFlagStrict("md5")
+	chooseExt := parser.GetFlagValueDefault("ext", "") != ""
+	printMd5 := parser.ContainsFlagStrict("md5")
 	for _, f := range files {
 		if chooseExt {
 			ext := filepath.Ext(f)
-			if ext != "."+parsedResults.GetFlagValueDefault("ext", "") {
+			if ext != "."+parser.GetFlagValueDefault("ext", "") {
 				continue
 			}
 		}
@@ -44,8 +44,9 @@ func main() {
 	flag.Bool("md5", false, "if print file md5 value (default false)")
 	flag.String("ext", "", "file extension to compare (default all file types)")
 	flag.Bool("h", false, "print help info")
-	parsedResults := terminalW.ParseArgsCmd("-line", "-md5", "-h")
-	if parsedResults == nil || parsedResults.ContainsAllFlagStrict("h") {
+	parser := terminalW.NewParser()
+	parser.ParseArgsCmd("-line", "-md5", "-h")
+	if parser == nil || parser.ContainsAllFlagStrict("h") {
 		flag.PrintDefaults()
 		return
 	}
@@ -53,12 +54,12 @@ func main() {
 		fmt.Println("dif dir_1 dir_2")
 		return
 	}
-	printLine := parsedResults.ContainsFlagStrict("line")
+	printLine := parser.ContainsFlagStrict("line")
 
 	d1 := os.Args[1]
 	d2 := os.Args[2]
-	s1 := newFileSet(d1, parsedResults)
-	s2 := newFileSet(d2, parsedResults)
+	s1 := newFileSet(d1, parser)
+	s2 := newFileSet(d2, parser)
 
 	i := s1.Intersect(*s2)
 	s1.Subtract(*i)

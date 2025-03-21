@@ -193,33 +193,34 @@ func main() {
 	fs.Int("p", 4, "how many threads to use")
 
 	fmt.Println()
+	parser := terminalW.NewParser()
 
-	parsedResults := terminalW.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word", "i", "a")
-	// fmt.Println("here", parsedResults)
-	if parsedResults == nil {
+	parser.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word", "i", "a")
+	// fmt.Println("here", parser)
+	if parser == nil {
 		fs.PrintDefaults()
 		return
 	}
 
-	optionalMap, args := parsedResults.Optional, parsedResults.Positional.ToStringSlice()
+	optionalMap, args := parser.Optional, parser.Positional.ToStringSlice()
 	optional := terminalW.MapToString(optionalMap)
-	if parsedResults.GetNumArgs() != -1 {
-		num = int64(parsedResults.GetNumArgs())
+	if parser.GetNumArgs() != -1 {
+		num = int64(parser.GetNumArgs())
 		r := regexp.MustCompile("-\\d+")
 		optional = r.ReplaceAllString(optional, "")
 	}
 
-	ext := parsedResults.GetFlagValueDefault("t", "")
-	rootDir := filepath.ToSlash(strings.ReplaceAll(parsedResults.GetFlagValueDefault("d", "."), `\\`, `\`))
+	ext := parser.GetFlagValueDefault("t", "")
+	rootDir := filepath.ToSlash(strings.ReplaceAll(parser.GetFlagValueDefault("d", "."), `\\`, `\`))
 
-	// fmt.Println(parsedResults)
-	all := parsedResults.ContainsFlagStrict("all") || parsedResults.ContainsFlagStrict("a")
+	// fmt.Println(parser)
+	all := parser.ContainsFlagStrict("all") || parser.ContainsFlagStrict("a")
 	if num < 0 || all {
 		num = math.MaxInt64
 	}
 	terminalW.NumPrint = num
-	terminalW.Verbose = parsedResults.ContainsFlagStrict("v")
-	temp, err := strconv.Atoi(parsedResults.GetFlagValueDefault("level", strconv.Itoa(math.MaxInt32)))
+	terminalW.Verbose = parser.ContainsFlagStrict("v")
+	temp, err := strconv.Atoi(parser.GetFlagValueDefault("level", strconv.Itoa(math.MaxInt32)))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -238,11 +239,11 @@ func main() {
 	}
 	target = strings.ReplaceAll(target, `\\`, `\`)
 
-	if parsedResults.ContainsFlagStrict("re") {
+	if parser.ContainsFlagStrict("re") {
 		isReg = true
 	}
 
-	if parsedResults.ContainsFlagStrict("word") {
+	if parser.ContainsFlagStrict("word") {
 		isReg = true
 		wordPattern := regexp.MustCompile("\\w+")
 		if !wordPattern.MatchString(target) {
@@ -255,9 +256,9 @@ func main() {
 		r = regexp.MustCompile(target)
 	}
 
-	extExclude := parsedResults.GetFlagValueDefault("nt", "")
-	files := parsedResults.GetFlagValueDefault("f", "")
-	notFiles := parsedResults.GetFlagValueDefault("nf", "")
+	extExclude := parser.GetFlagValueDefault("nt", "")
+	files := parser.GetFlagValueDefault("f", "")
+	notFiles := parser.GetFlagValueDefault("nf", "")
 
 	if files != "" {
 		files = strings.ReplaceAll(files, ",", " ")
@@ -268,12 +269,12 @@ func main() {
 		extExclude = ""
 	}
 
-	if parsedResults.ContainsFlagStrict("l") {
-		numLines = parsedResults.MustGetFlagValAsInt("l")
+	if parser.ContainsFlagStrict("l") {
+		numLines = parser.MustGetFlagValAsInt("l")
 	}
 
-	if parsedResults.ContainsFlagStrict("p") {
-		res := parsedResults.MustGetFlagValAsInt("p")
+	if parser.ContainsFlagStrict("p") {
+		res := parser.MustGetFlagValAsInt("p")
 		terminalW.ChangeThreads(res)
 	}
 
@@ -289,12 +290,12 @@ func main() {
 		}
 	}
 
-	isIgnoreCase = parsedResults.ContainsFlagStrict("ignore") || parsedResults.ContainsFlagStrict("i")
+	isIgnoreCase = parser.ContainsFlagStrict("ignore") || parser.ContainsFlagStrict("i")
 
 	if isReg {
 		task = checkFileRe
 		r = regexp.MustCompile(target)
-	} else if parsedResults.ContainsFlagStrict("strict") {
+	} else if parser.ContainsFlagStrict("strict") {
 		if isIgnoreCase {
 			target = strings.ToLower(strings.TrimSpace(target))
 			task = checkFileStrictIgnoreCase
