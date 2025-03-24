@@ -58,7 +58,7 @@ func ThreeWayPartitionComparable[T typesW.Comparable](nums []T) (int, int) {
 	return lt, gt
 }
 
-func ThreeWayPartitionComparator[T any](nums []T, comparator func(a, b T) int) (int, int) {
+func ThreeWayPartitionComparator[T any](nums []T, comparator typesW.CompareFunc[T]) (int, int) {
 	r := rand.Int31n(int32(len(nums)))
 	nums[0], nums[r] = nums[r], nums[0]
 	pivot := nums[0]

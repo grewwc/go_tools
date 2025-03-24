@@ -174,6 +174,8 @@ func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
 		question = utilsW.UserInput("> ", multiLine)
 		tempParser := terminalW.NewParser()
+		tempParser.Bool("x", false, "")
+		tempParser.Bool("c", false, "")
 		tempParser.ParseArgs(fmt.Sprintf("a %s", question), "x", "c")
 		if tempParser.GetFlagValueDefault("f", "") != "" {
 			parsed.SetFlagValue("f", tempParser.GetFlagValueDefault("f", ""))
@@ -184,13 +186,13 @@ func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 		if tempParser.ContainsFlagStrict("s") {
 			parsed.SetFlagValue("s", "true")
 		}
-		question = strings.Join(tempParser.Positional.ToStringSlice(), " ")
+		question = strings.Join(tempParser.GetPositionalArgs(true), " ")
 		if tempParser.GetNumArgs() != -1 {
 			question = fmt.Sprintf("%s -%d", question, tempParser.GetNumArgs())
 		}
 		nHistory = getNumHistory(tempParser)
 	} else {
-		question = strings.Join(parsed.Positional.ToStringSlice(), " ")
+		question = strings.Join(parsed.GetPositionalArgs(true), " ")
 		nHistory = getNumHistory(parsed)
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {

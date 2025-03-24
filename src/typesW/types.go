@@ -6,32 +6,33 @@ import (
 )
 
 type Comparable interface {
-	Compare(interface{}) int
+	Compare(any) int
 }
 
 type IntComparable int
 
-func (i IntComparable) Compare(other interface{}) int {
+func (i IntComparable) Compare(other any) int {
 	return int(i - other.(IntComparable))
 }
 
-type CompareFunc = func(a, b interface{}) int
+type CompareFunc[T any] func(a, b T) int
 
-func CreateDefaultCmp[T any]() CompareFunc {
-	var cmp CompareFunc
+// CreateDefaultCmp is NOT Efficient.
+func CreateDefaultCmp[T any]() CompareFunc[T] {
+	var cmp CompareFunc[T]
 	realType := reflect.TypeOf(*new(T))
 	switch realType.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		cmp = func(a, b interface{}) int {
-			return a.(int) - b.(int)
+		cmp = func(a, b T) int {
+			return int(reflect.ValueOf(a).Int()) - int(reflect.ValueOf(b).Int())
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		cmp = func(a, b interface{}) int {
-			return int(a.(uint) - b.(uint))
+		cmp = func(a, b T) int {
+			return int(reflect.ValueOf(a).Uint()) - int(reflect.ValueOf(b).Uint())
 		}
 	case reflect.String:
-		cmp = func(a, b interface{}) int {
-			return strings.Compare(a.(string), b.(string))
+		cmp = func(a, b T) int {
+			return strings.Compare(reflect.ValueOf(a).String(), reflect.ValueOf(b).String())
 		}
 	}
 	return cmp

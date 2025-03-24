@@ -51,7 +51,7 @@ func InsertionSortComparable[T typesW.Comparable](arr []T) {
 	}
 }
 
-func InsertionSortComparator[T any](arr []T, comparator func(a, b T) int) {
+func InsertionSortComparator[T any](arr []T, comparator typesW.CompareFunc[T]) {
 	l := len(arr)
 	if l <= 1 {
 		return
@@ -105,13 +105,23 @@ func QuickSort[T constraints.Ordered](arr []T) {
 	quickSort(arr, true, nil)
 }
 
+func Sort[T any](arr []T, cmp typesW.CompareFunc[T]) {
+	if cmp == nil {
+		cmp = typesW.CreateDefaultCmp[T]()
+	}
+	SortComparator(arr, cmp)
+}
+
 // QuickSortComparable uses multi cores
 func QuickSortComparable[T typesW.Comparable](arr []T) {
 	quickSortComparable(arr, true, nil)
 }
 
-func SortComparator[T any](arr []T, comparator func(a, b T) int) {
-	quickSortComparator(arr, comparator, true, nil)
+func SortComparator[T any](arr []T, cmp typesW.CompareFunc[T]) {
+	if cmp == nil {
+		cmp = typesW.CreateDefaultCmp[T]()
+	}
+	quickSortComparator(arr, cmp, true, nil)
 }
 
 // ShellSort ints
@@ -166,11 +176,11 @@ func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
 	var h containerW.IHeap[T]
 	cmp := typesW.CreateDefaultCmp[T]()
 	if reverse {
-		cmp = func(i, j interface{}) int {
+		cmp = func(i, j T) int {
 			return -cmp(i, j)
 		}
 	}
-	h = containerW.NewHeap[T](cmp)
+	h = containerW.NewHeap(cmp)
 	for _, val := range arr {
 		h.Insert(val)
 	}
@@ -214,7 +224,7 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 	var h containerW.IHeap[T]
 	cmp := typesW.CreateDefaultCmp[T]()
 	if minK {
-		cmp = func(i, j interface{}) int {
+		cmp = func(i, j T) int {
 			return -cmp(i, j)
 		}
 	}
@@ -282,7 +292,7 @@ func calcSortedRatioComparable[T typesW.Comparable](arr []T) float32 {
 	return float32(cnt) / float32(len(arr))
 }
 
-func calcSortedRatioComparator[T any](arr []T, comparator func(a, b T) int) float32 {
+func calcSortedRatioComparator[T any](arr []T, comparator typesW.CompareFunc[T]) float32 {
 	if len(arr) <= 1 {
 		return 1
 	}
@@ -346,12 +356,12 @@ func quickSortComparable[T typesW.Comparable](arr []T, calcRatio bool, wg *sync.
 	}
 	wg1 := sync.WaitGroup{}
 	wg1.Add(2)
-	quickSortComparable(left, false, &wg1)
-	quickSortComparable(right, false, &wg1)
+	go quickSortComparable(left, false, &wg1)
+	go quickSortComparable(right, false, &wg1)
 	wg1.Wait()
 }
 
-func quickSortComparator[T any](arr []T, comparator func(a, b T) int, calcRatio bool, wg *sync.WaitGroup) {
+func quickSortComparator[T any](arr []T, comparator typesW.CompareFunc[T], calcRatio bool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
@@ -374,7 +384,7 @@ func quickSortComparator[T any](arr []T, comparator func(a, b T) int, calcRatio 
 	}
 	wg1 := sync.WaitGroup{}
 	wg1.Add(2)
-	quickSortComparator(left, comparator, false, &wg1)
-	quickSortComparator(right, comparator, false, &wg1)
+	go quickSortComparator(left, comparator, false, &wg1)
+	go quickSortComparator(right, comparator, false, &wg1)
 	wg1.Wait()
 }

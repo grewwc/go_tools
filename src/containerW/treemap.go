@@ -11,15 +11,15 @@ type TreeMap[K any, V any] struct {
 	rbTree *RbTree[*sortedMapEntry[K, V]]
 }
 
-func NewTreeMap[K, V any](cmp typesW.CompareFunc) *TreeMap[K, V] {
+func NewTreeMap[K, V any](cmp typesW.CompareFunc[K]) *TreeMap[K, V] {
 	if cmp == nil {
 		cmp = typesW.CreateDefaultCmp[K]()
 	}
-	cmpWrapper := func(a, b interface{}) int {
-		return cmp(a.(*sortedMapEntry[K, V]).k, b.(*sortedMapEntry[K, V]).k)
+	cmpWrapper := func(a, b *sortedMapEntry[K, V]) int {
+		return cmp(a.k, b.k)
 	}
 	return &TreeMap[K, V]{
-		rbTree: NewRbTree[*sortedMapEntry[K, V]](cmpWrapper),
+		rbTree: NewRbTree(cmpWrapper),
 	}
 }
 

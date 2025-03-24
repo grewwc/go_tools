@@ -71,3 +71,14 @@ func BenchmarkReentrantMutex(b *testing.B) {
 		wg.Wait()
 	}
 }
+
+func BenchmarkCompareFunc(b *testing.B) {
+	f := typesW.CreateDefaultCmp[int]()
+	// f := func(a, b any) int {
+	// 	return a.(int) - b.(int)
+	// }
+	for i := 0; i < b.N; i++ {
+		// _ = 1 - 3
+		f(1, 3)
+	}
+}

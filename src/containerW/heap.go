@@ -7,7 +7,7 @@ import (
 
 type Heap[T any] struct {
 	data []T
-	cmp  typesW.CompareFunc
+	cmp  typesW.CompareFunc[T]
 }
 
 type IHeap[T any] interface {
@@ -19,7 +19,7 @@ type IHeap[T any] interface {
 	Next() T
 }
 
-func newHeapCap[T any](cap int, cmp typesW.CompareFunc) *Heap[T] {
+func newHeapCap[T any](cap int, cmp typesW.CompareFunc[T]) *Heap[T] {
 	return &Heap[T]{
 		data: make([]T, 1, cap+1),
 		cmp:  cmp,
@@ -64,7 +64,7 @@ func (h *Heap[T]) IsEmpty() bool {
 	return len(h.data) == 1
 }
 
-func swim[T any](arr []T, idx int, cmp typesW.CompareFunc) {
+func swim[T any](arr []T, idx int, cmp typesW.CompareFunc[T]) {
 	if idx <= 1 {
 		return
 	}
@@ -76,7 +76,7 @@ func swim[T any](arr []T, idx int, cmp typesW.CompareFunc) {
 	}
 }
 
-func sink[T any](arr []T, idx int, cmp typesW.CompareFunc) {
+func sink[T any](arr []T, idx int, cmp typesW.CompareFunc[T]) {
 	childIdx := idx * 2
 	if childIdx >= len(arr) {
 		return
@@ -90,7 +90,7 @@ func sink[T any](arr []T, idx int, cmp typesW.CompareFunc) {
 	}
 }
 
-func NewHeap[T constraints.Ordered](cmp typesW.CompareFunc) IHeap[T] {
+func NewHeap[T constraints.Ordered](cmp typesW.CompareFunc[T]) IHeap[T] {
 	if cmp == nil {
 		cmp = typesW.CreateDefaultCmp[T]()
 	}

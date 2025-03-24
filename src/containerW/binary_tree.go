@@ -18,7 +18,7 @@ type treeNode[T any] struct {
 
 type RbTree[T any] struct {
 	root *treeNode[T]
-	cmp  typesW.CompareFunc
+	cmp  typesW.CompareFunc[T]
 	size int
 }
 
@@ -32,7 +32,7 @@ func newTreeNode[T any](val T) *treeNode[T] {
 	}
 }
 
-func NewRbTree[T any](cmp typesW.CompareFunc) *RbTree[T] {
+func NewRbTree[T any](cmp typesW.CompareFunc[T]) *RbTree[T] {
 	if cmp == nil {
 		cmp = typesW.CreateDefaultCmp[T]()
 	}

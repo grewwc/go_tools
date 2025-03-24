@@ -5,6 +5,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/grewwc/go_tools/src/algorithmW"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/numW"
 	"github.com/grewwc/go_tools/src/sortW"
@@ -119,6 +120,18 @@ func BenchmarkQuickSort(b *testing.B) {
 	}
 }
 
+func BenchmarkQuickSortCmp(b *testing.B) {
+	arr := numW.RandInt(0, 10000, N)
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		rand.Shuffle(len(arr), func(i, j int) {
+			arr[i], arr[j] = arr[j], arr[i]
+		})
+		b.StartTimer()
+		sortW.Sort(arr, func(i, j int) int { return i - j })
+	}
+}
+
 func BenchmarkShellSort(b *testing.B) {
 	arr := numW.RandFloat64(N)
 	for i := 0; i < b.N; i++ {
@@ -140,5 +153,25 @@ func BenchmarkSort(b *testing.B) {
 		})
 		b.StartTimer()
 		sort.Ints(arr)
+	}
+}
+
+func TestKth(t *testing.T) {
+	arr := numW.RandInt(0, 1000, 500)
+	for i := 0; i < 100; i++ {
+		k := numW.RandInt(0, len(arr), 1)[0]
+		val := algorithmW.Kth(arr, k, nil)
+		sortW.Sort(arr, nil)
+		if val != arr[k] {
+			t.Fatal("wrong")
+		}
+	}
+}
+
+func BenchmarkKth(b *testing.B) {
+	arr := numW.RandInt(0, 10000, N)
+	for i := 0; i < b.N; i++ {
+		k := numW.RandInt(0, len(arr), 1)[0]
+		algorithmW.Kth(arr, k, func(i, j int) int { return i - j })
 	}
 }

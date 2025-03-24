@@ -66,6 +66,16 @@ func (r *Parser) GetIntFlagValOrDefault(flagName string, val int) int {
 	return val
 }
 
+func (r *Parser) GetPositionalArgs(removeNumArg bool) []string {
+	if removeNumArg {
+		remove := fmt.Sprintf("-%d", r.GetNumArgs())
+		copy := r.Positional.ShallowCopy()
+		copy.Delete(remove)
+		return copy.ToStringSlice()
+	}
+	return r.Positional.ToStringSlice()
+}
+
 func (r *Parser) Empty() bool {
 	return len(r.Optional) == 0 && r.Positional.Empty()
 }

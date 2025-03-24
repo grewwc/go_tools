@@ -6,9 +6,10 @@ import (
 
 type TreeSet[T any] struct {
 	data *TreeMap[T, struct{}]
+	cmp  typesW.CompareFunc[T]
 }
 
-func NewTreeSet[T any](cmp typesW.CompareFunc) *TreeSet[T] {
+func NewTreeSet[T any](cmp typesW.CompareFunc[T]) *TreeSet[T] {
 	return &TreeSet[T]{
 		data: NewTreeMap[T, struct{}](cmp),
 	}
@@ -66,7 +67,7 @@ func (s *TreeSet[T]) MutualExclude(another *TreeSet[T]) bool {
 }
 
 func (s *TreeSet[T]) Intersect(another *TreeSet[T]) *TreeSet[T] {
-	result := NewTreeSet[T](s.data.rbTree.cmp)
+	result := NewTreeSet(s.cmp)
 	for k := range s.Iterate() {
 		if another.Contains(k) {
 			result.Add(k)
@@ -76,7 +77,7 @@ func (s *TreeSet[T]) Intersect(another *TreeSet[T]) *TreeSet[T] {
 }
 
 func (s *TreeSet[T]) Union(another *TreeSet[T]) *TreeSet[T] {
-	result := NewTreeSet[T](s.data.rbTree.cmp)
+	result := NewTreeSet(s.cmp)
 	for k := range s.Iterate() {
 		result.Add(k)
 	}
@@ -104,7 +105,7 @@ func (s *TreeSet[T]) Empty() bool {
 }
 
 func (s *TreeSet[T]) ShallowCopy() *TreeSet[T] {
-	result := NewTreeSet[T](s.data.rbTree.cmp)
+	result := NewTreeSet(s.cmp)
 	for k := range s.Iterate() {
 		result.Add(k)
 	}
