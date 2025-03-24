@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -212,7 +211,6 @@ outer:
 }
 
 // GetNumArgs return -1 to signal "there is NO num args (e.g.: -10)"
-// if exists, return the LARGEST value
 func (r *Parser) GetNumArgs() int {
 	res := -1
 	p := regexp.MustCompile(`-(\d+)`)
@@ -224,12 +222,8 @@ func (r *Parser) GetNumArgs() int {
 		}
 		k = strings.TrimLeft(k, "-")
 		kInt, err := strconv.ParseInt(k, 10, 64)
-		if err != nil {
-			log.Println(err)
-			return -1
-		}
-		if res < int(kInt) {
-			res = int(kInt)
+		if err == nil {
+			return int(kInt)
 		}
 	}
 	return res

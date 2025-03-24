@@ -24,6 +24,7 @@ var prec int
 
 func processInputStr(input string) string {
 	input = strings.ReplaceAll(input, "**", "^")
+	input = strings.ReplaceAll(input, "--", "+")
 	return input + " "
 }
 
@@ -33,18 +34,6 @@ func isDigit(ch byte) bool {
 
 func reportErr(msg []byte) {
 	panic(fmt.Sprintf("invalid expression: %s", stringsW.BytesToString(msg)))
-}
-
-func div(a, b string) string {
-	fristVal, err := strconv.ParseFloat(a, 64)
-	if err != nil {
-		return ""
-	}
-	secondVal, err := strconv.ParseFloat(b, 64)
-	if err != nil {
-		return ""
-	}
-	return strconv.FormatFloat(fristVal/secondVal, 'f', -1, 64)
 }
 
 func pow(a, b string) string {
@@ -85,6 +74,7 @@ func calcWithOp(first, second string, op byte) string {
 			}
 		}
 	}
+	// fmt.Printf("calc: %s %s %s = %s\n", first, string(op), second, val)
 	return val
 }
 
@@ -172,8 +162,12 @@ func calc(expr []byte) string {
 			state = OPERATOR
 		} else if ch == '+' || ch == '-' {
 			if state == OPERATOR {
-				reportErr(expr)
-				return ""
+				// state = NUMBER
+				if ch == '-' {
+					buf.WriteRune('-')
+				}
+				i++
+				continue
 			}
 			if state == NUMBER {
 				if buf.Len() > 0 {

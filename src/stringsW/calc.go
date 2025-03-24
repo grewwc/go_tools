@@ -2,12 +2,23 @@ package stringsW
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
+var multiMinus = regexp.MustCompile(`(--)+`)
+var positiveNumber = regexp.MustCompile(`\+(\d+)`)
+
+func processInputStr(input string) string {
+	input = multiMinus.ReplaceAllString(input, "+")
+	input = positiveNumber.ReplaceAllString(input, "$1")
+	return input
+}
+
 func Plus(a, b string) string {
 	a, b = strings.TrimSpace(a), strings.TrimSpace(b)
+	a, b = processInputStr(a), processInputStr(b)
 	if len(a) == 0 {
 		return b
 	}
@@ -80,6 +91,7 @@ func Plus(a, b string) string {
 
 func Minus(a, b string) string {
 	a, b = strings.TrimSpace(a), strings.TrimSpace(b)
+	a, b = processInputStr(a), processInputStr(b)
 	if len(a) == 0 {
 		if strings.HasPrefix(b, "-") {
 			return StripPrefix(b, "-")
@@ -194,6 +206,7 @@ func mul(s1, s2 string) string {
 
 func Mul(a, b string) string {
 	a, b = strings.TrimSpace(a), strings.TrimSpace(b)
+	a, b = processInputStr(a), processInputStr(b)
 	if len(a) == 0 || len(b) == 0 {
 		return ""
 	}
@@ -225,6 +238,7 @@ func Mul(a, b string) string {
 
 func Div(a, b string, numDigitToKeep int) string {
 	a, b = strings.TrimSpace(a), strings.TrimSpace(b)
+	a, b = processInputStr(a), processInputStr(b)
 	if len(a) == 0 || len(b) == 0 {
 		return ""
 	}
@@ -377,17 +391,4 @@ func round(s string, digitToKeep int) string {
 	} else {
 		return Plus(s[:idx+digitToKeep+1], "0."+strings.Repeat("0", digitToKeep-1)+"1")
 	}
-}
-
-func countLeadingZero(s string) int {
-	cnt := 0
-	for _, ch := range s {
-		if ch == '0' {
-			cnt++
-			continue
-		} else {
-			return cnt
-		}
-	}
-	return cnt
 }
