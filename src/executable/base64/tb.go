@@ -82,7 +82,8 @@ func main() {
 	parser.Bool("c", false, "get content from clipboard")
 	parser.String("out", "", "output file name")
 	parser.Bool("toimg", false, "")
-	parser.ParseArgsCmd("f", "toimg", "c")
+	parser.Bool("h", false, "print help msg")
+	parser.ParseArgsCmd("f", "toimg", "c", "h")
 	if parser.ContainsAnyFlagStrict("h") {
 		parser.PrintDefaults()
 		return
