@@ -18,7 +18,7 @@ func (t *Trie) Insert(word string) {
 			newTrie := NewTrie()
 			cur.data[ch] = newTrie
 		}
-		if cnt+1 == len(word) {
+		if cnt+1 == len(word) && cur.end[ch] == 0 {
 			cur.end[ch] += 1
 		}
 		cur = cur.data[ch]

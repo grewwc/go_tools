@@ -17,7 +17,7 @@ func generateRandomWord() []string {
 	}
 
 	res := make([]string, 0)
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 20; i++ {
 		val := rand.Intn(26)
 		str := ""
 		if val == 0 {
@@ -33,24 +33,26 @@ func generateRandomWord() []string {
 }
 
 func TestTrie(t *testing.T) {
-	trie = containerW.NewTrie()
-	words := generateRandomWord()
-	// add to trie
-	for _, word := range words {
-		trie.Insert(word)
-	}
+	for i := 0; i < 100; i++ {
+		trie = containerW.NewTrie()
+		words := generateRandomWord()
+		// add to trie
+		for _, word := range words {
+			trie.Insert(word)
+		}
 
-	// test
-	for _, word := range words {
-		if !trie.Contains(word) {
-			t.Fatalf("%s not exist.", word)
+		// test
+		for _, word := range words {
+			if !trie.Contains(word) {
+				t.Fatalf("%s not exist.", word)
+			}
+		}
+
+		// delete one word
+		trie.Delete(words[0])
+		if trie.Contains(words[0]) {
+			t.Fatalf("%v", words)
+			t.Fatalf("%s should not exists.", words[0])
 		}
 	}
-
-	// delete one word
-	trie.Delete(words[0])
-	if trie.Contains(words[0]) {
-		t.Fatalf("%s should not exists.", words[0])
-	}
-
 }
