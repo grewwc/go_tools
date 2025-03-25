@@ -38,11 +38,11 @@ func plus(a, b string) string {
 		b = StripPrefix(b, "-")
 		isMinus = true
 	}
-	a, _ = removeLeadingZero(a)
-	b, _ = removeLeadingZero(b)
+	a, _ = removeLeadingZero(&a)
+	b, _ = removeLeadingZero(&b)
 	// a, b = strings.TrimLeft(a, "0"), strings.TrimLeft(b, "0")
 	// handle dot for float number
-	n1, n2, numDot := countDotdigit(a, b, true)
+	n1, n2, numDot := countDotdigit(&a, &b, true)
 	a, b = strings.ReplaceAll(a, ".", ""), strings.ReplaceAll(b, ".", "")
 	a += strings.Repeat("0", numDot-n1)
 	b += strings.Repeat("0", numDot-n2)
@@ -81,8 +81,8 @@ func plus(a, b string) string {
 	}
 	res = res[idx:]
 	str := BytesToString(res)
-	str = prependLeadingZero(str, numDot)
-	str = removeSuffixZero(str)
+	str = prependLeadingZero(&str, numDot)
+	str = removeSuffixZero(&str)
 	if isMinus {
 		str = "-" + str
 	}
@@ -130,14 +130,14 @@ func Minus(a, b string) string {
 	}
 
 	// handle dot for float number
-	n1, n2, numDot := countDotdigit(a, b, true)
+	n1, n2, numDot := countDotdigit(&a, &b, true)
 	a, b = strings.ReplaceAll(a, ".", ""), strings.ReplaceAll(b, ".", "")
 	// a, b = strings.TrimLeft(a, "0"), strings.TrimLeft(b, "0")
 	isMinus := false
 	a, b = StripPrefix(a, "-"), StripPrefix(b, "-")
 
-	a, _ = removeLeadingZero(a)
-	b, _ = removeLeadingZero(b)
+	a, _ = removeLeadingZero(&a)
+	b, _ = removeLeadingZero(&b)
 	a += strings.Repeat("0", numDot-n1)
 	b += strings.Repeat("0", numDot-n2)
 	if len(a) < len(b) || (len(a) == len(b) && a < b) {
@@ -176,8 +176,8 @@ func Minus(a, b string) string {
 	}
 	res = res[idx:]
 	str := BytesToString(res)
-	str = prependLeadingZero(str, numDot)
-	str = removeSuffixZero(str)
+	str = prependLeadingZero(&str, numDot)
+	str = removeSuffixZero(&str)
 	if isMinus {
 		str = "-" + str
 	}
@@ -241,15 +241,15 @@ func mul(a, b string) string {
 	}
 
 	// handle dot for float number
-	_, _, numDot := countDotdigit(a, b, false)
+	_, _, numDot := countDotdigit(&a, &b, false)
 	a, b = strings.ReplaceAll(a, ".", ""), strings.ReplaceAll(b, ".", "")
-	a, _ = removeLeadingZero(a)
-	b, _ = removeLeadingZero(b)
+	a, _ = removeLeadingZero(&a)
+	b, _ = removeLeadingZero(&b)
 
 	str := mulIntegerV2(a, b)
-	str = prependLeadingZero(str, numDot)
-	str = removeSuffixZero(str)
-	str, _ = removeLeadingZero(str)
+	str = prependLeadingZero(&str, numDot)
+	str = removeSuffixZero(&str)
+	str, _ = removeLeadingZero(&str)
 	if isMinus {
 		str = "-" + str
 	}
@@ -269,18 +269,22 @@ func order(s string) int {
 
 func mulSingleDigit(a, b string) string {
 	if a[0] == '-' && b[0] == '-' {
-		res, _ := removeLeadingZero(mulInteger(a[1:], b[1:]))
+		tmp := mulInteger(a[1:], b[1:])
+		res, _ := removeLeadingZero(&tmp)
 		return res
 	}
 	if a[0] == '-' {
-		res, _ := removeLeadingZero(mulInteger(a[1:], b))
+		tmp := mulInteger(a[1:], b)
+		res, _ := removeLeadingZero(&tmp)
 		return "-" + res
 	}
 	if b[0] == '-' {
-		res, _ := removeLeadingZero(mulInteger(a, b[1:]))
+		tmp := mulInteger(a, b[1:])
+		res, _ := removeLeadingZero(&tmp)
 		return "-" + res
 	}
-	res, _ := removeLeadingZero(mulInteger(a, b))
+	tmp := mulInteger(a, b)
+	res, _ := removeLeadingZero(&tmp)
 	return res
 
 }
@@ -303,22 +307,22 @@ func mulIntegerV2(x, y string) string {
 	if a == "" {
 		a = "0"
 	}
-	a, _ = removeLeadingZero(a)
+	a, _ = removeLeadingZero(&a)
 	b := SubStringQuiet(x, len(x)-m, len(x))
 	if b == "" {
 		b = x
 	}
-	b, _ = removeLeadingZero(b)
+	b, _ = removeLeadingZero(&b)
 	c := SubStringQuiet(y, 0, len(y)-m)
 	if c == "" {
 		c = "0"
 	}
-	c, _ = removeLeadingZero(c)
+	c, _ = removeLeadingZero(&c)
 	d := SubStringQuiet(y, len(y)-m, len(y))
 	if d == "" {
 		d = y
 	}
-	d, _ = removeLeadingZero(d)
+	d, _ = removeLeadingZero(&d)
 	e := mulIntegerV2(a, c)
 	f := mulIntegerV2(b, d)
 	g := mulIntegerV2(Minus(a, b), Minus(c, d))
@@ -347,11 +351,11 @@ func Div(a, b string, numDigitToKeep int) string {
 	}
 	isMinus := (a[0] == '-' && b[0] != '-') || (a[0] != '-' && b[0] == '-')
 	a, b = StripPrefix(a, "-"), StripPrefix(b, "-")
-	d1, d2, d := countDotdigit(a, b, false)
+	d1, d2, d := countDotdigit(&a, &b, false)
 	a, b = strings.ReplaceAll(a, ".", ""), strings.ReplaceAll(b, ".", "")
 	// a, b = strings.TrimLeft(a, "0"), strings.TrimLeft(b, "0")
-	a, _ = removeLeadingZero(a)
-	b, _ = removeLeadingZero(b)
+	a, _ = removeLeadingZero(&a)
+	b, _ = removeLeadingZero(&b)
 	if b == "0" {
 		panic("b is 0")
 	}
@@ -369,8 +373,8 @@ func Div(a, b string, numDigitToKeep int) string {
 	sumRemovedZero := 0
 	var removedCount, prevRemoveCount int
 	for decimalCount < numDigitToKeep+1 {
-		divResult, addedZero, _ := Helper(&a, b)
-		a, removedCount = removeLeadingZero(a)
+		divResult, addedZero, _ := helper(&a, &b)
+		a, removedCount = removeLeadingZero(&a)
 
 		decimalCount += addedZero
 		if addedZero > 1 {
@@ -383,56 +387,56 @@ func Div(a, b string, numDigitToKeep int) string {
 		// fmt.Println("here", divResult, addedZero, a, removedCount, prevRemoveCount)
 		sumRemovedZero += removedCount
 		prevRemoveCount = removedCount
-		if aBak == Mul(res, b) {
+		if aBak == mulIntegerV2(res, b) {
 			break
 		}
 	}
 	exp := exponent(aBak, b)
 	// res = strings.TrimLeft(res, "0")
-	res, _ = removeLeadingZero(res)
+	res, _ = removeLeadingZero(&res)
 	decimalCount = len(res) - exp - 1
 
 	// fmt.Println("decimalCount", decimalCount, len(res), res, exp)
-	res = prependLeadingZero(res, decimalCount)
+	res = prependLeadingZero(&res, decimalCount)
 	if isMinus {
 		res = "-" + res
 	}
 	res = round(res, numDigitToKeep)
-	res = removeSuffixZero(res)
+	res = removeSuffixZero(&res)
 
 	return res
 }
 
-func Helper(a *string, b string) (string, int, bool) {
-	if len((*a)) > len(b) {
-		if (*a)[:len(b)] >= b {
-			modified, divResult, clean := doDiv((*a)[:len(b)], b)
-			*a = modified + (*a)[len(b):]
+func helper(a *string, b *string) (string, int, bool) {
+	if len((*a)) > len(*b) {
+		if (*a)[:len(*b)] >= *b {
+			modified, divResult, clean := doDiv((*a)[:len(*b)], *b)
+			*a = modified + (*a)[len(*b):]
 			return divResult, 0, clean
 		} else {
-			modified, divResult, clean := doDiv((*a)[:len(b)+1], b)
-			*a = modified + (*a)[len(b)+1:]
+			modified, divResult, clean := doDiv((*a)[:len(*b)+1], *b)
+			*a = modified + (*a)[len(*b)+1:]
 			return divResult, 0, clean
 		}
-	} else if len((*a)) == len(b) {
-		if (*a) >= b {
-			modified, divResult, clean := doDiv((*a), b)
+	} else if len((*a)) == len(*b) {
+		if (*a) >= *b {
+			modified, divResult, clean := doDiv((*a), *b)
 			*a = modified
 			return divResult, 0, clean
 		} else {
 			(*a) += "0"
-			modified, divResult, clean := doDiv((*a), b)
+			modified, divResult, clean := doDiv((*a), *b)
 			*a = modified
 			return divResult, 1, clean
 		}
 	} else {
 		zeroCount := 0
 		// prepend 0
-		for len((*a)) < len(b) {
+		for len((*a)) < len(*b) {
 			*a += "0"
 			zeroCount++
 		}
-		divResult, addedZero, clean := Helper(a, b)
+		divResult, addedZero, clean := helper(a, b)
 
 		return divResult, addedZero + zeroCount, clean
 	}
@@ -457,6 +461,9 @@ func exponent(a, b string) int {
 
 func doDiv(a, b string) (string, string, bool) {
 	// assert len(a) == len(b) || len(a) == len(b) + 1
+	if b == "1" {
+		return "0", a, true
+	}
 	res := 0
 	var curr = a
 	for {
@@ -492,6 +499,7 @@ func round(s string, digitToKeep int) string {
 	if val < '5' {
 		return s[:idx+digitToKeep+1]
 	} else {
-		return Plus(s[:idx+digitToKeep+1], "0."+strings.Repeat("0", digitToKeep-1)+"1")
+		// return Plus(s[:idx+digitToKeep+1], "0."+strings.Repeat("0", digitToKeep-1)+"1")
+		return plus(s[:idx+digitToKeep+1], fmt.Sprintf("0.%s1", strings.Repeat("0", digitToKeep-1)))
 	}
 }
