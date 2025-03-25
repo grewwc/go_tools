@@ -91,7 +91,7 @@ func CopySlice(original []string) []string {
 	return res
 }
 
-func EqualsAny(target string, choices ...string) bool {
+func AnyEquals(target string, choices ...string) bool {
 	for _, choice := range choices {
 		if choice == target {
 			return true

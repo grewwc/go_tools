@@ -194,7 +194,7 @@ func main() {
 	}
 	outName := args[0]
 
-	if !strW.EqualsAny(filepath.Ext(outName), ".gz", ".tgz") {
+	if !strW.AnyEquals(filepath.Ext(outName), ".gz", ".tgz") {
 		msg := color.RedString(fmt.Sprintf("%q is not a valid outname", outName))
 		panic(msg)
 	}

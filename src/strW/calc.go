@@ -210,7 +210,7 @@ func mulInteger(s1, s2 string) string {
 			if j < 0 {
 				break
 			}
-			tmp := int16(s1[m-1-i]-'0') * int16(s2[n-1-j]-'0')
+			tmp := int8(s1[m-1-i]-'0') * int8(s2[n-1-j]-'0')
 			hold = Plus(hold, fmt.Sprintf("%d", tmp))
 			// hold += int16(s1[m-1-i]-'0') * int16(s2[n-1-j]-'0')
 		}
@@ -246,7 +246,7 @@ func mul(a, b string) string {
 	a, _ = removeLeadingZero(a)
 	b, _ = removeLeadingZero(b)
 
-	str := mulInteger(a, b)
+	str := mulIntegerV2(a, b)
 	str = prependLeadingZero(str, numDot)
 	str = removeSuffixZero(str)
 	str, _ = removeLeadingZero(str)
@@ -255,6 +255,77 @@ func mul(a, b string) string {
 	}
 
 	return str
+}
+
+func order(s string) int {
+	if len(s) == 0 {
+		return 0
+	}
+	if s[0] == '-' {
+		return len(s) - 1
+	}
+	return len(s)
+}
+
+func mulSingleDigit(a, b string) string {
+	if a[0] == '-' && b[0] == '-' {
+		res, _ := removeLeadingZero(mulInteger(a[1:], b[1:]))
+		return res
+	}
+	if a[0] == '-' {
+		res, _ := removeLeadingZero(mulInteger(a[1:], b))
+		return "-" + res
+	}
+	if b[0] == '-' {
+		res, _ := removeLeadingZero(mulInteger(a, b[1:]))
+		return "-" + res
+	}
+	res, _ := removeLeadingZero(mulInteger(a, b))
+	return res
+
+}
+
+func mulIntegerV2(x, y string) string {
+	n := order(x)
+	if n > order(y) {
+		n = order(y)
+	}
+	if n == 0 || AnyEquals("0", x, y) {
+		return "0"
+	}
+	if n == 1 {
+		res := mulSingleDigit(x, y)
+		// fmt.Println(x, y, res)
+		return res
+	}
+	m := n / 2
+	a := SubStringQuiet(x, 0, len(x)-m)
+	if a == "" {
+		a = "0"
+	}
+	a, _ = removeLeadingZero(a)
+	b := SubStringQuiet(x, len(x)-m, len(x))
+	if b == "" {
+		b = x
+	}
+	b, _ = removeLeadingZero(b)
+	c := SubStringQuiet(y, 0, len(y)-m)
+	if c == "" {
+		c = "0"
+	}
+	c, _ = removeLeadingZero(c)
+	d := SubStringQuiet(y, len(y)-m, len(y))
+	if d == "" {
+		d = y
+	}
+	d, _ = removeLeadingZero(d)
+	e := mulIntegerV2(a, c)
+	f := mulIntegerV2(b, d)
+	g := mulIntegerV2(Minus(a, b), Minus(c, d))
+	tmp := Plus(e, f)
+	tmp = Minus(tmp, g)
+	m0 := strings.Repeat("0", m)
+	return Plus(fmt.Sprintf("%s%s", e, strings.Repeat(m0, 2)), fmt.Sprintf("%s%s", tmp, m0), f)
 }
 
 func Mul(s ...string) string {

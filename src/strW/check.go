@@ -14,7 +14,7 @@ func IsBlank(str string) bool {
 	return true
 }
 
-func IsAllBlank(strs ...string) bool {
+func AllBlank(strs ...string) bool {
 	if len(strs) == 0 {
 		return false
 	}
@@ -26,7 +26,7 @@ func IsAllBlank(strs ...string) bool {
 	return true
 }
 
-func IsAnyBlank(strs ...string) bool {
+func AnyBlank(strs ...string) bool {
 	for _, str := range strs {
 		if IsBlank(str) {
 			return true
