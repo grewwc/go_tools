@@ -243,7 +243,10 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	parser := terminalW.NewParser()
 	parser.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
-	parser.String("m", "", "model name. (qwq-plus[0, default, configured by \"ai.model.default\"], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5])")
+	parser.String("m", "", `model name. 
+(qwq-plus[0, default, configured by \"ai.model.default\"],
+qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], 
+deepseek-r1 [5], qwen-turbo [6])`)
 	parser.Bool("h", false, "print help info")
 	parser.Bool("multi-line", false, "input with multline")
 	parser.Bool("mul", false, "same as multi-line")

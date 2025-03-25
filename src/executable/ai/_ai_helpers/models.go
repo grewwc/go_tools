@@ -17,6 +17,7 @@ const (
 	QWEN_CODER_PLUS_LATEST = "qwen-coder-plus-latest"
 	QWEN_LONG              = "qwen-long"
 	QWQ                    = "qwq-plus-latest"
+	QWEN_TURBO_LATEST      = "qwen-turbo-latest"
 )
 
 const (
@@ -25,7 +26,7 @@ const (
 
 func getDefaultModel() string {
 	config := utilsW.GetAllConfig()
-	return config.GetOrDefault("ai.model.default", QWQ).(string)
+	return config.GetOrDefault("ai.model.default", QWEN_TURBO_LATEST).(string)
 }
 
 func GetEndpoint() string {
