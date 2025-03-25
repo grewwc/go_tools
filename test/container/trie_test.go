@@ -17,7 +17,7 @@ func generateRandomWord() []string {
 	}
 
 	res := make([]string, 0)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1000; i++ {
 		val := rand.Intn(26)
 		str := ""
 		if val == 0 {

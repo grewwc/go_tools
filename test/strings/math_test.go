@@ -97,3 +97,14 @@ func TestDiv(t *testing.T) {
 	}
 
 }
+
+func BenchmarkDiv(b *testing.B) {
+	n := 5000
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		s1 := genRandomNumber(n)
+		s2 := genRandomNumber(n)
+		b.StartTimer()
+		strW.Div(s1, s2, 100)
+	}
+}
