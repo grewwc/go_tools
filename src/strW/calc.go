@@ -457,6 +457,9 @@ func exponent(a, b string) int {
 
 func doDiv(a, b string) (string, string, bool) {
 	// assert len(a) == len(b) || len(a) == len(b) + 1
+	if b == "1" {
+		return "0", a, true
+	}
 	res := 0
 	var curr = a
 	for {
@@ -492,6 +495,7 @@ func round(s string, digitToKeep int) string {
 	if val < '5' {
 		return s[:idx+digitToKeep+1]
 	} else {
-		return Plus(s[:idx+digitToKeep+1], "0."+strings.Repeat("0", digitToKeep-1)+"1")
+		// return Plus(s[:idx+digitToKeep+1], "0."+strings.Repeat("0", digitToKeep-1)+"1")
+		return plus(s[:idx+digitToKeep+1], fmt.Sprintf("0.%s1", strings.Repeat("0", digitToKeep-1)))
 	}
 }

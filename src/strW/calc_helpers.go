@@ -1,9 +1,10 @@
 package strW
 
 import (
-	"fmt"
-	"math"
+	"log"
 	"strings"
+
+	"github.com/grewwc/go_tools/src/algoW"
 )
 
 // countDotdigit count digit number of a, b, and max(a, b)
@@ -12,7 +13,7 @@ import (
 func countDotdigit(a, b string, add bool) (int, int, int) {
 	aDot, bDot := strings.Count(a, "."), strings.Count(b, ".")
 	if aDot > 1 || bDot > 1 {
-		panic(fmt.Sprintf("invalid number: %s, %s\n", a, b))
+		log.Fatalf("invalid number: %s, %s\n", a, b)
 	}
 	ai, bi := strings.IndexByte(a, '.'), strings.IndexByte(b, '.')
 	if ai == -1 {
@@ -27,7 +28,7 @@ func countDotdigit(a, b string, add bool) (int, int, int) {
 	if !add {
 		return ca, cb, ca + cb
 	}
-	return ca, cb, int(math.Max(float64(ca), float64(cb)))
+	return ca, cb, algoW.Max(ca, cb)
 }
 
 func prependLeadingZero(str string, decimalCount int) string {
