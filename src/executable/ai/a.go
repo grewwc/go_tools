@@ -242,11 +242,9 @@ func main() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	parser := terminalW.NewParser()
-	parser.Int("history", defaultNumHistory, fmt.Sprintf("number of history (default: %d)", defaultNumHistory))
-	parser.String("m", "", `model name. 
-(qwq-plus[0, default, configured by \"ai.model.default\"],
-qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], 
-deepseek-r1 [5], qwen-turbo [6])`)
+	parser.Int("history", defaultNumHistory, "number of history")
+	parser.String("m", "", `model name. (configured by \"ai.model.default\") ,
+qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5], qwen-turbo [6, default])`)
 	parser.Bool("h", false, "print help info")
 	parser.Bool("multi-line", false, "input with multline")
 	parser.Bool("mul", false, "same as multi-line")
@@ -277,6 +275,7 @@ deepseek-r1 [5], qwen-turbo [6])`)
 	client := &http.Client{}
 	var f *os.File = getWriteResultFile(parser)
 	var out io.Writer = os.Stdout
+	var shouldQuit bool
 	if f != nil {
 		defer f.Close()
 		out = io.MultiWriter(out, f)
@@ -286,6 +285,7 @@ deepseek-r1 [5], qwen-turbo [6])`)
 		if len(args) >= 1 {
 			question = getQuestion(parser, false)
 			args = []string{}
+			shouldQuit = true
 		} else {
 			question = getQuestion(parser, true)
 		}
@@ -374,5 +374,8 @@ deepseek-r1 [5], qwen-turbo [6])`)
 		curr.WriteByte('\x01')
 		appendHistory(curr.String())
 		fmt.Println()
+		if shouldQuit {
+			return
+		}
 	}
 }
