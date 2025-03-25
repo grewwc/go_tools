@@ -107,5 +107,6 @@ func GetModelByInput(prevModel string, input *string) string {
 }
 
 func SearchEnabled(model string) bool {
-	return model == QWEN_MAX || model == QWEN_MAX_LASTEST || model == QWEN_PLUS
+	return model == QWEN_MAX || model == QWEN_MAX_LASTEST || model == QWEN_PLUS ||
+		model == QWEN_TURBO_LATEST
 }
