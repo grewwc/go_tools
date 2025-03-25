@@ -33,7 +33,7 @@ func StripSuffix(s, suffix string) string {
 // SubStringQuiet
 // beg include, end exclude
 func SubStringQuiet(s string, beg, end int) string {
-	if beg >= len(s) || end >= len(s) || beg >= end {
+	if beg >= len(s) || end > len(s) || beg >= end {
 		return ""
 	}
 	return s[beg:end]
