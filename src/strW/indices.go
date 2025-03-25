@@ -1,4 +1,4 @@
-package stringsW
+package strW
 
 import (
 	"strings"
@@ -34,7 +34,7 @@ func StripSuffix(s, suffix string) string {
 // beg include, end exclude
 func SubStringQuiet(s string, beg, end int) string {
 	if beg >= len(s) || end >= len(s) || beg >= end {
-		return s
+		return ""
 	}
 	return s[beg:end]
 }

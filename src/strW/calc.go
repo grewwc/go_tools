@@ -1,4 +1,4 @@
-package stringsW
+package strW
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ func processInputStr(input string) string {
 	return input
 }
 
-func Plus(a, b string) string {
+func plus(a, b string) string {
 	a, b = strings.TrimSpace(a), strings.TrimSpace(b)
 	a, b = processInputStr(a), processInputStr(b)
 	if len(a) == 0 {
@@ -87,6 +87,14 @@ func Plus(a, b string) string {
 		str = "-" + str
 	}
 	return str
+}
+
+func Plus(x ...string) string {
+	res := x[0]
+	for i := 1; i < len(x); i++ {
+		res = plus(res, x[i])
+	}
+	return res
 }
 
 func Minus(a, b string) string {
@@ -173,7 +181,17 @@ func Minus(a, b string) string {
 	return str
 }
 
-func mul(s1, s2 string) string {
+func Neg(a string) string {
+	if len(a) == 0 {
+		return a
+	}
+	if a[0] == '-' {
+		return SubStringQuiet(a, 1, len(a))
+	}
+	return fmt.Sprintf("-%s", a)
+}
+
+func mulInteger(s1, s2 string) string {
 	var hold string = "0"
 	m, n := len(s1), len(s2)
 	res := make([]byte, m+n)
@@ -204,7 +222,7 @@ func mul(s1, s2 string) string {
 	return BytesToString(res)
 }
 
-func Mul(a, b string) string {
+func mul(a, b string) string {
 	a, b = strings.TrimSpace(a), strings.TrimSpace(b)
 	a, b = processInputStr(a), processInputStr(b)
 	if len(a) == 0 || len(b) == 0 {
@@ -225,7 +243,7 @@ func Mul(a, b string) string {
 	a, _ = removeLeadingZero(a)
 	b, _ = removeLeadingZero(b)
 
-	str := mul(a, b)
+	str := mulInteger(a, b)
 	str = prependLeadingZero(str, numDot)
 	str = removeSuffixZero(str)
 	str, _ = removeLeadingZero(str)
@@ -234,6 +252,20 @@ func Mul(a, b string) string {
 	}
 
 	return str
+}
+
+func Mul(s ...string) string {
+	if len(s) == 0 {
+		return ""
+	}
+	if len(s) == 1 {
+		return s[0]
+	}
+	res := s[0]
+	for _, val := range s[1:] {
+		res = mul(res, val)
+	}
+	return res
 }
 
 func Div(a, b string, numDigitToKeep int) string {

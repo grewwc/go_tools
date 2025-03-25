@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 )
 
 func AddQuote(slice []string) []string {
@@ -32,7 +32,7 @@ func MapToString(m map[string]string) string {
 // support "," and " " split
 func FormatFileExtensions(extensions string) *containerW.Set {
 	extensions = strings.ReplaceAll(extensions, ",", " ")
-	bySpace := stringsW.SplitNoEmpty(extensions, " ")
+	bySpace := strW.SplitNoEmpty(extensions, " ")
 
 	var res = containerW.NewSet()
 	for _, ext := range bySpace {

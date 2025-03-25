@@ -16,7 +16,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/executable/ai/_ai_helpers"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -85,7 +85,7 @@ func getText(j *utilsW.Json) string {
 
 func handleResponse(resp io.Reader) <-chan string {
 	keyword := "data: {"
-	doneKeyword := stringsW.StringToBytes("data: [DONE]")
+	doneKeyword := strW.StringToBytes("data: [DONE]")
 	ch := make(chan string)
 	go func() {
 		defer func() {
@@ -94,11 +94,11 @@ func handleResponse(resp io.Reader) <-chan string {
 				log.Fatalln(err)
 			}
 		}()
-		for content := range stringsW.SplitByToken(resp, keyword, true) {
+		for content := range strW.SplitByToken(resp, keyword, true) {
 			if content == keyword || content == "" {
 				continue
 			}
-			b := bytes.TrimRight(stringsW.StringToBytes(content)[len(keyword)-1:], "\n\t ")
+			b := bytes.TrimRight(strW.StringToBytes(content)[len(keyword)-1:], "\n\t ")
 			b = bytes.TrimSuffix(b, doneKeyword)
 			b = bytes.TrimSpace(b)
 			j := utilsW.NewJsonFromByte(b)
@@ -128,7 +128,7 @@ func buildMessageArr(n int) []Message {
 	}
 	history := utilsW.ReadString(historyFile)
 	result := make([]Message, 0)
-	lines := stringsW.SplitNoEmptyKeepQuote(history, '\x01')
+	lines := strW.SplitNoEmptyKeepQuote(history, '\x01')
 	for _, line := range lines {
 		if line == "" {
 			continue
@@ -144,7 +144,7 @@ func buildMessageArr(n int) []Message {
 		n = len(lines)
 	}
 	if len(lines) > maxHistoryLines {
-		utilsW.WriteToFile(historyFile, stringsW.StringToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
+		utilsW.WriteToFile(historyFile, strW.StringToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
 	}
 	return result[len(lines)-n:]
 }

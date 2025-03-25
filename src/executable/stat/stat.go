@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/utilsW"
 	"github.com/grewwc/go_tools/src/windowsW"
 )
@@ -67,7 +67,7 @@ func processSingle(filename string) {
 	modeNum := modeStrToNum(modeStr)
 
 	fmt.Printf("    File: %s\tSize: %s\tAccess: (%s/%s)\n",
-		color.HiGreenString(filename), stringsW.FormatInt64(size), modeNum, modeStr)
+		color.HiGreenString(filename), strW.FormatInt64(size), modeNum, modeStr)
 	fmt.Printf("  Create: %v\n", cTime)
 	fmt.Printf("  Modify: %v\n", mTime)
 }

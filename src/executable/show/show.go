@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -26,5 +26,5 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(stringsW.Wrap(strings.Join(allExecutables, " "), w, 3, "  "))
+	fmt.Println(strW.Wrap(strings.Join(allExecutables, " "), w, 3, "  "))
 }

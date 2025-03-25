@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 
 	"github.com/grewwc/go_tools/src/utilsW"
@@ -260,7 +260,7 @@ func main() {
 
 	if files != "" {
 		files = strings.ReplaceAll(files, ",", " ")
-		for _, f := range stringsW.SplitNoEmpty(files, " ") {
+		for _, f := range strW.SplitNoEmpty(files, " ") {
 			terminalW.FileNamesToCheck.Add(f)
 		}
 		ext = ""
@@ -278,7 +278,7 @@ func main() {
 
 	if notFiles != "" {
 		notFiles = strings.ReplaceAll(notFiles, ",", "")
-		for _, f := range stringsW.SplitNoEmpty(notFiles, " ") {
+		for _, f := range strW.SplitNoEmpty(notFiles, " ") {
 			terminalW.FileNamesNOTCheck.Add(f)
 			terminalW.FileNamesToCheck.Delete(f)
 		}

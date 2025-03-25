@@ -11,7 +11,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -47,8 +47,8 @@ func removeNewLine(name string) error {
 			return err
 		}
 		if len(b) > 0 {
-			line := stringsW.BytesToString(bytes.Trim(b, "\n"))
-			if stringsW.BytesToString(bytes.TrimSpace(b)) != "" {
+			line := strW.BytesToString(bytes.Trim(b, "\n"))
+			if strW.BytesToString(bytes.TrimSpace(b)) != "" {
 				lines = append(lines, line)
 			}
 		}
@@ -56,7 +56,7 @@ func removeNewLine(name string) error {
 			break
 		}
 	}
-	utilsW.WriteToFile(name, stringsW.StringToBytes(strings.Join(lines, "\n")))
+	utilsW.WriteToFile(name, strW.StringToBytes(strings.Join(lines, "\n")))
 	return nil
 }
 
@@ -113,7 +113,7 @@ func printHelp() {
 
 func getStringSlice(s string) []string {
 	s = strings.ReplaceAll(s, ",", " ")
-	return stringsW.SplitNoEmpty(s, " ")
+	return strW.SplitNoEmpty(s, " ")
 }
 
 func main() {

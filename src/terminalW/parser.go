@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 )
 
 const (
@@ -161,7 +161,7 @@ func (r *Parser) GetBooleanArgs() *containerW.OrderedSet {
 // ContainsFlag checks if an optional flag is set
 // "main.exe -force" ==> [ContainsFlag("-f") == true, ContainsFlag("-force") == true]
 func (r *Parser) ContainsFlag(flagName string) bool {
-	flagName = stringsW.StripPrefix(flagName, "-")
+	flagName = strW.StripPrefix(flagName, "-")
 	buf := bytes.NewBufferString("")
 	for option := range r.Optional {
 		buf.WriteString(option)
@@ -351,10 +351,10 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	r.VisitAll(func(f *flag.Flag) {
 		key := fmt.Sprintf("-%s", f.Name)
 		// fmt.Println("search", cmd, key)
-		indices := stringsW.KmpSearch(cmd, key)
+		indices := strW.KmpSearch(cmd, key)
 		if len(indices) >= 1 {
 			for _, idx := range indices {
-				substr := stringsW.SubStringQuiet(cmd, idx, idx+len(key))
+				substr := strW.SubStringQuiet(cmd, idx, idx+len(key))
 				cmd = strings.ReplaceAll(cmd, substr, fmt.Sprintf("%c%s", dash, f.Name))
 			}
 		}
@@ -408,8 +408,8 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 // ParseArgs takes command line as argument, not from terminal directly
 // cmd contains the Programs itself
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
-	cmd = stringsW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
-	cmdSlice := stringsW.SplitNoEmptyKeepQuote(cmd, ' ')
+	cmd = strW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
+	cmdSlice := strW.SplitNoEmptyKeepQuote(cmd, ' ')
 	if len(cmdSlice) <= 1 {
 		return
 	}

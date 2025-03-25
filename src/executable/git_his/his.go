@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -61,7 +61,7 @@ func main() {
 	}
 	p := regexp.MustCompile(pattern)
 	cnt := 0
-	for history := range stringsW.SplitByToken(strings.NewReader(res), "\n", false) {
+	for history := range strW.SplitByToken(strings.NewReader(res), "\n", false) {
 		if cnt >= n {
 			break
 		}

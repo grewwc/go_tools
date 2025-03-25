@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 )
 
 var ch = make(chan interface{}, 1)
@@ -151,5 +151,5 @@ func GetFileSize(fname string) int64 {
 func BaseNoExt(filename string) string {
 	base := filepath.Base(filename)
 	ext := filepath.Ext(filename)
-	return stringsW.StripSuffix(base, ext)
+	return strW.StripSuffix(base, ext)
 }

@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	"github.com/grewwc/go_tools/src/numW"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 )
 
 func TestFindAll(t *testing.T) {
 	allString := "test.exe \"program dir\" -f file -a something night -v"
 	substr := "something"
-	result := stringsW.FindAll(allString, substr)
+	result := strW.FindAll(allString, substr)
 	if strings.Index(allString, substr) != result[0] {
 		t.Errorf("FindAll(%q, %q) = %v, want %v", allString, substr, result, strings.Index(allString, substr))
 	}
@@ -24,7 +24,7 @@ func genRandomStrings(n int) string {
 	for i, idx := range indices {
 		buf[i] = allChars[idx]
 	}
-	return stringsW.BytesToString(buf)
+	return strW.BytesToString(buf)
 }
 
 func TestContains(t *testing.T) {
@@ -66,7 +66,7 @@ func TestContains(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := stringsW.Contains(test.s, test.sub)
+		result := strW.Contains(test.s, test.sub)
 		if result != test.expected {
 			t.Errorf("Contains(%q, %q) = %v, want %v", test.s, test.sub, result, test.expected)
 		}

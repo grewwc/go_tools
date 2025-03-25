@@ -21,7 +21,7 @@ import (
 	"github.com/grewwc/go_tools/src/sortW"
 
 	"github.com/grewwc/go_tools/src/executable/memo/_helpers"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -130,7 +130,7 @@ func init() {
 	}
 
 	// read the special tag patters from .configW
-	for _, val := range stringsW.SplitNoEmpty(m.GetOrDefault(specialTagConfigname, "").(string), ",") {
+	for _, val := range strW.SplitNoEmpty(m.GetOrDefault(specialTagConfigname, "").(string), ",") {
 		specialTagPatterns.Add(val)
 	}
 
@@ -481,7 +481,7 @@ func update(parser *terminalW.Parser, fromFile bool, fromEditor bool, prev bool)
 	tags = string(tagsRunes)
 	if tags != "" {
 		changed = true
-		newRecord.Tags = stringsW.SplitNoEmpty(tags, " ")
+		newRecord.Tags = strW.SplitNoEmpty(tags, " ")
 		c := make(chan interface{}, 1)
 		go func(c chan interface{}) {
 			incrementTagCount(cli.Database(dbName), oldTags, -1)
@@ -520,7 +520,7 @@ func insert(fromEditor bool, filename, tagName string) {
 	tagName = strings.TrimSpace(tagName)
 	if filename != "" {
 		title = strings.ReplaceAll(filename, ",", " ")
-		titleSlice = stringsW.SplitNoEmpty(title, " ")
+		titleSlice = strW.SplitNoEmpty(title, " ")
 		if len(titleSlice) == 1 {
 			titleSlice, err = filepath.Glob(title)
 			// fmt.Println("here", titleSlice)
@@ -544,7 +544,7 @@ func insert(fromEditor bool, filename, tagName string) {
 		tagsStr = tagName
 	}
 	tagsStr = strings.ReplaceAll(tagsStr, ",", " ")
-	tags := stringsW.SplitNoEmpty(tagsStr, " ")
+	tags := strW.SplitNoEmpty(tagsStr, " ")
 	if len(tags) == 0 {
 		tags = []string{autoTag}
 	}
@@ -563,7 +563,7 @@ func insert(fromEditor bool, filename, tagName string) {
 		<-c
 		fmt.Println("Inserted: ")
 		fmt.Println("\tTags:", r.Tags)
-		fmt.Println("\tTitle:", stringsW.SubStringQuiet(r.Title, 0, titleLen))
+		fmt.Println("\tTitle:", strW.SubStringQuiet(r.Title, 0, titleLen))
 	}
 }
 
@@ -706,7 +706,7 @@ func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 	<-c
 	fmt.Println("New Record: ")
 	fmt.Println("\tTags:", r.Tags)
-	fmt.Println("\tTitle:", stringsW.SubStringQuiet(r.Title, 0, titleLen))
+	fmt.Println("\tTitle:", strW.SubStringQuiet(r.Title, 0, titleLen))
 }
 
 func addTag(add bool, id string, prev bool) {
@@ -745,7 +745,7 @@ func addTag(add bool, id string, prev bool) {
 	}(c)
 	fmt.Print("input the Tag: ")
 	scanner.Scan()
-	newTags := stringsW.SplitNoEmpty(strings.ReplaceAll(strings.TrimSpace(scanner.Text()), ",", " "), " ")
+	newTags := strW.SplitNoEmpty(strings.ReplaceAll(strings.TrimSpace(scanner.Text()), ",", " "), " ")
 
 	s := (<-c).(*containerW.Set)
 	if s.Size() == 1 && !add {
@@ -787,7 +787,7 @@ func addTag(add bool, id string, prev bool) {
 	<-c
 	fmt.Println("New Record: ")
 	fmt.Println("\tTags:", r.Tags)
-	fmt.Println("\tTitle:", stringsW.SubStringQuiet(r.Title, 0, titleLen))
+	fmt.Println("\tTitle:", strW.SubStringQuiet(r.Title, 0, titleLen))
 }
 
 func printSeperator() {
@@ -875,7 +875,7 @@ func syncByID(id string, push, quiet bool) {
 	if quiet {
 		n = 20
 	}
-	fmt.Printf("finished %s %s: \n", msg, color.GreenString(stringsW.SubStringQuiet(r.Title, 0, n)))
+	fmt.Printf("finished %s %s: \n", msg, color.GreenString(strW.SubStringQuiet(r.Title, 0, n)))
 	// printSeperator()
 	// fmt.Println(r)
 	// printSeperator()
@@ -1100,13 +1100,13 @@ func main() {
 	toBinary := parser.ContainsAnyFlagStrict("binary", "b")
 
 	if (parser.ContainsFlagStrict("t") || parser.CoExists("t", "a")) && !listTagsAndOrderByTime {
-		tags = stringsW.SplitNoEmpty(strings.TrimSpace(parser.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
+		tags = strW.SplitNoEmpty(strings.TrimSpace(parser.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
 	if parser.ContainsFlagStrict("clean-tag") {
 		t := parser.GetFlagValueDefault("clean-tag", "")
 		t = strings.ReplaceAll(t, ",", " ")
-		tags = stringsW.SplitNoEmpty(t, " ")
+		tags = strW.SplitNoEmpty(t, " ")
 		coloredTags := make([]string, len(tags))
 		if len(tags) == 0 {
 			fmt.Println("empty tags")
@@ -1358,9 +1358,9 @@ func main() {
 			if err == nil {
 				terminalIndent := 2
 				delimiter := "   "
-				raw := stringsW.Wrap(buf.String(), w-terminalIndent, terminalIndent, delimiter)
-				for _, line := range stringsW.SplitNoEmpty(raw, "\n") {
-					arr := stringsW.SplitNoEmpty(line, " ")
+				raw := strW.Wrap(buf.String(), w-terminalIndent, terminalIndent, delimiter)
+				for _, line := range strW.SplitNoEmpty(raw, "\n") {
+					arr := strW.SplitNoEmpty(line, " ")
 					changedArr := make([]string, len(arr))
 					for i := range arr {
 						idx := strings.Index(arr[i], "[")

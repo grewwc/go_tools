@@ -12,7 +12,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -135,14 +135,14 @@ func main() {
 	nt = strings.ReplaceAll(nt, ",", " ")
 	t := parser.GetFlagValueDefault("t", "")
 	t = strings.ReplaceAll(t, ",", " ")
-	for _, val := range stringsW.SplitNoEmpty(nt, " ") {
+	for _, val := range strW.SplitNoEmpty(nt, " ") {
 		if val[0] != '.' {
 			val = "." + val
 		}
 		// fmt.Println("here", val)
 		excludeFileExtension.Insert(val)
 	}
-	for _, val := range stringsW.SplitNoEmpty(t, " ") {
+	for _, val := range strW.SplitNoEmpty(t, " ") {
 		if val[0] != '.' {
 			val = "." + val
 		}
@@ -156,7 +156,7 @@ func main() {
 		exclude, _ = parser.GetFlagVal("exclude")
 	}
 	if exclude != "" {
-		for _, ex := range stringsW.SplitNoEmptyKeepQuote(exclude, ',') {
+		for _, ex := range strW.SplitNoEmptyKeepQuote(exclude, ',') {
 			ex = strings.TrimSpace(ex)
 			excludeSlice = append(excludeSlice, utilsW.Abs(ex))
 		}
@@ -194,7 +194,7 @@ func main() {
 	}
 	outName := args[0]
 
-	if !stringsW.EqualsAny(filepath.Ext(outName), ".gz", ".tgz") {
+	if !strW.EqualsAny(filepath.Ext(outName), ".gz", ".tgz") {
 		msg := color.RedString(fmt.Sprintf("%q is not a valid outname", outName))
 		panic(msg)
 	}

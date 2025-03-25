@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -119,9 +119,9 @@ OUTER:
 			if !relativePath {
 				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
 			} else {
-				absStripped := stringsW.StripPrefix(abs, wd)
+				absStripped := strW.StripPrefix(abs, wd)
 				if absStripped != abs {
-					absStripped = stringsW.StripPrefix(absStripped, "/")
+					absStripped = strW.StripPrefix(absStripped, "/")
 				}
 				abs = absStripped
 				toPrint = strings.ReplaceAll(strings.ReplaceAll(absStripped, "\\", "/"), matchBase, color.GreenString(matchBase))
@@ -235,7 +235,7 @@ func main() {
 	}
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
-	allIgnores := stringsW.SplitNoEmptyKeepQuote(ignores, ' ')
+	allIgnores := strW.SplitNoEmptyKeepQuote(ignores, ' ')
 	for i := range allIgnores {
 		temp := strings.ReplaceAll(allIgnores[i], `.`, `\.`)
 		temp = strings.ReplaceAll(temp, `?`, `.`)

@@ -12,7 +12,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
 	_helpers "github.com/grewwc/go_tools/src/executable/sn/_helpers"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -90,7 +90,7 @@ func upload(wg *sync.WaitGroup, filename, ossKey string, recursive, force bool) 
 		if path == filename {
 			return nil
 		}
-		subKey := strings.TrimSuffix(ossKey, "/") + "/" + stringsW.StripPrefix(stringsW.StripPrefix(path, filename), "/")
+		subKey := strings.TrimSuffix(ossKey, "/") + "/" + strW.StripPrefix(strW.StripPrefix(path, filename), "/")
 		upload(wg, path, subKey, recursive, force)
 		return nil
 	})
@@ -179,7 +179,7 @@ func ls(dir string, prefixSpace, retryCount int) {
 	s := containerW.NewOrderedSet()
 	for _, obj := range result.Objects {
 		if strings.HasPrefix(obj.Key, dir) {
-			name := strings.Repeat(" ", prefixSpace) + stringsW.StripPrefix(obj.Key, dir)
+			name := strings.Repeat(" ", prefixSpace) + strW.StripPrefix(obj.Key, dir)
 			if name == strings.Repeat(" ", prefixSpace) {
 				continue
 			}

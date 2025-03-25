@@ -12,7 +12,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
@@ -207,7 +207,7 @@ func getFirstDir(parsed *terminalW.Parser) string {
 
 func getExcludeFiles(parsed *terminalW.Parser) {
 	ex := parsed.GetFlagValueDefault("ex", "")
-	for _, file := range stringsW.SplitNoEmpty(ex, ",") {
+	for _, file := range strW.SplitNoEmpty(ex, ",") {
 		file = strings.Trim(file, " ")
 		excludes.Add(file)
 	}
@@ -215,7 +215,7 @@ func getExcludeFiles(parsed *terminalW.Parser) {
 
 func getTypes(parsed *terminalW.Parser) {
 	t := parsed.GetFlagValueDefault("t", "")
-	for _, file := range stringsW.SplitNoEmpty(t, ",") {
+	for _, file := range strW.SplitNoEmpty(t, ",") {
 		file = strings.Trim(file, " ")
 		if !strings.HasPrefix(file, ".") {
 			file = "." + file

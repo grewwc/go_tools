@@ -17,7 +17,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/peterh/liner"
 	"github.com/petermattis/goid"
 )
@@ -124,7 +124,7 @@ func GetTerminalSize() (h, w int, err error) {
 	if err != nil {
 		return
 	}
-	size := stringsW.SplitNoEmpty(strings.TrimSpace(string(out)), " ")
+	size := strW.SplitNoEmpty(strings.TrimSpace(string(out)), " ")
 	h, err = strconv.Atoi(size[0])
 	if err != nil {
 		return
@@ -201,11 +201,11 @@ func kill(cmd *exec.Cmd) error {
 // GetCommandList seperate cmd to []string
 func GetCommandList(cmd string) []string {
 	cmd = strings.ReplaceAll(cmd, ",", " ")
-	return stringsW.SplitNoEmpty(cmd, " ")
+	return strW.SplitNoEmpty(cmd, " ")
 }
 
 func RunCmd(cmd string, stdin io.Reader) (string, error) {
-	l := stringsW.SplitNoEmptyKeepQuote(cmd, ' ')
+	l := strW.SplitNoEmptyKeepQuote(cmd, ' ')
 	if len(l) < 1 {
 		fmt.Println("cmd is empty")
 		return "", errors.New("cmd is empty")

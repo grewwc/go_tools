@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 )
 
@@ -33,7 +33,7 @@ func isDigit(ch byte) bool {
 }
 
 func reportErr(msg []byte) {
-	panic(fmt.Sprintf("invalid expression: %s", stringsW.BytesToString(msg)))
+	panic(fmt.Sprintf("invalid expression: %s", strW.BytesToString(msg)))
 }
 
 func pow(a, b string) string {
@@ -52,14 +52,14 @@ func calcWithOp(first, second string, op byte) string {
 	var val string
 	switch op {
 	case '+':
-		val = stringsW.Plus(first, second)
+		val = strW.Plus(first, second)
 	case '-':
-		val = stringsW.Minus(first, second)
+		val = strW.Minus(first, second)
 	case '*':
-		val = stringsW.Mul(first, second)
+		val = strW.Mul(first, second)
 	case '/':
 		// val = div(first, second)
-		val = stringsW.Div(first, second, prec)
+		val = strW.Div(first, second, prec)
 		if val == "" {
 			return ""
 		}
@@ -70,7 +70,7 @@ func calcWithOp(first, second string, op byte) string {
 		} else {
 			val = first
 			for i := 1; i < secondVal; i++ {
-				val = stringsW.Mul(val, first)
+				val = strW.Mul(val, first)
 			}
 		}
 	}
@@ -107,7 +107,7 @@ func calc(expr []byte) string {
 				return ""
 			}
 			idx += i + 1
-			nestedResult := calc(stringsW.StringToBytes(processInputStr(stringsW.BytesToString(expr[i+1 : idx]))))
+			nestedResult := calc(strW.StringToBytes(processInputStr(strW.BytesToString(expr[i+1 : idx]))))
 			if nestedResult == "" {
 				return ""
 			}
@@ -224,7 +224,7 @@ func calc(expr []byte) string {
 func test() {
 	x := "1-1+1"
 	x = "2*2"
-	res := calc(stringsW.StringToBytes(processInputStr(x)))
+	res := calc(strW.StringToBytes(processInputStr(x)))
 	fmt.Println(res)
 }
 
@@ -249,7 +249,7 @@ func main() {
 		prec = parser.GetNumArgs()
 	}
 
-	res := calc(stringsW.StringToBytes(processInputStr(expr)))
+	res := calc(strW.StringToBytes(processInputStr(expr)))
 	fmt.Println(res)
 	// test()
 

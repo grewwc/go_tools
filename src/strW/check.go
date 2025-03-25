@@ -1,4 +1,4 @@
-package stringsW
+package strW
 
 import "unicode"
 

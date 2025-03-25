@@ -10,7 +10,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 )
 
 var (
@@ -35,17 +35,17 @@ func GetAllConfig() (m *containerW.OrderedMap) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		trimed := strings.TrimSpace(line)
-		line = stringsW.TrimAfter(line, "#")
-		line = stringsW.TrimAfter(line, "//")
+		line = strW.TrimAfter(line, "#")
+		line = strW.TrimAfter(line, "//")
 		// comment
-		if stringsW.AnyHasPrefix(trimed, "#", "//") {
+		if strW.AnyHasPrefix(trimed, "#", "//") {
 			continue
 		}
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
 
-		res := stringsW.SplitNoEmptyKeepQuote(line, '=')
+		res := strW.SplitNoEmptyKeepQuote(line, '=')
 		var key, val string
 		// fmt.Println(res)
 		key = res[0]

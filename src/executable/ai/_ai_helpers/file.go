@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/stringsW"
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
@@ -14,7 +14,7 @@ type FileParser struct {
 }
 
 func NewParser(content string) *FileParser {
-	files := stringsW.SplitNoEmptyKeepQuote(content, ',')
+	files := strW.SplitNoEmptyKeepQuote(content, ',')
 	ret := FileParser{}
 	for _, file := range files {
 		file = strings.TrimSpace(file)
