@@ -1,4 +1,4 @@
-package algorithmW
+package algoW
 
 import (
 	"math/rand"

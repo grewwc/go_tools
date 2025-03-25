@@ -1,4 +1,4 @@
-package algorithmW
+package algoW
 
 import "github.com/grewwc/go_tools/src/typesW"
 

@@ -3,7 +3,7 @@ package algoriwhtmW
 import (
 	"testing"
 
-	"github.com/grewwc/go_tools/src/algorithmW"
+	"github.com/grewwc/go_tools/src/algoW"
 	"github.com/grewwc/go_tools/src/numW"
 )
 
@@ -45,7 +45,7 @@ func allEqualLarge(nums []int, val int) bool {
 func TestPartition(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		nums := numW.RandInt(0, 10, 500)
-		p := algorithmW.Partition(nums, 0, len(nums))
+		p := algoW.Partition(nums, 0, len(nums))
 		val := nums[p]
 		// all values before p should smaller than val
 		if !allSmall(nums[:p], val) {

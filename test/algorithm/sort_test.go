@@ -1,11 +1,11 @@
 package algoriwhtmW
 
 import (
-	"math/rand/v2"
+	"math/rand"
 	"sort"
 	"testing"
 
-	"github.com/grewwc/go_tools/src/algorithmW"
+	"github.com/grewwc/go_tools/src/algoW"
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/numW"
 	"github.com/grewwc/go_tools/src/sortW"
@@ -160,7 +160,7 @@ func TestKth(t *testing.T) {
 	arr := numW.RandInt(0, 1000, 500)
 	for i := 0; i < 100; i++ {
 		k := numW.RandInt(0, len(arr), 1)[0]
-		val := algorithmW.Kth(arr, k, nil)
+		val := algoW.Kth(arr, k, nil)
 		sortW.Sort(arr, nil)
 		if val != arr[k] {
 			t.Fatal("wrong")
@@ -172,6 +172,6 @@ func BenchmarkKth(b *testing.B) {
 	arr := numW.RandInt(0, 10000, N)
 	for i := 0; i < b.N; i++ {
 		k := numW.RandInt(0, len(arr), 1)[0]
-		algorithmW.Kth(arr, k, func(i, j int) int { return i - j })
+		algoW.Kth(arr, k, func(i, j int) int { return i - j })
 	}
 }
