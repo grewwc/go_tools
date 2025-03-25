@@ -90,6 +90,9 @@ func plus(a, b string) string {
 }
 
 func Plus(x ...string) string {
+	if len(x) == 0 {
+		return ""
+	}
 	res := x[0]
 	for i := 1; i < len(x); i++ {
 		res = plus(res, x[i])
@@ -257,9 +260,6 @@ func mul(a, b string) string {
 func Mul(s ...string) string {
 	if len(s) == 0 {
 		return ""
-	}
-	if len(s) == 1 {
-		return s[0]
 	}
 	res := s[0]
 	for _, val := range s[1:] {
