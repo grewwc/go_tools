@@ -44,7 +44,7 @@ func (t *Trie) Contains(word string) bool {
 }
 
 /** Returns if the word is in the trie. */
-func (t *Trie) LooseContains(word string) bool {
+func (t *Trie) HasPrefix(word string) bool {
 	if len(word) == 0 {
 		return false
 	}
