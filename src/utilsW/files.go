@@ -44,7 +44,7 @@ func TarGz(outName string, srcNames []string, verbose bool) error {
 		if err = tw.WriteHeader(th); err != nil {
 			return err
 		}
-		if !IsDir(Abs(filename)) {
+		if !info.IsDir() {
 			src, err := os.Open(filename)
 			if err != nil {
 				return err
