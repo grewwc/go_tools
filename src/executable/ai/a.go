@@ -241,6 +241,16 @@ func getWriteResultFile(parsed *terminalW.Parser) *os.File {
 func main() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	sigCh1 := make(chan os.Signal, 1)
+	signal.Notify(sigCh1, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for range sigCh1 {
+			fmt.Println("Exit.")
+			<-sigChan
+			os.Exit(0)
+		}
+	}()
+
 	parser := terminalW.NewParser()
 	parser.Int("history", defaultNumHistory, "number of history")
 	parser.String("m", "", `model name. (configured by \"ai.model.default\") ,
