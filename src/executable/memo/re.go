@@ -896,17 +896,6 @@ func getObjectIdByTags(tags []string) string {
 	return id
 }
 
-func (t tag) Compare(other interface{}) int {
-	otherT := other.(tag)
-	if t.modifiedDate.Before(otherT.modifiedDate) {
-		return -1
-	}
-	if t.modifiedDate.Equal(otherT.modifiedDate) {
-		return 0
-	}
-	return 1
-}
-
 func finishRecordsByTags(tags []string) {
 	doRecordsByTagsByAction(tags, "Finished")
 }
@@ -1311,7 +1300,15 @@ func main() {
 			}
 			if listTagsAndOrderByTime {
 				// sort.Sort(tagSlice(tags))
-				sortW.QuickSortComparable(tags)
+				sortW.Sort(tags, func(t1, t2 tag) int {
+					if t1.modifiedDate.Before(t2.modifiedDate) {
+						return -1
+					}
+					if t1.modifiedDate.Equal(t2.modifiedDate) {
+						return 0
+					}
+					return 1
+				})
 			}
 			// fmt.Println("tags", tags)
 			goto print

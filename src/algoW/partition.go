@@ -3,7 +3,6 @@ package algoW
 import (
 	"math/rand"
 
-	"github.com/grewwc/go_tools/src/numW"
 	"github.com/grewwc/go_tools/src/typesW"
 	"golang.org/x/exp/constraints"
 )
@@ -33,32 +32,7 @@ func ThreeWayPartitionInts[T constraints.Ordered](nums []T) (int, int) {
 	return lt, gt
 }
 
-func ThreeWayPartitionComparable[T typesW.Comparable](nums []T) (int, int) {
-	r := rand.Int31n(int32(len(nums)))
-	nums[0], nums[r] = nums[r], nums[0]
-	pivot := nums[0]
-	lt, gt := 0, len(nums)-1
-	i := 1
-	for i <= gt {
-		cur := nums[i]
-		cmp := cur.Compare(pivot)
-		if cmp < 0 {
-			// swap(nums, i, lt)
-			nums[i], nums[lt] = nums[lt], nums[i] // for faster speed
-			i++
-			lt++
-		} else if cmp == 0 {
-			i++
-		} else {
-			// swap(nums, i, gt)
-			nums[i], nums[gt] = nums[gt], nums[i] // for faster speed
-			gt--
-		}
-	}
-	return lt, gt
-}
-
-func ThreeWayPartitionComparator[T any](nums []T, comparator typesW.CompareFunc[T]) (int, int) {
+func ThreeWayPartitionCmp[T any](nums []T, comparator typesW.CompareFunc[T]) (int, int) {
 	r := rand.Int31n(int32(len(nums)))
 	nums[0], nums[r] = nums[r], nums[0]
 	pivot := nums[0]
@@ -89,7 +63,7 @@ func Partition[T constraints.Ordered](nums []T, lo, hi int) int {
 		return lo
 	}
 	start := lo - 1
-	r := numW.RandInt(lo, hi, 1)[0]
+	r := RandInt(lo, hi, 1)[0]
 	nums[r], nums[hi-1] = nums[hi-1], nums[r]
 	pivot := nums[hi-1]
 	for i := lo; i < hi-1; i++ {

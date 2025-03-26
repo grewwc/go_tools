@@ -9,7 +9,7 @@ func Kth[T any](arr []T, kth int, cmp typesW.CompareFunc[T]) T {
 	if cmp == nil {
 		cmp = typesW.CreateDefaultCmp[T]()
 	}
-	lt, gt := ThreeWayPartitionComparator(arr, cmp)
+	lt, gt := ThreeWayPartitionCmp(arr, cmp)
 	if lt <= kth && kth <= gt {
 		return arr[lt]
 	}

@@ -5,16 +5,6 @@ import (
 	"strings"
 )
 
-type Comparable interface {
-	Compare(any) int
-}
-
-type IntComparable int
-
-func (i IntComparable) Compare(other any) int {
-	return int(i - other.(IntComparable))
-}
-
 type CompareFunc[T any] func(a, b T) int
 
 // CreateDefaultCmp is NOT Efficient.

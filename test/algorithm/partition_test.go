@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/grewwc/go_tools/src/algoW"
-	"github.com/grewwc/go_tools/src/numW"
 )
 
 // Mocking the random number generator for deterministic testing
@@ -44,7 +43,7 @@ func allEqualLarge(nums []int, val int) bool {
 
 func TestPartition(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		nums := numW.RandInt(0, 10, 500)
+		nums := algoW.RandInt(0, 10, 500)
 		p := algoW.Partition(nums, 0, len(nums))
 		val := nums[p]
 		// all values before p should smaller than val
@@ -55,5 +54,5 @@ func TestPartition(t *testing.T) {
 			t.Errorf("partition failed")
 		}
 	}
-	numW.RandInt(0, 100, 100)
+	algoW.RandInt(0, 100, 100)
 }

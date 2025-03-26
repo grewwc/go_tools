@@ -35,22 +35,6 @@ func InsertionSort[T constraints.Ordered](arr []T) {
 	}
 }
 
-func InsertionSortComparable[T typesW.Comparable](arr []T) {
-	l := len(arr)
-	if l <= 1 {
-		return
-	}
-	for i := 0; i < l-1; i++ {
-		for j := i + 1; j > 0; j-- {
-			if arr[j].Compare(arr[j-1]) < 0 {
-				arr[j], arr[j-1] = arr[j-1], arr[j]
-			} else {
-				break
-			}
-		}
-	}
-}
-
 func InsertionSortComparator[T any](arr []T, comparator typesW.CompareFunc[T]) {
 	l := len(arr)
 	if l <= 1 {
@@ -109,15 +93,6 @@ func Sort[T any](arr []T, cmp typesW.CompareFunc[T]) {
 	if cmp == nil {
 		cmp = typesW.CreateDefaultCmp[T]()
 	}
-	SortComparator(arr, cmp)
-}
-
-// QuickSortComparable uses multi cores
-func QuickSortComparable[T typesW.Comparable](arr []T) {
-	quickSortComparable(arr, true, nil)
-}
-
-func SortComparator[T any](arr []T, cmp typesW.CompareFunc[T]) {
 	if cmp == nil {
 		cmp = typesW.CreateDefaultCmp[T]()
 	}
@@ -146,29 +121,6 @@ func ShellSort[T constraints.Ordered](arr []T) {
 			}
 		}
 		h /= r
-	}
-}
-
-func ShellSortComparable[T typesW.Comparable](arr []T) {
-	h := 1
-	l := len(arr)
-	if l <= 1 {
-		return
-	}
-	for 3*h < l {
-		h = 3*h + 1
-	}
-	for h >= 1 {
-		for i := 0; i < l-1; i += h {
-			for j := i + 1; j >= h; j -= h {
-				if arr[j].Compare(arr[j-h]) < 0 {
-					arr[j], arr[j-h] = arr[j-h], arr[j]
-				} else {
-					break
-				}
-			}
-		}
-		h /= 3
 	}
 }
 
@@ -257,9 +209,9 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 	return result
 }
 
-func AreSorted[T typesW.Comparable](arr []T) bool {
+func AreSorted[T constraints.Ordered](arr []T) bool {
 	for i := 0; i < len(arr)-1; i++ {
-		if arr[i].Compare(arr[i+1]) > 0 {
+		if arr[i] < arr[i+1] {
 			return false
 		}
 	}
@@ -273,19 +225,6 @@ func calcSortedRatio[T constraints.Ordered](arr []T) float32 {
 	cnt := 1
 	for i := 0; i < len(arr)-1; i++ {
 		if arr[i] <= arr[i+1] {
-			cnt++
-		}
-	}
-	return float32(cnt) / float32(len(arr))
-}
-
-func calcSortedRatioComparable[T typesW.Comparable](arr []T) float32 {
-	if len(arr) <= 1 {
-		return 1
-	}
-	cnt := 1
-	for i := 0; i < len(arr)-1; i++ {
-		if arr[i].Compare(arr[i+1]) <= 0 {
 			cnt++
 		}
 	}
@@ -318,7 +257,15 @@ func quickSort[T constraints.Ordered](arr []T, calclRatio bool, wg *sync.WaitGro
 		return
 	}
 
-	lt, gt := algoW.ThreeWayPartitionInts(arr)
+	lt, gt := algoW.ThreeWayPartitionCmp(arr, func(i, j T) int {
+		if i < j {
+			return -1
+		}
+		if i == j {
+			return 0
+		}
+		return 1
+	})
 	left, right := arr[:lt], arr[gt+1:]
 	n := 4096
 	if len(left) < n || len(right) < n {
@@ -330,34 +277,6 @@ func quickSort[T constraints.Ordered](arr []T, calclRatio bool, wg *sync.WaitGro
 	wg1.Add(2)
 	go quickSort(left, false, &wg1)
 	go quickSort(right, false, &wg1)
-	wg1.Wait()
-}
-
-func quickSortComparable[T typesW.Comparable](arr []T, calcRatio bool, wg *sync.WaitGroup) {
-	if wg != nil {
-		defer wg.Done()
-	}
-	if len(arr) < 32 {
-		InsertionSortComparable(arr)
-		return
-	}
-	if calcRatio && calcSortedRatioComparable(arr) >= 0.95 {
-		InsertionSortComparable(arr)
-		return
-	}
-
-	lt, gt := algoW.ThreeWayPartitionComparable(arr)
-	left, right := arr[:lt], arr[gt+1:]
-	n := 4096
-	if len(left) < n || len(right) < n {
-		quickSortComparable(left, false, nil)
-		quickSortComparable(right, false, nil)
-		return
-	}
-	wg1 := sync.WaitGroup{}
-	wg1.Add(2)
-	go quickSortComparable(left, false, &wg1)
-	go quickSortComparable(right, false, &wg1)
 	wg1.Wait()
 }
 
@@ -374,7 +293,7 @@ func quickSortComparator[T any](arr []T, comparator typesW.CompareFunc[T], calcR
 		return
 	}
 
-	lt, gt := algoW.ThreeWayPartitionComparator(arr, comparator)
+	lt, gt := algoW.ThreeWayPartitionCmp(arr, comparator)
 	left, right := arr[:lt], arr[gt+1:]
 	n := 4096
 	if len(left) < n || len(right) < n {
