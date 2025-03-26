@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -81,13 +80,18 @@ func main() {
 		}
 
 		fmt.Printf("building %q\n", filename)
-		cmd := exec.Command("go", "build", "-a", "-o", filepath.Join(outputDir, filepath.Base(executableFilename)))
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err = cmd.Run()
-		if err != nil {
-			log.Println(err)
-			continue
+		cmd := fmt.Sprintf(`go build -a -ldflags="-s -w" -o %s`, filepath.Join(outputDir, filepath.Base(executableFilename)))
+		if _, err := utilsW.RunCmd(cmd, nil); err != nil {
+			panic(err)
 		}
+
+		// cmd := exec.Command("go", "build", "-a", "-o", filepath.Join(outputDir, filepath.Base(executableFilename)))
+		// cmd.Stdout = os.Stdout
+		// cmd.Stderr = os.Stderr
+		// err = cmd.Run()
+		// if err != nil {
+		// 	log.Println(err)
+		// 	continue
+		// }
 	}
 }
