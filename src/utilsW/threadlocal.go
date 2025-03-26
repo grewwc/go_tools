@@ -11,7 +11,9 @@ type ThreadLocal[T any] struct {
 
 func NewThreadLocal[T any](val T) *ThreadLocal[T] {
 	result := &ThreadLocal[T]{
-		m: containerW.NewMutexMap[int, T](),
+		m: containerW.NewConcurrentHashMap[int, T](nil, func(i, j int) int {
+			return i - j
+		}),
 	}
 	result.m.Put(Goid(), val)
 	return result

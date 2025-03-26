@@ -17,11 +17,11 @@ const (
 // buck 是一个独立的哈希表
 type buck[K, V any] struct {
 	mu   *sync.RWMutex
-	Data *TreeMap[K, V]
+	data *TreeMap[K, V]
 }
 
 type ConcurrentHashMap[K, V any] struct {
-	Buckets []*buck[K, V] // 桶数组，每个桶是一个独立的哈希表
+	buckets []*buck[K, V] // 桶数组，每个桶是一个独立的哈希表
 	mutex   *sync.RWMutex
 	hasher  typesW.HashFunc[K]
 	cnt     int64
@@ -41,7 +41,7 @@ func NewConcurrentHashMap[K, V any](hasher typesW.HashFunc[K], cmp typesW.Compar
 		buckets[i] = &buck[K, V]{mu: &sync.RWMutex{}}
 	}
 	return &ConcurrentHashMap[K, V]{
-		Buckets: buckets,
+		buckets: buckets,
 		hasher:  hasher,
 		mutex:   &sync.RWMutex{},
 		cmp:     cmp,
@@ -49,7 +49,7 @@ func NewConcurrentHashMap[K, V any](hasher typesW.HashFunc[K], cmp typesW.Compar
 }
 
 func (cm *ConcurrentHashMap[K, V]) hash(k K) int {
-	res := cm.hasher(k) % len(cm.Buckets)
+	res := cm.hasher(k) % len(cm.buckets)
 	if res < 0 {
 		return -res
 	}
@@ -57,23 +57,23 @@ func (cm *ConcurrentHashMap[K, V]) hash(k K) int {
 }
 
 func (cm *ConcurrentHashMap[K, V]) rehash(size int) {
-	prev := cm.Buckets
-	cm.Buckets = make([]*buck[K, V], size)
+	prev := cm.buckets
+	cm.buckets = make([]*buck[K, V], size)
 	for _, bucket := range prev {
-		if bucket.Data == nil {
+		if bucket.data == nil {
 			continue
 		}
-		for entry := range bucket.Data.IterateEntry() {
+		for entry := range bucket.data.IterateEntry() {
 			index := cm.hash(entry.k)
-			if cm.Buckets[index] == nil {
-				cm.Buckets[index] = &buck[K, V]{mu: &sync.RWMutex{}, Data: NewTreeMap[K, V](cm.cmp)}
+			if cm.buckets[index] == nil {
+				cm.buckets[index] = &buck[K, V]{mu: &sync.RWMutex{}, data: NewTreeMap[K, V](cm.cmp)}
 			}
-			cm.Buckets[index].Data.Put(entry.k, entry.v)
+			cm.buckets[index].data.Put(entry.k, entry.v)
 		}
 	}
-	for i := range cm.Buckets {
-		if cm.Buckets[i] == nil {
-			cm.Buckets[i] = &buck[K, V]{mu: &sync.RWMutex{}}
+	for i := range cm.buckets {
+		if cm.buckets[i] == nil {
+			cm.buckets[i] = &buck[K, V]{mu: &sync.RWMutex{}}
 		}
 	}
 }
@@ -82,20 +82,20 @@ func (cm *ConcurrentHashMap[K, V]) Put(key K, value V) bool {
 	grow := false
 	cm.mutex.RLock()
 	index := cm.hash(key)
-	cm.Buckets[index].mu.Lock()
-	if cm.Buckets[index].Data == nil {
-		cm.Buckets[index].Data = NewTreeMap[K, V](cm.cmp)
+	cm.buckets[index].mu.Lock()
+	if cm.buckets[index].data == nil {
+		cm.buckets[index].data = NewTreeMap[K, V](cm.cmp)
 	}
-	res := cm.Buckets[index].Data.Put(key, value)
-	cm.Buckets[index].mu.Unlock()
+	res := cm.buckets[index].data.Put(key, value)
+	cm.buckets[index].mu.Unlock()
 	if res {
 		atomic.AddInt64(&cm.cnt, 1)
-		if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.Buckets))*growThreash {
+		if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.buckets))*growThreash {
 			grow = true
 			cm.mutex.RUnlock()
 			cm.mutex.Lock()
-			if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.Buckets))*growThreash {
-				cm.rehash(growThreash * len(cm.Buckets))
+			if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.buckets))*growThreash {
+				cm.rehash(growThreash * len(cm.buckets))
 			}
 			cm.mutex.Unlock()
 		}
@@ -110,20 +110,20 @@ func (cm *ConcurrentHashMap[K, V]) PutIfAbsent(key K, value V) bool {
 	grow := false
 	cm.mutex.RLock()
 	index := cm.hash(key)
-	cm.Buckets[index].mu.Lock()
-	if cm.Buckets[index].Data == nil {
-		cm.Buckets[index].Data = NewTreeMap[K, V](cm.cmp)
+	cm.buckets[index].mu.Lock()
+	if cm.buckets[index].data == nil {
+		cm.buckets[index].data = NewTreeMap[K, V](cm.cmp)
 	}
-	res := cm.Buckets[index].Data.PutIfAbsent(key, value)
-	cm.Buckets[index].mu.Unlock()
+	res := cm.buckets[index].data.PutIfAbsent(key, value)
+	cm.buckets[index].mu.Unlock()
 	if res {
 		atomic.AddInt64(&cm.cnt, 1)
-		if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.Buckets))*growThreash {
+		if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.buckets))*growThreash {
 			grow = true
 			cm.mutex.RUnlock()
 			cm.mutex.Lock()
-			if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.Buckets))*growThreash {
-				cm.rehash(growThreash * len(cm.Buckets))
+			if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.buckets))*growThreash {
+				cm.rehash(growThreash * len(cm.buckets))
 			}
 			cm.mutex.Unlock()
 		}
@@ -138,50 +138,50 @@ func (cm *ConcurrentHashMap[K, V]) Get(key K) V {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 	index := cm.hash(key)
-	cm.Buckets[index].mu.RLock()
-	if cm.Buckets[index].Data == nil {
+	cm.buckets[index].mu.RLock()
+	if cm.buckets[index].data == nil {
 		return *new(V)
 	}
-	defer cm.Buckets[index].mu.RUnlock()
-	return cm.Buckets[index].Data.Get(key)
+	defer cm.buckets[index].mu.RUnlock()
+	return cm.buckets[index].data.Get(key)
 }
 
 func (cm *ConcurrentHashMap[K, V]) GetOrDefault(key K, defaultVal V) V {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 	index := cm.hash(key)
-	cm.Buckets[index].mu.RLock()
-	if cm.Buckets[index].Data == nil {
+	cm.buckets[index].mu.RLock()
+	if cm.buckets[index].data == nil {
 		return defaultVal
 	}
-	defer cm.Buckets[index].mu.RUnlock()
-	return cm.Buckets[index].Data.GetOrDefault(key, defaultVal)
+	defer cm.buckets[index].mu.RUnlock()
+	return cm.buckets[index].data.GetOrDefault(key, defaultVal)
 }
 
 func (cm *ConcurrentHashMap[K, V]) Delete(key K) bool {
 	shrink := false
 	cm.mutex.RLock()
 	index := cm.hash(key)
-	cm.Buckets[index].mu.Lock()
-	if cm.Buckets[index].Data == nil {
+	cm.buckets[index].mu.Lock()
+	if cm.buckets[index].data == nil {
 		cm.mutex.RUnlock()
-		cm.Buckets[index].mu.Unlock()
+		cm.buckets[index].mu.Unlock()
 		return false
 	}
-	res := cm.Buckets[index].Data.Delete(key)
-	cm.Buckets[index].mu.Unlock()
+	res := cm.buckets[index].data.Delete(key)
+	cm.buckets[index].mu.Unlock()
 	if res {
 		atomic.AddInt64(&cm.cnt, -1)
-		if cm.Buckets[index].Data.Size() == 0 {
-			cm.Buckets[index].Data = nil
+		if cm.buckets[index].data.Size() == 0 {
+			cm.buckets[index].data = nil
 		}
-		if atomic.LoadInt64(&cm.cnt) < int64(len(cm.Buckets)/shrinkThreash) {
+		if atomic.LoadInt64(&cm.cnt) < int64(len(cm.buckets)/shrinkThreash) {
 			shrink = true
 			cm.mutex.RUnlock()
 			cm.mutex.Lock()
-			r := int64(len(cm.Buckets) / shrinkThreash)
+			r := int64(len(cm.buckets) / shrinkThreash)
 			if atomic.LoadInt64(&cm.cnt) < r {
-				cm.rehash(algoW.Max(len(cm.Buckets)/shrinkThreash, initCap))
+				cm.rehash(algoW.Max(len(cm.buckets)/shrinkThreash, initCap))
 			}
 			cm.mutex.Unlock()
 		}
@@ -196,9 +196,9 @@ func (cm *ConcurrentHashMap[K, V]) Contains(key K) bool {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 	index := cm.hash(key)
-	cm.Buckets[index].mu.RLock()
-	defer cm.Buckets[index].mu.RUnlock()
-	return cm.Buckets[index].Data.Contains(key)
+	cm.buckets[index].mu.RLock()
+	defer cm.buckets[index].mu.RUnlock()
+	return cm.buckets[index].data.Contains(key)
 }
 
 func (cm *ConcurrentHashMap[K, V]) Size() int {
@@ -215,5 +215,30 @@ func (cm *ConcurrentHashMap[K, V]) Clear() {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
 	cm.cnt = 0
-	cm.Buckets = make([]*buck[K, V], initCap)
+	cm.buckets = make([]*buck[K, V], initCap)
+}
+
+// Iterate is not thread safe
+func (cm *ConcurrentHashMap[K, V]) Iterate() <-chan K {
+	ch := make(chan K)
+	go func() {
+		defer close(ch)
+		cm.mutex.RLock()
+		defer cm.mutex.RUnlock()
+		for _, bucket := range cm.buckets {
+			if bucket == nil {
+				continue
+			}
+			bucket.mu.RLock()
+			if bucket.data == nil {
+				bucket.mu.RUnlock()
+				continue
+			}
+			for k := range bucket.data.Iterate() {
+				ch <- k
+			}
+			bucket.mu.RUnlock()
+		}
+	}()
+	return ch
 }
