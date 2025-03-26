@@ -9,6 +9,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/typesW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
@@ -40,7 +41,7 @@ func transferImgToBase64(url string, isUrl bool) {
 			panic(err)
 		}
 	} else { // clipboard
-		buf = strW.StringToBytes(utilsW.ReadClipboardText())
+		buf = typesW.StringToBytes(utilsW.ReadClipboardText())
 	}
 	str := base64.StdEncoding.EncodeToString(buf)
 	if err = os.WriteFile(outName, []byte(str), 0666); err != nil {
@@ -52,7 +53,7 @@ func base64ToImage(fname, outName string) {
 	var imgBytes []byte
 	var err error
 	if fname == "" {
-		imgBytes = strW.StringToBytes(utilsW.ReadClipboardText())
+		imgBytes = typesW.StringToBytes(utilsW.ReadClipboardText())
 	} else {
 		imgBytes, err = os.ReadFile(fname)
 		if err != nil {
@@ -61,11 +62,11 @@ func base64ToImage(fname, outName string) {
 	}
 
 	s := ";base64,"
-	indices := strW.KmpSearchBytes(imgBytes, strW.StringToBytes(s))
+	indices := strW.KmpSearchBytes(imgBytes, typesW.StringToBytes(s))
 	if len(indices) == 1 {
 		imgBytes = imgBytes[indices[0]+len(s):]
 	}
-	img := strW.BytesToString(imgBytes)
+	img := typesW.BytesToString(imgBytes)
 	b, err := base64.StdEncoding.DecodeString(img)
 	if err != nil {
 		panic(err)

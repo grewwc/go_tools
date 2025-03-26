@@ -48,10 +48,10 @@ func (m *TreeMap[K, V]) Put(key K, value V) bool {
 	n := m.rbTree.Search(&node)
 	if n == nil {
 		m.rbTree.Insert(&node)
-		return false
+		return true
 	}
 	n.val.v = value
-	return true
+	return false
 }
 
 func (m *TreeMap[K, V]) PutIfAbsent(key K, value V) bool {
@@ -93,6 +93,18 @@ func (m *TreeMap[K, V]) Iterate() <-chan K {
 		defer close(ch)
 		for val := range m.rbTree.Iterate() {
 			ch <- val.k
+		}
+	}()
+
+	return ch
+}
+
+func (m *TreeMap[K, V]) IterateEntry() <-chan *sortedMapEntry[K, V] {
+	ch := make(chan *sortedMapEntry[K, V])
+	go func() {
+		defer close(ch)
+		for val := range m.rbTree.Iterate() {
+			ch <- val
 		}
 	}()
 

@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/strW"
+	"github.com/grewwc/go_tools/src/typesW"
 )
 
 func GetMethods(obj interface{}) []*reflect.Method {
@@ -40,8 +40,8 @@ func RemoveTopicFromMethodName(topic, methodName string) string {
 	if !strings.HasPrefix(methodName, key) {
 		return methodName
 	}
-	b := strW.StringToBytes(methodName)
-	return strW.BytesToString(bytes.TrimPrefix(b, strW.StringToBytes(key)))
+	b := typesW.StringToBytes(methodName)
+	return typesW.BytesToString(bytes.TrimPrefix(b, typesW.StringToBytes(key)))
 }
 
 func InterfaceToValue(args ...interface{}) []reflect.Value {

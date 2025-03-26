@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"unsafe"
 
-	"github.com/grewwc/go_tools/src/strW"
+	"github.com/grewwc/go_tools/src/typesW"
 	"golang.org/x/exp/constraints"
 )
 
@@ -33,14 +33,14 @@ func NewJsonFromFile(filename string) *Json {
 func NewJsonFromByte(data []byte) *Json {
 	var res Json
 	if err := json.Unmarshal(data, &res.data); err != nil {
-		panic(strW.BytesToString(data))
+		panic(typesW.BytesToString(data))
 	}
 	return &res
 }
 
 func NewJsonFromString(content string) *Json {
 	var res Json
-	if err := json.Unmarshal(strW.StringToBytes(content), &res.data); err != nil {
+	if err := json.Unmarshal(typesW.StringToBytes(content), &res.data); err != nil {
 		panic(err)
 	}
 	return &res

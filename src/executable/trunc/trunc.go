@@ -13,6 +13,7 @@ import (
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/typesW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
@@ -47,8 +48,8 @@ func removeNewLine(name string) error {
 			return err
 		}
 		if len(b) > 0 {
-			line := strW.BytesToString(bytes.Trim(b, "\n"))
-			if strW.BytesToString(bytes.TrimSpace(b)) != "" {
+			line := typesW.BytesToString(bytes.Trim(b, "\n"))
+			if typesW.BytesToString(bytes.TrimSpace(b)) != "" {
 				lines = append(lines, line)
 			}
 		}
@@ -56,7 +57,7 @@ func removeNewLine(name string) error {
 			break
 		}
 	}
-	utilsW.WriteToFile(name, strW.StringToBytes(strings.Join(lines, "\n")))
+	utilsW.WriteToFile(name, typesW.StringToBytes(strings.Join(lines, "\n")))
 	return nil
 }
 

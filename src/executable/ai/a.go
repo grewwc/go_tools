@@ -18,6 +18,7 @@ import (
 	"github.com/grewwc/go_tools/src/executable/ai/_ai_helpers"
 	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/typesW"
 	"github.com/grewwc/go_tools/src/utilsW"
 )
 
@@ -85,7 +86,7 @@ func getText(j *utilsW.Json) string {
 
 func handleResponse(resp io.Reader) <-chan string {
 	keyword := "data: {"
-	doneKeyword := strW.StringToBytes("data: [DONE]")
+	doneKeyword := typesW.StringToBytes("data: [DONE]")
 	ch := make(chan string)
 	go func() {
 		defer func() {
@@ -98,7 +99,7 @@ func handleResponse(resp io.Reader) <-chan string {
 			if content == keyword || content == "" {
 				continue
 			}
-			b := bytes.TrimRight(strW.StringToBytes(content)[len(keyword)-1:], "\n\t ")
+			b := bytes.TrimRight(typesW.StringToBytes(content)[len(keyword)-1:], "\n\t ")
 			b = bytes.TrimSuffix(b, doneKeyword)
 			b = bytes.TrimSpace(b)
 			j := utilsW.NewJsonFromByte(b)
@@ -144,7 +145,7 @@ func buildMessageArr(n int) []Message {
 		n = len(lines)
 	}
 	if len(lines) > maxHistoryLines {
-		utilsW.WriteToFile(historyFile, strW.StringToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
+		utilsW.WriteToFile(historyFile, typesW.StringToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
 	}
 	return result[len(lines)-n:]
 }

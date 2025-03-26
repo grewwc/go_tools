@@ -6,6 +6,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/algoW"
 	"github.com/grewwc/go_tools/src/strW"
+	"github.com/grewwc/go_tools/src/typesW"
 )
 
 func TestFindAll(t *testing.T) {
@@ -24,7 +25,7 @@ func genRandomStrings(n int) string {
 	for i, idx := range indices {
 		buf[i] = allChars[idx]
 	}
-	return strW.BytesToString(buf)
+	return typesW.BytesToString(buf)
 }
 
 func TestContains(t *testing.T) {
