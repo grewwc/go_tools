@@ -3,6 +3,7 @@ package containerW
 import (
 	"sync"
 	"sync/atomic"
+	"unsafe"
 
 	"github.com/grewwc/go_tools/src/algoW"
 	"github.com/grewwc/go_tools/src/typesW"
@@ -37,9 +38,6 @@ func NewConcurrentHashMap[K, V any](hasher typesW.HashFunc[K], cmp typesW.Compar
 	if cmp == nil {
 		cmp = typesW.CreateDefaultCmp[K]()
 	}
-	for i := range buckets {
-		buckets[i] = &buck[K, V]{mu: &sync.RWMutex{}}
-	}
 	return &ConcurrentHashMap[K, V]{
 		buckets: buckets,
 		hasher:  hasher,
@@ -49,18 +47,14 @@ func NewConcurrentHashMap[K, V any](hasher typesW.HashFunc[K], cmp typesW.Compar
 }
 
 func (cm *ConcurrentHashMap[K, V]) hash(k K) int {
-	res := cm.hasher(k) % len(cm.buckets)
-	if res < 0 {
-		return -res
-	}
-	return res
+	return spread(cm.hasher(k)) & (len(cm.buckets) - 1)
 }
 
 func (cm *ConcurrentHashMap[K, V]) rehash(size int) {
 	prev := cm.buckets
 	cm.buckets = make([]*buck[K, V], size)
 	for _, bucket := range prev {
-		if bucket.data == nil {
+		if bucket == nil {
 			continue
 		}
 		for entry := range bucket.data.IterateEntry() {
@@ -71,26 +65,38 @@ func (cm *ConcurrentHashMap[K, V]) rehash(size int) {
 			cm.buckets[index].data.Put(entry.k, entry.v)
 		}
 	}
-	for i := range cm.buckets {
-		if cm.buckets[i] == nil {
-			cm.buckets[i] = &buck[K, V]{mu: &sync.RWMutex{}}
-		}
-	}
+}
+
+func spread(h int) int {
+	uh := uint(h)
+	return int((uh ^ (uh >> 16)) & 0x7fffffff)
 }
 
 func (cm *ConcurrentHashMap[K, V]) Put(key K, value V) bool {
 	grow := false
 	cm.mutex.RLock()
 	index := cm.hash(key)
-	cm.buckets[index].mu.Lock()
-	if cm.buckets[index].data == nil {
-		cm.buckets[index].data = NewTreeMap[K, V](cm.cmp)
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(&cm.buckets[index]))
+	sPtr := atomic.LoadPointer(ptr)
+	if sPtr == nil {
+		newNode := &buck[K, V]{data: NewTreeMap[K, V](cm.cmp), mu: &sync.RWMutex{}}
+		newNode.data.Put(key, value)
+		if atomic.CompareAndSwapPointer(ptr, nil, unsafe.Pointer(newNode)) {
+			cm.mutex.RUnlock()
+			atomic.AddInt64(&cm.cnt, 1)
+			return true
+		}
 	}
-	res := cm.buckets[index].data.Put(key, value)
-	cm.buckets[index].mu.Unlock()
+	if sPtr = atomic.LoadPointer(ptr); sPtr == nil {
+		return false
+	}
+	bucketPtr := (*buck[K, V])(sPtr)
+	bucketPtr.mu.Lock()
+	res := bucketPtr.data.Put(key, value)
+	bucketPtr.mu.Unlock()
 	if res {
-		atomic.AddInt64(&cm.cnt, 1)
-		if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.buckets))*growThreash {
+		cnt := atomic.AddInt64(&cm.cnt, 1)
+		if cnt >= int64(len(cm.buckets))*growThreash {
 			grow = true
 			cm.mutex.RUnlock()
 			cm.mutex.Lock()
@@ -110,15 +116,27 @@ func (cm *ConcurrentHashMap[K, V]) PutIfAbsent(key K, value V) bool {
 	grow := false
 	cm.mutex.RLock()
 	index := cm.hash(key)
-	cm.buckets[index].mu.Lock()
-	if cm.buckets[index].data == nil {
-		cm.buckets[index].data = NewTreeMap[K, V](cm.cmp)
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(&cm.buckets[index]))
+	sPtr := atomic.LoadPointer(ptr)
+	if sPtr == nil {
+		newNode := &buck[K, V]{data: NewTreeMap[K, V](cm.cmp), mu: &sync.RWMutex{}}
+		newNode.data.Put(key, value)
+		if atomic.CompareAndSwapPointer(ptr, nil, unsafe.Pointer(newNode)) {
+			cm.mutex.RUnlock()
+			atomic.AddInt64(&cm.cnt, 1)
+			return true
+		}
 	}
-	res := cm.buckets[index].data.PutIfAbsent(key, value)
-	cm.buckets[index].mu.Unlock()
+	if sPtr = atomic.LoadPointer(ptr); sPtr == nil {
+		return false
+	}
+	bucketPtr := (*buck[K, V])(sPtr)
+	bucketPtr.mu.Lock()
+	res := bucketPtr.data.PutIfAbsent(key, value)
+	bucketPtr.mu.Unlock()
 	if res {
-		atomic.AddInt64(&cm.cnt, 1)
-		if atomic.LoadInt64(&cm.cnt) >= int64(len(cm.buckets))*growThreash {
+		cnt := atomic.AddInt64(&cm.cnt, 1)
+		if cnt >= int64(len(cm.buckets))*growThreash {
 			grow = true
 			cm.mutex.RUnlock()
 			cm.mutex.Lock()
@@ -138,44 +156,57 @@ func (cm *ConcurrentHashMap[K, V]) Get(key K) V {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 	index := cm.hash(key)
-	cm.buckets[index].mu.RLock()
-	if cm.buckets[index].data == nil {
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(&cm.buckets[index]))
+	sPtr := atomic.LoadPointer(ptr)
+	if sPtr == nil {
 		return *new(V)
 	}
-	defer cm.buckets[index].mu.RUnlock()
-	return cm.buckets[index].data.Get(key)
+	bucketPtr := (*buck[K, V])(sPtr)
+	bucketPtr.mu.RLock()
+	defer bucketPtr.mu.RUnlock()
+	return bucketPtr.data.Get(key)
 }
 
 func (cm *ConcurrentHashMap[K, V]) GetOrDefault(key K, defaultVal V) V {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 	index := cm.hash(key)
-	cm.buckets[index].mu.RLock()
-	if cm.buckets[index].data == nil {
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(&cm.buckets[index]))
+	sPtr := atomic.LoadPointer(ptr)
+	if sPtr == nil {
 		return defaultVal
 	}
-	defer cm.buckets[index].mu.RUnlock()
-	return cm.buckets[index].data.GetOrDefault(key, defaultVal)
+	if sPtr = atomic.LoadPointer(ptr); sPtr == nil {
+		return *new(V)
+	}
+	bucketPtr := (*buck[K, V])(sPtr)
+	bucketPtr.mu.RLock()
+	defer bucketPtr.mu.RUnlock()
+	return bucketPtr.data.GetOrDefault(key, defaultVal)
 }
 
 func (cm *ConcurrentHashMap[K, V]) Delete(key K) bool {
 	shrink := false
 	cm.mutex.RLock()
 	index := cm.hash(key)
-	cm.buckets[index].mu.Lock()
-	if cm.buckets[index].data == nil {
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(&cm.buckets[index]))
+	sPtr := atomic.LoadPointer(ptr)
+	if sPtr == nil {
 		cm.mutex.RUnlock()
-		cm.buckets[index].mu.Unlock()
 		return false
 	}
-	res := cm.buckets[index].data.Delete(key)
-	cm.buckets[index].mu.Unlock()
+	bucketPtr := (*buck[K, V])(sPtr)
+	mu := bucketPtr.mu
+	mu.Lock()
+	res := bucketPtr.data.Delete(key)
+	if res && bucketPtr.data.Size() == 0 {
+		atomic.StorePointer(ptr, nil)
+		// atomic.CompareAndSwapPointer(ptr, unsafe.Pointer(bucketPtr), nil)
+	}
+	mu.Unlock()
 	if res {
-		atomic.AddInt64(&cm.cnt, -1)
-		if cm.buckets[index].data.Size() == 0 {
-			cm.buckets[index].data = nil
-		}
-		if atomic.LoadInt64(&cm.cnt) < int64(len(cm.buckets)/shrinkThreash) {
+		cnt := atomic.AddInt64(&cm.cnt, -1)
+		if cnt < int64(len(cm.buckets)/shrinkThreash) {
 			shrink = true
 			cm.mutex.RUnlock()
 			cm.mutex.Lock()
@@ -196,9 +227,15 @@ func (cm *ConcurrentHashMap[K, V]) Contains(key K) bool {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 	index := cm.hash(key)
-	cm.buckets[index].mu.RLock()
-	defer cm.buckets[index].mu.RUnlock()
-	return cm.buckets[index].data.Contains(key)
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(&cm.buckets[index]))
+	sPtr := atomic.LoadPointer(ptr)
+	if sPtr == nil {
+		return false
+	}
+	bucketPtr := (*buck[K, V])(sPtr)
+	bucketPtr.mu.RLock()
+	defer bucketPtr.mu.RUnlock()
+	return bucketPtr.data.Contains(key)
 }
 
 func (cm *ConcurrentHashMap[K, V]) Size() int {
@@ -230,10 +267,6 @@ func (cm *ConcurrentHashMap[K, V]) Iterate() <-chan K {
 				continue
 			}
 			bucket.mu.RLock()
-			if bucket.data == nil {
-				bucket.mu.RUnlock()
-				continue
-			}
 			for k := range bucket.data.Iterate() {
 				ch <- k
 			}
