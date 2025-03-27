@@ -349,12 +349,11 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 		normalizedBoolOptionals[i] = strings.TrimLeft(boolArg, string(dash))
 	}
 	r.VisitAll(func(f *flag.Flag) {
-		key := fmt.Sprintf("-%s", f.Name)
-		// fmt.Println("search", cmd, key)
+		key := fmt.Sprintf("-%s%c", f.Name, sep)
 		indices := strW.KmpSearch(cmd, key)
 		if len(indices) >= 1 {
 			for _, idx := range indices {
-				substr := strW.SubStringQuiet(cmd, idx, idx+len(key))
+				substr := strW.SubStringQuiet(cmd, idx, idx+len(key)-1)
 				cmd = strings.ReplaceAll(cmd, substr, fmt.Sprintf("%c%s", dash, f.Name))
 			}
 		}
