@@ -27,6 +27,7 @@ var wg sync.WaitGroup
 
 var verbose bool
 var atomicCount atomic.Int32
+var absoluteTarget atomic.Bool
 var onlyDir bool = false
 var printMd5 bool = false
 var caseInsensitive bool = false
@@ -71,6 +72,12 @@ func findFile(rootDir string, numPrint int, allIgnores []string) {
 
 	var matches []string
 	for _, target := range targets {
+		// already absolute path
+		if len(target) > 0 && target[0] == '/' {
+			matches = append(matches, target)
+			absoluteTarget.Store(true)
+			goto OUTER
+		}
 		var m []string
 		var err error
 		if caseInsensitive {
@@ -149,6 +156,9 @@ OUTER:
 			}
 			utilsW.Fprintf(color.Output, "%s\n", toPrint)
 			atomicCount.Add(1)
+			if absoluteTarget.Load() {
+				os.Exit(0)
+			}
 		}
 	}
 
@@ -244,8 +254,7 @@ func main() {
 	}
 	// fmt.Println("allIgnores", allIgnores, parser)
 	verbose = verboseFlag
-	targets = parser.Positional.ToStringSlice()
-
+	targets = parser.GetPositionalArgs(false)
 	// fmt.Println("rootDir", *rootDir)
 	allRootDirs, err := filepath.Glob(rootDir)
 	if err != nil {
