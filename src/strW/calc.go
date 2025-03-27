@@ -341,6 +341,16 @@ func Mul(s ...string) string {
 	return res
 }
 
+func Mod(a, b string) string {
+	quotient := Div(a, b, 0)
+	tmp := Mul(quotient, b)
+	res := Minus(a, tmp)
+	if len(res) > 0 && res[0] == '-' {
+		quotient = Minus(quotient, "1")
+	}
+	return Minus(a, Mul(quotient, b))
+}
+
 func Div(a, b string, numDigitToKeep int) string {
 	a, b = strings.TrimSpace(a), strings.TrimSpace(b)
 	a, b = processInputStr(a), processInputStr(b)

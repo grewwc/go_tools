@@ -61,9 +61,6 @@ func calcWithOp(first, second string, op byte) string {
 	case '/':
 		// val = div(first, second)
 		val = strW.Div(first, second, prec)
-		if val == "" {
-			return ""
-		}
 	case '^':
 		secondVal, err := strconv.Atoi(second)
 		if err != nil {
@@ -74,6 +71,8 @@ func calcWithOp(first, second string, op byte) string {
 				val = strW.Mul(val, first)
 			}
 		}
+	case '%':
+		val = strW.Mod(first, second)
 	}
 	// fmt.Printf("calc: %s %s %s = %s\n", first, string(op), second, val)
 	return val
@@ -133,7 +132,7 @@ func calc(expr []byte) string {
 			opSt.Push(ch)
 			i++
 			state = OPERATOR
-		} else if ch == '*' || ch == '/' {
+		} else if ch == '*' || ch == '/' || ch == '%' {
 			if state == OPERATOR {
 				reportErr(expr)
 				return ""

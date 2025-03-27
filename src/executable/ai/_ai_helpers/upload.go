@@ -74,7 +74,7 @@ func UploadQwenLongFiles(apiKey string, files []string) []string {
 	for i := 0; i < len(files); i++ {
 		resultTuple = append(resultTuple, <-ch)
 	}
-	sortW.SortComparator(resultTuple, func(a, b *containerW.Tuple) int {
+	sortW.Sort(resultTuple, func(a, b *containerW.Tuple) int {
 		return a.Get(0).(int) - b.Get(0).(int)
 	})
 
