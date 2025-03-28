@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -22,8 +23,12 @@ const (
 )
 
 var prec int
+var lBrace = regexp.MustCompile(`\({2,}`)
+var rBrace = regexp.MustCompile(`\){2,}`)
 
 func processInputStr(input string) string {
+	input = lBrace.ReplaceAllString(input, "(")
+	input = rBrace.ReplaceAllString(input, ")")
 	input = strings.ReplaceAll(input, "**", "^")
 	input = strings.ReplaceAll(input, "--", "+")
 	return input + " "
