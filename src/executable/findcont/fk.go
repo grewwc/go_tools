@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"unicode/utf8"
 
 	"github.com/fatih/color"
@@ -23,7 +24,6 @@ import (
 
 var target string
 var wg sync.WaitGroup
-var countMu sync.Mutex
 var r *regexp.Regexp = nil
 var numLines int = 1
 
@@ -74,13 +74,10 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 		matched, matchedStrings = fn(target, line)
 	noMatchNeed:
 		if matched { // cannot reverse the order
-			countMu.Lock()
-			terminalW.Count++
+			atomic.AddInt64(&terminalW.Count, 1)
 			if terminalW.Count > terminalW.NumPrint {
-				countMu.Unlock()
 				return
 			}
-			countMu.Unlock()
 			filename, err = filepath.Abs(filename)
 			if err != nil {
 				if terminalW.Verbose {
@@ -190,22 +187,20 @@ func main() {
 	parser.String("nf", "", "don't check these files/directories")
 	parser.Int("l", 1, "how many lines more read to match")
 	parser.Int("p", 4, "how many threads to use")
+	parser.Bool("h", false, "print help info")
 
 	fmt.Println()
 
-	parser.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word", "i", "a")
+	parser.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word", "i", "a", "h")
 	// fmt.Println("here", parser)
-	if parser == nil {
+	if parser.Empty() || parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
 		return
 	}
 
-	optionalMap, args := parser.Optional, parser.Positional.ToStringSlice()
-	optional := terminalW.MapToString(optionalMap)
+	args := parser.GetPositionalArgs(true)
 	if parser.GetNumArgs() != -1 {
 		num = int64(parser.GetNumArgs())
-		r := regexp.MustCompile("-\\d+")
-		optional = r.ReplaceAllString(optional, "")
 	}
 
 	ext := parser.GetFlagValueDefault("t", "")
@@ -243,7 +238,7 @@ func main() {
 
 	if parser.ContainsFlagStrict("word") {
 		isReg = true
-		wordPattern := regexp.MustCompile("\\w+")
+		wordPattern := regexp.MustCompile(`\w+`)
 		if !wordPattern.MatchString(target) {
 			// fmt.Println("here", target)
 			fmt.Println("You should pass in a word if set \"-word\" option")

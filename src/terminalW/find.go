@@ -1,14 +1,13 @@
 package terminalW
 
 import (
-	"io/ioutil"
 	"log"
 	"math"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/utilsW"
@@ -30,7 +29,6 @@ var Count int64
 // maximum 4 threads
 var maxThreads = make(chan struct{}, 4)
 var Verbose bool
-var CountMu sync.Mutex
 
 // how many levels to search
 var MaxLevel int32
@@ -41,8 +39,6 @@ func ChangeThreads(num int) {
 	log.Println("change threads num to", num)
 }
 
-// this function is the main part
-// acts like a framework
 func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	defer wg.Done()
 	if level > MaxLevel {
@@ -50,9 +46,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	}
 	maxThreads <- struct{}{}
 	defer func() { <-maxThreads }()
-	CountMu.Lock()
-	if Count >= NumPrint {
-		CountMu.Unlock()
+	if atomic.LoadInt64(&Count) >= NumPrint {
 		Once.Do(func() {
 			summaryString := utilsW.Sprintf("%d matches found\n", Count)
 			utilsW.Println(strings.Repeat("-", len(summaryString)))
@@ -62,8 +56,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 		os.Exit(0)
 		return
 	}
-	CountMu.Unlock()
-	subs, err := ioutil.ReadDir(rootDir)
+	subs, err := os.ReadDir(rootDir)
 	if err != nil {
 		if Verbose {
 			utilsW.Fprintln(os.Stderr, err)
@@ -74,8 +67,8 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	for _, sub := range subs {
 		subName := path.Join(rootDir, sub.Name())
 		extName := path.Ext(subName)
-		if (!FileNamesToCheck.Empty() && !FileNamesToCheck.Contains(filepath.Base(subName))) ||
-			FileNamesNOTCheck.Contains(filepath.Base(subName)) {
+		baseName := path.Base(subName)
+		if (!FileNamesToCheck.Empty() && !FileNamesToCheck.Contains(baseName)) || FileNamesNOTCheck.Contains(baseName) {
 			continue
 		}
 		if sub.IsDir() {
