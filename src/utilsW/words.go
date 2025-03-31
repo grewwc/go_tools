@@ -23,6 +23,9 @@ func init() {
 		log.Fatalln(err)
 	}
 	for line := range strW.SplitByToken(f, "\n", false) {
+		if strW.IsBlank(line) {
+			continue
+		}
 		trie.Insert(line)
 	}
 }
