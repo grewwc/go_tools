@@ -2,12 +2,12 @@ package containerW
 
 type Trie struct {
 	data map[rune]*Trie
-	end  map[rune]int
+	end  map[rune]bool
 }
 
 /** Initialize your data structure here. */
 func NewTrie() *Trie {
-	return &Trie{end: make(map[rune]int), data: make(map[rune]*Trie)}
+	return &Trie{end: make(map[rune]bool), data: make(map[rune]*Trie)}
 }
 
 /** Inserts a word into the trie. */
@@ -18,8 +18,8 @@ func (t *Trie) Insert(word string) {
 			newTrie := NewTrie()
 			cur.data[ch] = newTrie
 		}
-		if cnt+1 == len(word) && cur.end[ch] == 0 {
-			cur.end[ch] += 1
+		if cnt+len(string(ch)) == len(word) {
+			cur.end[ch] = true
 		}
 		cur = cur.data[ch]
 	}
@@ -35,8 +35,8 @@ func (t *Trie) Contains(word string) bool {
 		if _, exists := cur.data[ch]; !exists {
 			return false
 		}
-		if cnt+1 == len(word) {
-			return cur.end[ch] > 0
+		if cnt+len(string(ch)) == len(word) {
+			return cur.end[ch]
 		}
 		cur = cur.data[ch]
 	}
@@ -59,15 +59,16 @@ func (t *Trie) HasPrefix(word string) bool {
 }
 
 func (t *Trie) Delete(word string) bool {
-	if !t.Contains(word) {
-		return false
-	}
+	// if !t.Contains(word) {
+	// 	return false
+	// }
 	cur := t
 	for cnt, ch := range word {
-		if cnt+1 == len(word) {
-			cur.end[ch]--
+		if _, ok := cur.data[ch]; !ok {
+			return false
 		}
-		if count, exists := cur.end[ch]; exists && count == 0 {
+		if cnt+len(string(ch)) == len(word) {
+			cur.end[ch] = false
 			delete(cur.data, ch)
 		}
 		cur = cur.data[ch]

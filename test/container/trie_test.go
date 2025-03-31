@@ -51,7 +51,7 @@ func TestTrie(t *testing.T) {
 		// delete one word
 		trie.Delete(words[0])
 		if trie.Contains(words[0]) {
-			t.Fatalf("%v", words)
+			t.Logf("%v", words)
 			t.Fatalf("%s should not exists.", words[0])
 		}
 	}
