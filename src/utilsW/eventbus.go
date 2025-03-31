@@ -11,8 +11,6 @@ import (
 	"github.com/grewwc/go_tools/src/utilsW/_utils_helpers"
 )
 
-type Subscribe interface{}
-
 type EventBus struct {
 	m       typesW.IConcurrentMap[any, *containerW.ConcurrentHashSet[string]]
 	nameMap typesW.IConcurrentMap[string, *reflect.Method]
@@ -33,7 +31,7 @@ func NewEventBus(n_parallel int) *EventBus {
 	}
 	result := &EventBus{
 		m:       containerW.NewMutexMap[any, *containerW.ConcurrentHashSet[string]](),
-		nameMap: containerW.NewMutexMap[string, *reflect.Method](),
+		nameMap: containerW.NewConcurrentHashMap[string, *reflect.Method](nil, nil),
 		wg:      &sync.WaitGroup{},
 
 		functions:       containerW.NewConcurrentHashSet[string](nil, nil),
