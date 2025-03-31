@@ -21,7 +21,7 @@ func GetMethods(obj interface{}) []*reflect.Method {
 		if m.Type.NumIn() < 2 {
 			continue
 		}
-		if m.Type.In(1).String() == "utilsW.Subscribe" {
+		if m.Type.In(1).String() == "*utilsW.EventBus" {
 			result = append(result, &m)
 		}
 	}

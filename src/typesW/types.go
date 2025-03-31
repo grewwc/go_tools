@@ -4,6 +4,7 @@ import (
 	"hash/fnv"
 	"reflect"
 	"strings"
+	"unsafe"
 )
 
 type CompareFunc[T any] func(a, b T) int
@@ -26,13 +27,22 @@ func CreateDefaultCmp[T any]() CompareFunc[T] {
 		cmp = func(a, b T) int {
 			return strings.Compare(reflect.ValueOf(a).String(), reflect.ValueOf(b).String())
 		}
+	case reflect.Pointer:
+		cmp = func(a, b T) int {
+			return int(uintptr(unsafe.Pointer(&a))) - int(uintptr(unsafe.Pointer(&b)))
+		}
+	case reflect.Func:
+		cmp = func(a, b T) int {
+			return int(uintptr(unsafe.Pointer(&a)) - uintptr(unsafe.Pointer(&b)))
+		}
 	}
 	return cmp
 }
 
 func CreateDefaultHash[T any]() HashFunc[T] {
 	var cmp HashFunc[T]
-	realType := reflect.TypeOf(*new(T))
+	val := *new(T)
+	realType := reflect.TypeOf(val)
 	switch realType.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		cmp = func(a T) int {
@@ -47,6 +57,14 @@ func CreateDefaultHash[T any]() HashFunc[T] {
 			h := fnv.New32a()
 			h.Write(StringToBytes(reflect.ValueOf(a).String()))
 			return int(h.Sum32())
+		}
+	case reflect.Pointer:
+		cmp = func(a T) int {
+			return int(uintptr(unsafe.Pointer(&a)))
+		}
+	case reflect.Func:
+		cmp = func(a T) int {
+			return int(uintptr(unsafe.Pointer(&a)))
 		}
 	}
 	return cmp

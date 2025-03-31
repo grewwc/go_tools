@@ -33,7 +33,7 @@ func generateRandomWord() []string {
 }
 
 func TestTrie(t *testing.T) {
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1000; i++ {
 		trie = containerW.NewTrie()
 		words := generateRandomWord()
 		// add to trie

@@ -14,15 +14,15 @@ import (
 type Subscribe interface{}
 
 type EventBus struct {
-	m       typesW.IConcurrentMap[any, *containerW.ConcurrentSet[string]]
+	m       typesW.IConcurrentMap[any, *containerW.ConcurrentHashSet[string]]
 	nameMap typesW.IConcurrentMap[string, *reflect.Method]
 	wg      *sync.WaitGroup
 
-	functions       *containerW.ConcurrentSet[string]
+	functions       *containerW.ConcurrentHashSet[string]
 	functionNameMap map[string]interface{}
 	funcMu          *sync.RWMutex
 
-	topics *containerW.ConcurrentSet[string]
+	topics *containerW.ConcurrentHashSet[string]
 
 	parallel chan struct{}
 }
@@ -32,15 +32,15 @@ func NewEventBus(n_parallel int) *EventBus {
 		panic("n_parallel must greater than 0")
 	}
 	result := &EventBus{
-		m:       containerW.NewMutexMap[any, *containerW.ConcurrentSet[string]](),
+		m:       containerW.NewMutexMap[any, *containerW.ConcurrentHashSet[string]](),
 		nameMap: containerW.NewMutexMap[string, *reflect.Method](),
 		wg:      &sync.WaitGroup{},
 
-		functions:       containerW.NewConcurrentSet[string](),
+		functions:       containerW.NewConcurrentHashSet[string](nil, nil),
 		functionNameMap: make(map[string]interface{}),
 		funcMu:          &sync.RWMutex{},
 
-		topics: containerW.NewConcurrentSet[string](),
+		topics: containerW.NewConcurrentHashSet[string](nil, nil),
 
 		parallel: make(chan struct{}, n_parallel),
 	}
@@ -75,7 +75,9 @@ func (b *EventBus) Register(topic string, listener interface{}) {
 	methodNames := _utils_helpers.MethodArrToString(topic, methods)
 	b.topics.Add(topic)
 	if !b.m.Contains(listener) {
-		b.m.Put(listener, containerW.NewConcurrentSet(methodNames...))
+		s := containerW.NewConcurrentHashSet[string](nil, nil)
+		s.AddAll(methodNames...)
+		b.m.Put(listener, s)
 	} else {
 		b.m.Get(listener).AddAll(methodNames...)
 	}
@@ -163,7 +165,7 @@ outer:
 			// b.nameMapMu.RUnlock()
 			in := []reflect.Value{
 				reflect.ValueOf(obj),
-				reflect.ValueOf(0),
+				reflect.ValueOf(b),
 			}
 			if len(args) > 0 {
 				if method.Type.NumIn() <= 2 || method.Type.NumIn()-2 != len(args) {

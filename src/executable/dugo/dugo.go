@@ -27,9 +27,9 @@ var lowerSizeBound float64 = -1
 
 var threadControl = make(chan struct{}, 50)
 
-var excludes *containerW.ConcurrentSet[string] = containerW.NewConcurrentSet[string]()
+var excludes *containerW.MutexSet[string] = containerW.NewMutexSet[string]()
 
-var types *containerW.ConcurrentSet[string] = containerW.NewConcurrentSet[string]()
+var types *containerW.MutexSet[string] = containerW.NewMutexSet[string]()
 
 func listFile(path string) ([]os.DirEntry, error) {
 	threadControl <- struct{}{}

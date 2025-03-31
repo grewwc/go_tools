@@ -33,3 +33,7 @@ func init() {
 func IsWord(word string) bool {
 	return trie.Contains(word)
 }
+
+func ShowPrefix(word string, n int) []string {
+	return trie.ShowPrefix(word, n)
+}

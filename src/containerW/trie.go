@@ -68,7 +68,7 @@ func (t *Trie) Delete(word string) bool {
 			return false
 		}
 		if cnt+len(string(ch)) == len(word) {
-			cur.end[ch] = false
+			delete(cur.end, ch)
 			delete(cur.data, ch)
 		}
 		cur = cur.data[ch]
@@ -76,7 +76,7 @@ func (t *Trie) Delete(word string) bool {
 	return true
 }
 
-func showPrefixHelper(t *Trie, prefix string, n int) []string {
+func showPrefixHelper(t *Trie, prefix string, n int, isEnd bool) []string {
 	if len(prefix) == 0 || n == 0 {
 		return nil
 	}
@@ -86,18 +86,18 @@ func showPrefixHelper(t *Trie, prefix string, n int) []string {
 	}
 	s := NewQueue()
 	curr := prefix
-	currMap := t.data
-	s.Enqueue(NewTuple(currMap, curr))
+	currTrie := t
+	s.Enqueue(NewTuple(currTrie, curr, isEnd))
 	for !s.Empty() {
 		currTuple := s.Dequeue().(*Tuple)
-		currMap, curr = currTuple.Get(0).(map[rune]*Trie), currTuple.Get(1).(string)
-		if curr != "" {
+		currTrie, curr, isEnd = currTuple.Get(0).(*Trie), currTuple.Get(1).(string), currTuple.Get(2).(bool)
+		if curr != "" && isEnd {
 			res = append(res, curr)
 			n--
 		}
-		for ch, t := range currMap {
+		for ch, subT := range currTrie.data {
 			if n > 0 {
-				s.Enqueue(NewTuple(t.data, curr+string(ch)))
+				s.Enqueue(NewTuple(subT, curr+string(ch), currTrie.end[ch]))
 			} else {
 				break
 			}
@@ -106,19 +106,22 @@ func showPrefixHelper(t *Trie, prefix string, n int) []string {
 	return res
 }
 
-func (t *Trie) ShowPrefix(prefix string, n int) []string {
-	if len(prefix) == 0 || n == 0 {
+func (t *Trie) ShowPrefix(prefix string, totalNum int) []string {
+	if len(prefix) == 0 || totalNum == 0 {
 		return nil
 	}
-	if n < 0 {
-		n = 128
+	if totalNum < 0 {
+		totalNum = 128
 	}
+	var ch rune
+	var exists bool
+	var prefixInDict bool
 	// find next prefix
-	for _, ch := range prefix {
-		if _, exists := t.data[ch]; !exists {
+	for _, ch = range prefix {
+		if t, exists = t.data[ch]; !exists {
 			return nil
 		}
-		t = t.data[ch]
+		prefixInDict = t.end[ch]
 	}
-	return showPrefixHelper(t, prefix, n)
+	return showPrefixHelper(t, prefix, totalNum, prefixInDict)
 }
