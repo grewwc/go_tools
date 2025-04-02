@@ -1,6 +1,7 @@
 package strW
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"log"
@@ -111,12 +112,20 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 		if reader == nil {
 			return
 		}
+
+		r := bufio.NewReader(reader)
 		var buf bytes.Buffer
-		b := make([]byte, 1)
-		curr := make([]byte, 0, len(tokenBytes))
 		for {
-			n, err := reader.Read(b)
-			if n <= 0 {
+			if buf.Len() >= len(tokenBytes) && bytes.Equal(buf.Bytes()[buf.Len()-len(tokenBytes):], tokenBytes) {
+				str := buf.String()
+				if !keepToken {
+					str = str[:len(str)-len(tokenBytes)]
+				}
+				ch <- str
+				buf.Reset()
+			}
+			d, err := r.ReadBytes(token[0])
+			if len(d) == 0 {
 				break
 			}
 			if err != nil && err != io.EOF {
@@ -124,28 +133,23 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 				break
 			}
 			end := (err == io.EOF)
-			if len(curr) < len(tokenBytes) {
-				curr = append(curr, b[0])
-			} else {
-				curr = curr[1:]
-				curr = append(curr, b[0])
+			// read next len(tokenBytes)-1
+			// n, err := r.Read(rest)
+			buf.Write(d)
+
+			rest, err := r.Peek(len(tokenBytes) - 1)
+			if len(rest) < len(tokenBytes)-1 || err == io.EOF {
+				end = true
 			}
-			if _, err := buf.Write(b); err != nil {
-				log.Fatalln(err)
+			if bytes.Equal(rest, tokenBytes[1:]) {
+				buf.Write(rest)
+				// fmt.Println("==>")
+				// fmt.Println(buf.String())
+				// fmt.Println("<==")
+
+				r.Read(rest)
 			}
-			if bytes.Equal(curr, tokenBytes) {
-				buf.Truncate(buf.Len() - len(tokenBytes))
-				if buf.String() != "" {
-					ch <- buf.String()
-					buf.Reset()
-				}
-				if keepToken {
-					if _, err := buf.Write(curr); err != nil {
-						log.Fatalln(err)
-					}
-				}
-				curr = make([]byte, 0, len(tokenBytes))
-			}
+
 			if end {
 				break
 			}

@@ -92,16 +92,23 @@ func handleResponse(resp io.Reader) <-chan string {
 		defer func() {
 			close(ch)
 			if err := recover(); err != nil {
-				log.Fatalln(err)
+				panic(err)
 			}
 		}()
 		for content := range strW.SplitByToken(resp, keyword, true) {
 			if content == keyword || content == "" {
 				continue
 			}
-			b := bytes.TrimRight(typesW.StringToBytes(content)[len(keyword)-1:], "\n\t ")
-			b = bytes.TrimSuffix(b, doneKeyword)
+			b := typesW.StringToBytes(content)
 			b = bytes.TrimSpace(b)
+			b = bytes.TrimSuffix(b, doneKeyword)
+			b = bytes.TrimSuffix(b, typesW.StringToBytes(keyword))
+			b = bytes.TrimSpace(b)
+			b = append([]byte{'{'}, b...)
+			// fmt.Println("==>")
+			// fmt.Println(string(b))
+			// fmt.Println("===")
+			// os.Exit(0)
 			j := utilsW.NewJsonFromByte(b)
 			ch <- getText(j)
 		}
