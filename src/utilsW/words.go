@@ -12,7 +12,7 @@ import (
 var trie *containerW.Trie
 
 const (
-	filename = "google-10000-english.txt"
+	filename = "words.txt"
 )
 
 func init() {

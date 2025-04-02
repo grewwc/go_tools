@@ -1,5 +1,7 @@
 package containerW
 
+import "math"
+
 type Trie struct {
 	data map[rune]*Trie
 	end  map[rune]bool
@@ -94,15 +96,19 @@ func showPrefixHelper(t *Trie, prefix string, n int, isEnd bool) []string {
 		if curr != "" && isEnd {
 			res = append(res, curr)
 			n--
+			if n <= 0 {
+				goto end
+			}
 		}
 		for ch, subT := range currTrie.data {
 			if n > 0 {
 				s.Enqueue(NewTuple(subT, curr+string(ch), currTrie.end[ch]))
 			} else {
-				break
+				goto end
 			}
 		}
 	}
+end:
 	return res
 }
 
@@ -111,7 +117,7 @@ func (t *Trie) ShowPrefix(prefix string, totalNum int) []string {
 		return nil
 	}
 	if totalNum < 0 {
-		totalNum = 128
+		totalNum = math.MaxInt
 	}
 	var ch rune
 	var exists bool
