@@ -2,87 +2,124 @@ package utilsW
 
 import (
 	"fmt"
-	"os"
+	"sync/atomic"
 	"time"
+
+	"github.com/grewwc/go_tools/src/containerW"
 )
 
 // StopWatch is "auto-reset" stopwatch
 type StopWatch struct {
-	start, stop int64
-	running     bool
+	start   int64
+	records *containerW.ConcurrentHashMap[int, int64]
 }
 
-func NewStopWatch() StopWatch {
-	return StopWatch{}
-}
-
-func (s *StopWatch) Start() {
-	s.start = time.Now().UnixNano()
-	s.running = true
-}
-
-func (s *StopWatch) Stop() {
-	s.stop = time.Now().UnixNano()
-	s.running = false
-}
-
-func (s StopWatch) Nanos() float64 {
-	if s.running {
-		fmt.Fprintln(os.Stderr, "stopwatch is running")
-		return -1
+func NewStopWatch() *StopWatch {
+	return &StopWatch{
+		records: containerW.NewConcurrentHashMap[int, int64](
+			func(val int) int {
+				return val
+			},
+			func(a, b int) int {
+				return a - b
+			}),
+		start: time.Now().UnixNano(),
 	}
-	return float64(s.stop - s.start)
 }
 
-func (s StopWatch) Micros() float64 {
-	if s.running {
-		fmt.Fprintln(os.Stderr, "stopwatch is running")
-		return -1
-	}
-	return float64(s.stop-s.start) / 1e3
+func (s *StopWatch) curr() int64 {
+	return time.Now().UnixNano()
 }
 
-func (s StopWatch) Mills() float64 {
-	if s.running {
-		fmt.Fprintln(os.Stderr, "stopwatch is running")
-		return -1
-	}
-	return float64(s.stop-s.start) / 1e6
+func (s *StopWatch) Record() {
+	s.records.Put(s.records.Size()+1, s.curr())
 }
 
-func (s StopWatch) Seconds() float64 {
-	if s.running {
-		fmt.Fprintln(os.Stderr, "stopwatch is running")
-		return -1
-	}
-	return float64(s.stop-s.start) / 1e9
+func (s *StopWatch) NumRecords() int {
+	return s.records.Size()
 }
 
-func (s StopWatch) Minutes() float64 {
-	if s.running {
-		fmt.Fprintln(os.Stderr, "stopwatch is running")
-		return -1
-	}
+func (s *StopWatch) Nanos() float64 {
+	return float64(s.curr() - atomic.LoadInt64(&s.start))
+}
+
+func (s *StopWatch) Micros() float64 {
+	return float64(s.curr()-atomic.LoadInt64(&s.start)) / 1e3
+}
+
+func (s *StopWatch) Mills() float64 {
+	return s.Micros() / 1e3
+}
+
+func (s *StopWatch) Seconds() float64 {
+	return s.Mills() / 1e3
+}
+
+func (s *StopWatch) Minutes() float64 {
 	return s.Seconds() / 60.0
 }
 
-func (s StopWatch) Hours() float64 {
-	if s.running {
-		fmt.Fprintln(os.Stderr, "stopwatch is running")
-		return -1
-	}
+func (s *StopWatch) Hours() float64 {
 	return s.Minutes() / 60
 }
 
-func (s StopWatch) Days() float64 {
-	if s.running {
-		fmt.Fprintln(os.Stderr, "stopwatch is running")
-		return -1
-	}
+func (s *StopWatch) Days() float64 {
 	return s.Hours() / 24.0
 }
 
-func (s StopWatch) String() string {
-	s.Stop()
-	return fmt.Sprintf("%v", float64(s.stop-s.start))
+func (s *StopWatch) Tell() {
+	Println(format(float64(s.curr() - atomic.LoadInt64(&s.start))))
+}
+
+func format(cost float64) string {
+	unit := "ns"
+	modify := false
+	if cost > 1e3 {
+		modify = true
+		cost /= 1e3
+		unit = "us"
+	}
+	if modify && cost > 1e3 {
+		cost /= 1e3
+		unit = "ms"
+		modify = true
+	} else {
+		modify = false
+	}
+
+	if modify && cost > 1e3 {
+		cost /= 1e3
+		unit = "s"
+	} else {
+		modify = false
+	}
+	if modify && cost > 60 {
+		cost /= 60
+		unit = "min"
+	} else {
+		modify = false
+	}
+	if modify && cost > 24 {
+		cost /= 24
+		unit = "hour"
+	} else {
+		modify = false
+	}
+	return fmt.Sprintf("%.3f (%s)", cost, unit)
+}
+
+func (s *StopWatch) TellAll() {
+	start := atomic.LoadInt64(&s.start)
+	prev := start
+	for tup := range s.records.IterateEntry() {
+		ts := tup.Get(1).(int64)
+		Println(format(float64(ts - prev)))
+		prev = ts
+	}
+	Println(format(float64(s.curr() - prev)))
+}
+
+func (s *StopWatch) Clear() {
+	s.records.Clear()
+	atomic.StoreInt64(&s.start, s.curr())
 }

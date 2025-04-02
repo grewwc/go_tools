@@ -275,3 +275,24 @@ func (cm *ConcurrentHashMap[K, V]) Iterate() <-chan K {
 	}()
 	return ch
 }
+
+// Iterate is not thread safe
+func (cm *ConcurrentHashMap[K, V]) IterateEntry() <-chan *Tuple {
+	ch := make(chan *Tuple)
+	go func() {
+		defer close(ch)
+		cm.mutex.RLock()
+		defer cm.mutex.RUnlock()
+		for _, bucket := range cm.buckets {
+			if bucket == nil {
+				continue
+			}
+			bucket.mu.RLock()
+			for entry := range bucket.data.IterateEntry() {
+				ch <- NewTuple(entry.k, entry.v)
+			}
+			bucket.mu.RUnlock()
+		}
+	}()
+	return ch
+}

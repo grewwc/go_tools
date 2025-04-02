@@ -1,6 +1,7 @@
 package utilsW
 
 import (
+	"bufio"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,7 +23,10 @@ func init() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	for line := range strW.SplitByToken(f, "\n", false) {
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
 		if strW.IsBlank(line) {
 			continue
 		}
