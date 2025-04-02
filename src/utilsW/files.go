@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,28 +15,37 @@ import (
 	"github.com/grewwc/go_tools/src/strW"
 )
 
-var ch = make(chan interface{}, 1)
-
 // TarGz add all srcNames to outName as tar.gz file
-func TarGz(outName string, srcNames []string, verbose bool) error {
+func TarGz(outName string, srcNames []string, verbose, showProgress bool) error {
 	out, err := os.Create(outName)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
+	cnt := 0
 
 	gw := gzip.NewWriter(out)
 	tw := tar.NewWriter(gw)
 	defer gw.Close()
 	defer tw.Close()
 
+	var buf [8 * 1024 * 1024]byte
+
 	for _, filename := range srcNames {
 		info, err := os.Stat(filename)
 		if err != nil {
 			return err
 		}
+		link := info.Name()
+		// read link
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			link, err = os.Readlink(filename)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
 
-		th, err := tar.FileInfoHeader(info, info.Name())
+		th, err := tar.FileInfoHeader(info, link)
 		if err != nil {
 			return err
 		}
@@ -44,18 +54,23 @@ func TarGz(outName string, srcNames []string, verbose bool) error {
 		if err = tw.WriteHeader(th); err != nil {
 			return err
 		}
-		if !info.IsDir() {
+		if info.Mode().IsRegular() {
 			src, err := os.Open(filename)
 			if err != nil {
 				return err
 			}
-			if _, err = io.Copy(tw, src); err != nil {
+			if _, err = io.CopyBuffer(tw, src, buf[:]); err != nil {
 				src.Close()
 				return err
 			}
 			src.Close()
 			if verbose {
-				fmt.Println(filename)
+				msg := filename
+				if showProgress {
+					cnt++
+					msg = fmt.Sprintf("%s (%d)", msg, cnt)
+				}
+				fmt.Println(msg)
 			}
 		}
 	}

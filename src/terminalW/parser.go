@@ -20,20 +20,25 @@ const (
 )
 
 type Parser struct {
-	Optional   map[string]string
-	Positional *containerW.OrderedSet
+	Optional      map[string]string // key is prefix with '-'
+	Positional    *containerW.OrderedSet
+	defaultValMap *containerW.TreeMap[string, string] // key is prefix with '-'
 	*flag.FlagSet
 }
 
 func NewParser() *Parser {
 	return &Parser{
-		Optional:   make(map[string]string),
-		Positional: containerW.NewOrderedSet(),
-		FlagSet:    flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
+		Optional:      make(map[string]string),
+		Positional:    containerW.NewOrderedSet(),
+		defaultValMap: containerW.NewTreeMap[string, string](nil),
+		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
 	}
 }
 
 func (r *Parser) GetFlagVal(flagName string) (string, error) {
+	if len(flagName) == 0 {
+		return "", errors.New("flagName is empty")
+	}
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
@@ -130,7 +135,7 @@ func (r *Parser) GetMultiFlagValDefault(flagNames []string, defaultVal string) s
 func (r *Parser) MustGetFlagVal(flagName string) string {
 	res, err := r.GetFlagVal(flagName)
 	if err != nil {
-		panic(err)
+		return r.GetDefaultValue(flagName)
 	}
 	return res
 }
@@ -237,6 +242,18 @@ func (r *Parser) GetNumArgs() int {
 		}
 	}
 	return res
+}
+
+// GetDefaultValue return default value of key.
+// If not found, return empty string
+func (r *Parser) GetDefaultValue(key string) string {
+	if len(key) == 0 {
+		return ""
+	}
+	if key[0] != '-' {
+		key = fmt.Sprintf("-%s", key)
+	}
+	return r.defaultValMap.GetOrDefault(key, "")
 }
 
 func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
@@ -350,6 +367,8 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	}
 	r.VisitAll(func(f *flag.Flag) {
 		key := fmt.Sprintf("-%s%c", f.Name, sep)
+		// fmt.Println("==>", f.Name, f.DefValue)
+		r.defaultValMap.Put(fmt.Sprintf("-%s", f.Name), f.DefValue)
 		indices := strW.KmpSearch(cmd, key)
 		if len(indices) >= 1 {
 			for _, idx := range indices {
@@ -366,24 +385,30 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	r.Optional = make(map[string]string)
 	// fmt.Println("keys", keys)
 	// fmt.Println("vals", vals)
+	// fmt.Println("boolKeys", boolKeys)
 	for i, key := range keys {
 		key = strings.ReplaceAll(key, string(dash), "-")
 		if i < len(vals) {
 			r.Optional[key] = vals[i]
 		} else {
-			r.Optional[key] = ""
+			r.Optional[key] = r.defaultValMap.GetOrDefault(key, "")
 		}
 	}
 	for _, key := range boolKeys {
 		key = strings.ReplaceAll(key, string(dash), "-")
-		r.Optional[key] = ""
+		defaultVal := r.defaultValMap.GetOrDefault(key, "")
+		if defaultVal == "false" {
+			r.Optional[key] = "true"
+		} else {
+			r.Optional[key] = "false"
+		}
 	}
 }
 
 func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
-	if len(os.Args) <= 1 {
-		return
-	}
+	// if len(os.Args) <= 1 {
+	// 	return
+	// }
 
 	args := make([]string, len(os.Args))
 	for i, arg := range os.Args {
@@ -409,9 +434,9 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	cmd = strW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
 	cmdSlice := strW.SplitNoEmptyKeepQuote(cmd, ' ')
-	if len(cmdSlice) <= 1 {
-		return
-	}
+	// if len(cmdSlice) <= 1 {
+	// 	return
+	// }
 	cmd = strings.Join(cmdSlice[1:], fmt.Sprintf("%c", sep))
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)
 	r.parseArgs(cmd, boolOptionals...)

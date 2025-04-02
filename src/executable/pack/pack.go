@@ -124,9 +124,10 @@ func main() {
 	parser.Bool("l", false, "only list files in the tar.gz")
 	parser.String("nt", "", "exclude file type. separated by comma, dot is NOT required.")
 	parser.String("t", "", "only include file type, if set, ignore -nt & -ex. separated by comma, dot is NOT required.")
-	parser.ParseArgsCmd("v", "u", "h", "clean", "l")
+	parser.Bool("prog", true, "show progress (default is verbose)")
+	parser.ParseArgsCmd("v", "u", "h", "clean", "l", "prog")
 	// fmt.Println(parser)
-	if parser == nil || parser.ContainsFlagStrict("h") {
+	if parser.Empty() || parser.ContainsFlagStrict("h") {
 		printHelp(parser)
 		return
 	}
@@ -172,6 +173,7 @@ func main() {
 	}
 
 	verbose := parser.ContainsFlagStrict("v")
+	showProgress := parser.MustGetFlagVal("prog")
 	excludeSet := containerW.NewSet()
 
 	for _, ex := range excludes {
@@ -282,7 +284,7 @@ func main() {
 		}
 		return
 	}
-	if err = utilsW.TarGz(outName, allFiles, verbose); err != nil {
+	if err = utilsW.TarGz(outName, allFiles, verbose, showProgress == "true"); err != nil {
 		if parser.ContainsFlagStrict("clean") {
 			clean(outName)
 		}
