@@ -41,7 +41,7 @@ func transferImgToBase64(url string, isUrl bool) {
 			panic(err)
 		}
 	} else { // clipboard
-		buf = typesW.StringToBytes(utilsW.ReadClipboardText())
+		buf = typesW.StrToBytes(utilsW.ReadClipboardText())
 	}
 	str := base64.StdEncoding.EncodeToString(buf)
 	if err = os.WriteFile(outName, []byte(str), 0666); err != nil {
@@ -53,7 +53,7 @@ func base64ToImage(fname, outName string) {
 	var imgBytes []byte
 	var err error
 	if fname == "" {
-		imgBytes = typesW.StringToBytes(utilsW.ReadClipboardText())
+		imgBytes = typesW.StrToBytes(utilsW.ReadClipboardText())
 	} else {
 		imgBytes, err = os.ReadFile(fname)
 		if err != nil {
@@ -62,11 +62,11 @@ func base64ToImage(fname, outName string) {
 	}
 
 	s := ";base64,"
-	indices := strW.KmpSearchBytes(imgBytes, typesW.StringToBytes(s))
+	indices := strW.KmpSearchBytes(imgBytes, typesW.StrToBytes(s))
 	if len(indices) == 1 {
 		imgBytes = imgBytes[indices[0]+len(s):]
 	}
-	img := typesW.BytesToString(imgBytes)
+	img := typesW.BytesToStr(imgBytes)
 	b, err := base64.StdEncoding.DecodeString(img)
 	if err != nil {
 		panic(err)

@@ -82,7 +82,7 @@ func plus(a, b string) string {
 		idx++
 	}
 	res = res[idx:]
-	str := typesW.BytesToString(res)
+	str := typesW.BytesToStr(res)
 	str = prependLeadingZero(str, numDot)
 	str = removeSuffixZero(str)
 	if isMinus {
@@ -177,7 +177,7 @@ func Minus(a, b string) string {
 		idx++
 	}
 	res = res[idx:]
-	str := typesW.BytesToString(res)
+	str := typesW.BytesToStr(res)
 	str = prependLeadingZero(str, numDot)
 	str = removeSuffixZero(str)
 	if isMinus {
@@ -224,7 +224,7 @@ func mulInteger(s1, s2 string) string {
 			hold = "0"
 		}
 	}
-	return typesW.BytesToString(res)
+	return typesW.BytesToStr(res)
 }
 
 func mul(a, b string) string {

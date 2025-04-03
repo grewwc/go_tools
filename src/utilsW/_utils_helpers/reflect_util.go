@@ -40,8 +40,8 @@ func RemoveTopicFromMethodName(topic, methodName string) string {
 	if !strings.HasPrefix(methodName, key) {
 		return methodName
 	}
-	b := typesW.StringToBytes(methodName)
-	return typesW.BytesToString(bytes.TrimPrefix(b, typesW.StringToBytes(key)))
+	b := typesW.StrToBytes(methodName)
+	return typesW.BytesToStr(bytes.TrimPrefix(b, typesW.StrToBytes(key)))
 }
 
 func InterfaceToValue(args ...interface{}) []reflect.Value {

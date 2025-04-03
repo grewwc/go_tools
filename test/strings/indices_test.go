@@ -25,7 +25,7 @@ func genRandomStrings(n int) string {
 	for i, idx := range indices {
 		buf[i] = allChars[idx]
 	}
-	return typesW.BytesToString(buf)
+	return typesW.BytesToStr(buf)
 }
 
 func TestContains(t *testing.T) {

@@ -39,7 +39,7 @@ func isDigit(ch byte) bool {
 }
 
 func reportErr(msg []byte) {
-	panic(fmt.Sprintf("invalid expression: %s", typesW.BytesToString(msg)))
+	panic(fmt.Sprintf("invalid expression: %s", typesW.BytesToStr(msg)))
 }
 
 func pow(a, b string) string {
@@ -112,7 +112,7 @@ func calc(expr []byte) string {
 				return ""
 			}
 			idx += i + 1
-			nestedResult := calc(typesW.StringToBytes(processInputStr(typesW.BytesToString(expr[i+1 : idx]))))
+			nestedResult := calc(typesW.StrToBytes(processInputStr(typesW.BytesToStr(expr[i+1 : idx]))))
 			if nestedResult == "" {
 				return ""
 			}
@@ -229,7 +229,7 @@ func calc(expr []byte) string {
 func test() {
 	x := "1-1+1"
 	x = "2*2"
-	res := calc(typesW.StringToBytes(processInputStr(x)))
+	res := calc(typesW.StrToBytes(processInputStr(x)))
 	fmt.Println(res)
 }
 
@@ -254,7 +254,7 @@ func main() {
 		prec = parser.GetNumArgs()
 	}
 
-	res := calc(typesW.StringToBytes(processInputStr(expr)))
+	res := calc(typesW.StrToBytes(processInputStr(expr)))
 	fmt.Println(res)
 	// test()
 

@@ -3,9 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -71,13 +69,13 @@ func getText(j *utilsW.Json) string {
 		// thinking
 		content := delta.GetString("reasoning_content")
 		if content != "" && atomic.LoadInt32(&thinking) == 0 {
-			content = fmt.Sprintf("\n%s\n%s", thinkingTag, content)
+			content = utilsW.Sprintf("\n%s\n%s", thinkingTag, content)
 			atomic.AddInt32(&thinking, 1)
 		}
 		return content
 	} else {
 		if atomic.LoadInt32(&thinking) == 1 {
-			content = fmt.Sprintf("\n%s\n%s", endThinkingTag, content)
+			content = utilsW.Sprintf("\n%s\n%s", endThinkingTag, content)
 			atomic.AddInt32(&thinking, -1)
 		}
 	}
@@ -86,28 +84,26 @@ func getText(j *utilsW.Json) string {
 
 func handleResponse(resp io.Reader) <-chan string {
 	keyword := "data: {"
-	doneKeyword := typesW.StringToBytes("data: [DONE]")
+	doneKeyword := typesW.StrToBytes("data: [DONE]")
 	ch := make(chan string)
 	go func() {
 		defer func() {
+			recover()
 			close(ch)
-			if err := recover(); err != nil {
-				panic(err)
-			}
 		}()
 		for content := range strW.SplitByToken(resp, keyword, true) {
 			if content == keyword || content == "" {
 				continue
 			}
-			b := typesW.StringToBytes(content)
+			b := typesW.StrToBytes(content)
 			b = bytes.TrimSpace(b)
 			b = bytes.TrimSuffix(b, doneKeyword)
-			b = bytes.TrimSuffix(b, typesW.StringToBytes(keyword))
+			b = bytes.TrimSuffix(b, typesW.StrToBytes(keyword))
 			b = bytes.TrimSpace(b)
 			b = append([]byte{'{'}, b...)
-			// fmt.Println("==>")
-			// fmt.Println(string(b))
-			// fmt.Println("===")
+			// utilsW.Println("==>")
+			// utilsW.Println(string(b))
+			// utilsW.Println("===")
 			// os.Exit(0)
 			j := utilsW.NewJsonFromByte(b)
 			ch <- getText(j)
@@ -120,7 +116,7 @@ func init() {
 	config := utilsW.GetAllConfig()
 	apiKey = config.GetOrDefault("api_key", "").(string)
 	if apiKey == "" {
-		fmt.Println("set api_key in ~/.configW")
+		utilsW.Println("set api_key in ~/.configW")
 		os.Exit(0)
 	}
 
@@ -152,7 +148,7 @@ func buildMessageArr(n int) []Message {
 		n = len(lines)
 	}
 	if len(lines) > maxHistoryLines {
-		utilsW.WriteToFile(historyFile, typesW.StringToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
+		utilsW.WriteToFile(historyFile, typesW.StrToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
 	}
 	return result[len(lines)-n:]
 }
@@ -184,7 +180,7 @@ func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 		tempParser := terminalW.NewParser()
 		tempParser.Bool("x", false, "")
 		tempParser.Bool("c", false, "")
-		tempParser.ParseArgs(fmt.Sprintf("a %s", question), "x", "c")
+		tempParser.ParseArgs(utilsW.Sprintf("a %s", question), "x", "c")
 		if tempParser.GetFlagValueDefault("f", "") != "" {
 			parsed.SetFlagValue("f", tempParser.GetFlagValueDefault("f", ""))
 		}
@@ -196,7 +192,7 @@ func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 		}
 		question = strings.Join(tempParser.GetPositionalArgs(true), " ")
 		if tempParser.GetNumArgs() != -1 {
-			question = fmt.Sprintf("%s -%d", question, tempParser.GetNumArgs())
+			question = utilsW.Sprintf("%s -%d", question, tempParser.GetNumArgs())
 		}
 		nHistory = getNumHistory(tempParser)
 	} else {
@@ -249,15 +245,6 @@ func getWriteResultFile(parsed *terminalW.Parser) *os.File {
 func main() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	sigCh1 := make(chan os.Signal, 1)
-	signal.Notify(sigCh1, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		for range sigCh1 {
-			fmt.Println("Exit.")
-			<-sigChan
-			os.Exit(0)
-		}
-	}()
 
 	parser := terminalW.NewParser()
 	parser.Int("history", defaultNumHistory, "number of history")
@@ -310,7 +297,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		if strings.TrimSpace(question) == "" {
 			continue
 		}
-		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
+		curr.WriteString(utilsW.Sprintf("%s\x00%s\x01", "user", question))
 
 		nextModel := _ai_helpers.GetModelByInput(model, &question)
 		model = nextModel
@@ -337,7 +324,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 			fileids := strings.Join(fileidArr, ",")
 			msg := Message{
 				Role:    "system",
-				Content: fmt.Sprintf("fileid://%s", fileids),
+				Content: utilsW.Sprintf("fileid://%s", fileids),
 			}
 			requestBody.Messages = append(requestBody.Messages, msg)
 			requestBody.Model = _ai_helpers.QWEN_LONG
@@ -349,26 +336,16 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 			Role:    "user",
 			Content: question,
 		})
-		jsonData, err := json.Marshal(requestBody)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		// 创建 POST 请求
-		req, err := http.NewRequest("POST", _ai_helpers.GetEndpoint(), bytes.NewBuffer(jsonData))
-		if err != nil {
-			log.Fatalln(err)
-		}
+		jsonData, _ := json.Marshal(requestBody)
+		req, _ := http.NewRequest("POST", _ai_helpers.GetEndpoint(), bytes.NewBuffer(jsonData))
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		req.Header.Set("Content-Type", "application/json")
 		// 发送请求
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		resp, _ := client.Do(req)
 		curr.WriteString("assistant\x00")
 		ch := handleResponse(resp.Body)
 
-		fmt.Printf("[%s] ", color.GreenString(requestBody.Model))
+		utilsW.Printf("[%s] ", color.GreenString(requestBody.Model))
 		for {
 			select {
 			case <-sigChan:
@@ -377,7 +354,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 				if !ok {
 					goto end
 				}
-				fmt.Fprint(out, content)
+				utilsW.Fprint(out, content)
 				if atomic.LoadInt32(&thinking) == 1 {
 					continue
 				}
@@ -391,7 +368,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		resp.Body.Close()
 		curr.WriteByte('\x01')
 		appendHistory(curr.String())
-		fmt.Println()
+		utilsW.Println()
 		if shouldQuit {
 			return
 		}

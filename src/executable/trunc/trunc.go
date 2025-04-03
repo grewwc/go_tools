@@ -48,8 +48,8 @@ func removeNewLine(name string) error {
 			return err
 		}
 		if len(b) > 0 {
-			line := typesW.BytesToString(bytes.Trim(b, "\n"))
-			if typesW.BytesToString(bytes.TrimSpace(b)) != "" {
+			line := typesW.BytesToStr(bytes.Trim(b, "\n"))
+			if typesW.BytesToStr(bytes.TrimSpace(b)) != "" {
 				lines = append(lines, line)
 			}
 		}
@@ -57,7 +57,7 @@ func removeNewLine(name string) error {
 			break
 		}
 	}
-	utilsW.WriteToFile(name, typesW.StringToBytes(strings.Join(lines, "\n")))
+	utilsW.WriteToFile(name, typesW.StrToBytes(strings.Join(lines, "\n")))
 	return nil
 }
 

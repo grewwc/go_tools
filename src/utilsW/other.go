@@ -191,13 +191,6 @@ func UserInput(msg string, multiline bool) string {
 	return strings.Join(lines, "\n")
 }
 
-func kill(cmd *exec.Cmd) error {
-	kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(cmd.Process.Pid))
-	kill.Stderr = os.Stderr
-	kill.Stdout = os.Stdout
-	return kill.Run()
-}
-
 // GetCommandList seperate cmd to []string
 func GetCommandList(cmd string) []string {
 	cmd = strings.ReplaceAll(cmd, ",", " ")

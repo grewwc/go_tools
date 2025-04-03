@@ -1,4 +1,4 @@
-package algoriwhtmW
+package test
 
 import (
 	"math/rand"

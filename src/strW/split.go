@@ -106,7 +106,7 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 		log.Fatalln("token should not be empty")
 	}
 	ch := make(chan string)
-	tokenBytes := typesW.StringToBytes(token)
+	tokenBytes := typesW.StrToBytes(token)
 	go func() {
 		defer close(ch)
 		if reader == nil {
@@ -129,7 +129,7 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 				break
 			}
 			if err != nil && err != io.EOF {
-				log.Fatalln(err)
+				// log.Fatalln(err)
 				break
 			}
 			end := (err == io.EOF)

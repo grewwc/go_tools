@@ -55,7 +55,7 @@ func CreateDefaultHash[T any]() HashFunc[T] {
 	case reflect.String:
 		cmp = func(a T) int {
 			h := fnv.New32a()
-			h.Write(StringToBytes(reflect.ValueOf(a).String()))
+			h.Write(StrToBytes(reflect.ValueOf(a).String()))
 			return int(h.Sum32())
 		}
 	case reflect.Pointer:
