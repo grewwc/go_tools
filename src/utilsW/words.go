@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/strW"
@@ -15,11 +16,13 @@ import (
 
 var trie *containerW.Trie
 
+var once sync.Once
+
 const (
 	filename = "words.txt"
 )
 
-func init() {
+func initDict() {
 	wordFile := filepath.Join(GetDirOfTheFile(), filename)
 	trie = containerW.NewTrie()
 	f, err := os.Open(wordFile)
@@ -51,9 +54,11 @@ func init() {
 }
 
 func IsWord(word string) bool {
+	once.Do(initDict)
 	return trie.Contains(word)
 }
 
 func ShowPrefix(word string, n int) []string {
+	once.Do(initDict)
 	return trie.ShowPrefix(word, n)
 }
