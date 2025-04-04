@@ -114,7 +114,7 @@ func (s *StopWatch) TellAll() {
 	start := atomic.LoadInt64(&s.start)
 	for tup := range s.records.IterateEntry() {
 		ts := tup.Get(1).(int64)
-		fmt.Printf("%s: %s", tup.Get(0).(string), format(float64(ts-start)))
+		fmt.Printf("%s: %s\n", tup.Get(0).(string), format(float64(ts-start)))
 	}
 	fmt.Println(format(float64(s.curr() - start)))
 }
