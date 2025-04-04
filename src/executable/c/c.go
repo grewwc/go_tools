@@ -229,6 +229,8 @@ func calc(expr []byte) string {
 func test() {
 	x := "1-1+1"
 	x = "2*2"
+	x = `(4527.9869-4661)/4661*100`
+	prec = 16
 	res := calc(typesW.StrToBytes(processInputStr(x)))
 	fmt.Println(res)
 }
@@ -249,6 +251,7 @@ func main() {
 	}
 
 	expr := parser.Positional.ToStringSlice()[0]
+	// fmt.Println(parser)
 	prec = parser.GetIntFlagValOrDefault("prec", 16)
 	if parser.GetNumArgs() != -1 {
 		prec = parser.GetNumArgs()

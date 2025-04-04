@@ -64,7 +64,7 @@ func removeLeadingZero(str string) (string, int) {
 		return str, 0
 	}
 	idx := 0
-	for idx+1 < len(str) && str[idx] == '0' {
+	for idx+1 < len(str) && str[idx] == '0' && str[idx+1] != '.' {
 		idx++
 	}
 	return str[idx:], idx
