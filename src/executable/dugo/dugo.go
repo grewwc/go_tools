@@ -68,7 +68,7 @@ func walkDir(root string, fileSize chan<- int64, wg *sync.WaitGroup) {
 
 func printInfo(nFiles, fileSize int64, numSpace int) {
 	fs := formatFileSize(fileSize)
-	utilsW.Printf("%s%d files\t%s\n", strings.Repeat(" ", numSpace), nFiles, fs)
+	fmt.Printf("%s%d files\t%s\n", strings.Repeat(" ", numSpace), nFiles, fs)
 }
 
 func formatFileSize(fileSize int64) string {
@@ -180,7 +180,7 @@ func checkOneFile(f string) {
 	sz := info.Size()
 	if sz > int64(lowerSizeBound) {
 		fs := formatFileSize(sz)
-		utilsW.Printf("%s  \t%s\n", color.YellowString(f), fs)
+		fmt.Printf("%s  \t%s\n", color.YellowString(f), fs)
 	}
 }
 

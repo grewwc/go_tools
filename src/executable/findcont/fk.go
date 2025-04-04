@@ -13,7 +13,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"unicode/utf8"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/strW"
@@ -39,7 +38,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 	file, err := os.Open(filename)
 	if err != nil {
 		if terminalW.Verbose {
-			utilsW.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, err)
 		}
 		return
 	}
@@ -47,7 +46,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 	var matched bool
 	var matchedStrings []string
 	scanner := bufio.NewScanner(file)
-	scanner.Buffer(make([]byte, 0, 100), 1024*1024*16)
+	// scanner.Buffer(make([]byte, 0, 100), 1024*1024*16)
 	lineno := 0
 	lineCnt := 1
 	var line string
@@ -57,18 +56,22 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			line = scanner.Text()
 		}
 		for lineCnt < numLines && scanner.Scan() {
-			var sep string
-			no, _ := utf8.DecodeLastRuneInString(line)
-			if no < 256 && no != ' ' {
-				sep = " "
-			}
-			line += sep + strings.TrimSpace(scanner.Text())
+			// no, _ := utf8.DecodeLastRuneInString(line)
+			// if no < 256 && no != ' ' {
+			// 	sep = " "
+			// }
+			line += scanner.Text()
 			// fmt.Println("here===> ", line)
 			lineno++
 			lineCnt++
 			matched, matchedStrings = fn(target, line)
+			fmt.Println("begin")
 			if matched {
+				fmt.Println("found")
 				goto noMatchNeed
+			} else {
+				fmt.Println("here")
+				line = strW.SubStringQuiet(line, len(line)-len(target), len(line))
 			}
 		}
 		matched, matchedStrings = fn(target, line)
@@ -81,7 +84,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			filename, err = filepath.Abs(filename)
 			if err != nil {
 				if terminalW.Verbose {
-					utilsW.Fprintln(os.Stderr, err)
+					fmt.Fprintln(os.Stderr, err)
 				}
 				return
 			}
@@ -89,7 +92,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			dir := filepath.Dir(filename)
 			base := filepath.Base(filename)
 
-			utilsW.Fprintf(color.Output, "%s \"%s%c%s\" [%d]:  %s\n\n", color.GreenString(">>"),
+			fmt.Fprintf(color.Output, "%s \"%s%c%s\" [%d]:  %s\n\n", color.GreenString(">>"),
 				dir, filepath.Separator, color.YellowString(base), lineno,
 				colorTargetString(strings.TrimSpace(line), matchedStrings))
 		}
@@ -331,9 +334,9 @@ func main() {
 	wg.Wait()
 
 	terminalW.Once.Do(func() {
-		summaryString := utilsW.Sprintf("%d matches found\n", terminalW.Count)
-		utilsW.Println(strings.Repeat("-", len(summaryString)))
+		summaryString := fmt.Sprintf("%d matches found\n", terminalW.Count)
+		fmt.Println(strings.Repeat("-", len(summaryString)))
 		matches := int64(math.Min(float64(terminalW.Count), float64(terminalW.NumPrint)))
-		utilsW.Printf("%v matches found\n", matches)
+		fmt.Printf("%v matches found\n", matches)
 	})
 }

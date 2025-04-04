@@ -1,6 +1,7 @@
 package terminalW
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"os"
@@ -48,10 +49,10 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	defer func() { <-maxThreads }()
 	if atomic.LoadInt64(&Count) >= NumPrint {
 		Once.Do(func() {
-			summaryString := utilsW.Sprintf("%d matches found\n", Count)
-			utilsW.Println(strings.Repeat("-", len(summaryString)))
+			summaryString := fmt.Sprintf("%d matches found\n", Count)
+			fmt.Println(strings.Repeat("-", len(summaryString)))
 			matches := int64(math.Min(float64(Count), float64(NumPrint)))
-			utilsW.Printf("%v matches found\n", matches)
+			fmt.Printf("%v matches found\n", matches)
 		})
 		os.Exit(0)
 		return
@@ -59,7 +60,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 	subs, err := os.ReadDir(rootDir)
 	if err != nil {
 		if Verbose {
-			utilsW.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, err)
 		}
 		return
 	}

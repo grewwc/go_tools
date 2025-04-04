@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -69,13 +70,13 @@ func getText(j *utilsW.Json) string {
 		// thinking
 		content := delta.GetString("reasoning_content")
 		if content != "" && atomic.LoadInt32(&thinking) == 0 {
-			content = utilsW.Sprintf("\n%s\n%s", thinkingTag, content)
+			content = fmt.Sprintf("\n%s\n%s", thinkingTag, content)
 			atomic.AddInt32(&thinking, 1)
 		}
 		return content
 	} else {
 		if atomic.LoadInt32(&thinking) == 1 {
-			content = utilsW.Sprintf("\n%s\n%s", endThinkingTag, content)
+			content = fmt.Sprintf("\n%s\n%s", endThinkingTag, content)
 			atomic.AddInt32(&thinking, -1)
 		}
 	}
@@ -101,9 +102,9 @@ func handleResponse(resp io.Reader) <-chan string {
 			b = bytes.TrimSuffix(b, typesW.StrToBytes(keyword))
 			b = bytes.TrimSpace(b)
 			b = append([]byte{'{'}, b...)
-			// utilsW.Println("==>")
-			// utilsW.Println(string(b))
-			// utilsW.Println("===")
+			// fmt.Println("==>")
+			// fmt.Println(string(b))
+			// fmt.Println("===")
 			// os.Exit(0)
 			j := utilsW.NewJsonFromByte(b)
 			ch <- getText(j)
@@ -116,7 +117,7 @@ func init() {
 	config := utilsW.GetAllConfig()
 	apiKey = config.GetOrDefault("api_key", "").(string)
 	if apiKey == "" {
-		utilsW.Println("set api_key in ~/.configW")
+		fmt.Println("set api_key in ~/.configW")
 		os.Exit(0)
 	}
 
@@ -180,7 +181,7 @@ func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 		tempParser := terminalW.NewParser()
 		tempParser.Bool("x", false, "")
 		tempParser.Bool("c", false, "")
-		tempParser.ParseArgs(utilsW.Sprintf("a %s", question), "x", "c")
+		tempParser.ParseArgs(fmt.Sprintf("a %s", question), "x", "c")
 		if tempParser.GetFlagValueDefault("f", "") != "" {
 			parsed.SetFlagValue("f", tempParser.GetFlagValueDefault("f", ""))
 		}
@@ -192,7 +193,7 @@ func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 		}
 		question = strings.Join(tempParser.GetPositionalArgs(true), " ")
 		if tempParser.GetNumArgs() != -1 {
-			question = utilsW.Sprintf("%s -%d", question, tempParser.GetNumArgs())
+			question = fmt.Sprintf("%s -%d", question, tempParser.GetNumArgs())
 		}
 		nHistory = getNumHistory(tempParser)
 	} else {
@@ -297,7 +298,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		if strings.TrimSpace(question) == "" {
 			continue
 		}
-		curr.WriteString(utilsW.Sprintf("%s\x00%s\x01", "user", question))
+		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
 		nextModel := _ai_helpers.GetModelByInput(model, &question)
 		model = nextModel
@@ -324,7 +325,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 			fileids := strings.Join(fileidArr, ",")
 			msg := Message{
 				Role:    "system",
-				Content: utilsW.Sprintf("fileid://%s", fileids),
+				Content: fmt.Sprintf("fileid://%s", fileids),
 			}
 			requestBody.Messages = append(requestBody.Messages, msg)
 			requestBody.Model = _ai_helpers.QWEN_LONG
@@ -345,7 +346,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		curr.WriteString("assistant\x00")
 		ch := handleResponse(resp.Body)
 
-		utilsW.Printf("[%s] ", color.GreenString(requestBody.Model))
+		fmt.Printf("[%s] ", color.GreenString(requestBody.Model))
 		for {
 			select {
 			case <-sigChan:
@@ -354,7 +355,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 				if !ok {
 					goto end
 				}
-				utilsW.Fprint(out, content)
+				fmt.Fprint(out, content)
 				if atomic.LoadInt32(&thinking) == 1 {
 					continue
 				}
@@ -368,7 +369,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		resp.Body.Close()
 		curr.WriteByte('\x01')
 		appendHistory(curr.String())
-		utilsW.Println()
+		fmt.Println()
 		if shouldQuit {
 			return
 		}

@@ -68,7 +68,7 @@ func (s *StopWatch) Days() float64 {
 }
 
 func (s *StopWatch) Tell() {
-	Println(format(float64(s.curr() - atomic.LoadInt64(&s.start))))
+	fmt.Println(format(float64(s.curr() - atomic.LoadInt64(&s.start))))
 }
 
 func format(cost float64) string {
@@ -113,10 +113,10 @@ func (s *StopWatch) TellAll() {
 	prev := start
 	for tup := range s.records.IterateEntry() {
 		ts := tup.Get(1).(int64)
-		Println(format(float64(ts - prev)))
+		fmt.Println(format(float64(ts - prev)))
 		prev = ts
 	}
-	Println(format(float64(s.curr() - prev)))
+	fmt.Println(format(float64(s.curr() - prev)))
 }
 
 func (s *StopWatch) Clear() {

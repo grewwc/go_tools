@@ -173,7 +173,15 @@ func TrimFileExt(filename string) string {
 }
 
 func isTextFile(filename string) bool {
-	buf, _ := os.ReadFile(filename)
+	f, err := os.Open(filename)
+	if err != nil {
+		return false
+	}
+	buf := make([]byte, 256)
+	_, err = f.Read(buf)
+	if err != nil {
+		return false
+	}
 	return IsText(buf)
 }
 
@@ -189,7 +197,7 @@ func IsTextFile(filename string) bool {
 
 	info, err := os.Lstat(filename)
 	if err != nil {
-		Println(err)
+		fmt.Println(err)
 		return false
 	}
 	firstBit := info.Mode().String()[0]

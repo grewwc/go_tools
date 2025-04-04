@@ -2,6 +2,8 @@ package strW
 
 import (
 	"strings"
+
+	"github.com/grewwc/go_tools/src/algoW"
 )
 
 func FindAll(str, substr string) []int {
@@ -33,8 +35,10 @@ func StripSuffix(s, suffix string) string {
 // SubStringQuiet
 // beg include, end exclude
 func SubStringQuiet(s string, beg, end int) string {
-	if beg >= len(s) || end > len(s) || beg >= end {
+	if beg >= len(s) || beg >= end {
 		return ""
 	}
+	beg = algoW.Max(beg, 0)
+	end = algoW.Min(end, len(s))
 	return s[beg:end]
 }
