@@ -12,7 +12,6 @@ import (
 	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/terminalW"
 	"github.com/grewwc/go_tools/src/typesW"
-	"github.com/grewwc/go_tools/src/utilsW"
 )
 
 const (
@@ -237,17 +236,16 @@ func test() {
 }
 
 func main() {
-	w := utilsW.NewStopWatch()
 	parser := terminalW.NewParser()
 	parser.Int("prec", 16, "division precision. default is: 16")
+	parser.Bool("h", false, "print help info")
 	parser.ParseArgsCmd()
-	w.Record()
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
 		}
 	}()
-	if parser.Empty() {
+	if parser.Empty() || parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
 		fmt.Println("c '1+2'")
 		return
@@ -256,15 +254,12 @@ func main() {
 	expr := parser.Positional.ToStringSlice()[0]
 	// fmt.Println(parser)
 	prec = parser.GetIntFlagValOrDefault("prec", 16)
-	w.Record()
 	if parser.GetNumArgs() != -1 {
 		prec = parser.GetNumArgs()
 	}
 
 	res := calc(typesW.StrToBytes(processInputStr(expr)))
-	w.Record()
 	fmt.Println(res)
-	w.TellAll()
 	// test()
 
 }

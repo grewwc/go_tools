@@ -2,6 +2,7 @@ package utilsW
 
 import (
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -11,17 +12,14 @@ import (
 // StopWatch is "auto-reset" stopwatch
 type StopWatch struct {
 	start   int64
-	records *containerW.ConcurrentHashMap[int, int64]
+	records *containerW.ConcurrentHashMap[string, int64]
 }
 
 func NewStopWatch() *StopWatch {
 	return &StopWatch{
-		records: containerW.NewConcurrentHashMap[int, int64](
-			func(val int) int {
-				return val
-			},
-			func(a, b int) int {
-				return a - b
+		records: containerW.NewConcurrentHashMap[string, int64](nil,
+			func(a, b string) int {
+				return strings.Compare(a, b)
 			}),
 		start: time.Now().UnixNano(),
 	}
@@ -32,7 +30,11 @@ func (s *StopWatch) curr() int64 {
 }
 
 func (s *StopWatch) Record() {
-	s.records.Put(s.records.Size()+1, s.curr())
+	s.records.Put("", s.curr())
+}
+
+func (s *StopWatch) RecordLabel(label string) {
+	s.records.Put(label, s.curr())
 }
 
 func (s *StopWatch) NumRecords() int {
@@ -110,13 +112,11 @@ func format(cost float64) string {
 
 func (s *StopWatch) TellAll() {
 	start := atomic.LoadInt64(&s.start)
-	prev := start
 	for tup := range s.records.IterateEntry() {
 		ts := tup.Get(1).(int64)
-		fmt.Println(format(float64(ts - prev)))
-		prev = ts
+		fmt.Printf("%s: %s", tup.Get(0).(string), format(float64(ts-start)))
 	}
-	fmt.Println(format(float64(s.curr() - prev)))
+	fmt.Println(format(float64(s.curr() - start)))
 }
 
 func (s *StopWatch) Clear() {

@@ -87,7 +87,7 @@ func findFile(rootDir string, numPrint int, allIgnores []string) {
 		}
 		if err != nil {
 			if verbose {
-				utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+				fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
 			}
 		}
 		if len(m) == 0 {
@@ -101,7 +101,7 @@ OUTER:
 		abs, err := filepath.Abs(match)
 		if err != nil {
 			if verbose {
-				utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+				fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
 			}
 			continue
 		}
@@ -137,7 +137,7 @@ OUTER:
 				info, err := os.Stat(match)
 				fileSize := info.Size()
 				if err != nil {
-					utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+					fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
 				}
 				toPrint += "  " + parseFileSize(fileSize)
 				toPrint += "  " + info.ModTime().Format("2006.01.02/15:04:05")
@@ -146,7 +146,7 @@ OUTER:
 				b, err := os.ReadFile(abs)
 				if err != nil {
 					if verbose {
-						utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+						fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
 					}
 					continue
 				}
@@ -154,7 +154,7 @@ OUTER:
 				val := hex.EncodeToString(h[:])
 				toPrint += "\t" + val
 			}
-			utilsW.Fprintf(color.Output, "%s\n", toPrint)
+			fmt.Fprintf(color.Output, "%s\n", toPrint)
 			atomicCount.Add(1)
 			if absoluteTarget.Load() {
 				os.Exit(0)
@@ -166,7 +166,7 @@ OUTER:
 	subs, err := os.ReadDir(rootDir)
 	if err != nil {
 		if verbose {
-			utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+			fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
 		}
 		return
 	}
@@ -258,7 +258,7 @@ func main() {
 	// fmt.Println("rootDir", *rootDir)
 	allRootDirs, err := filepath.Glob(rootDir)
 	if err != nil {
-		utilsW.Fprintln(os.Stderr, color.RedString(err.Error()))
+		fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
 		return
 	}
 	for _, dir := range allRootDirs {
