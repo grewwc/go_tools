@@ -273,7 +273,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		return
 	}
 
-	args := parser.Positional.ToStringSlice()
+	args := parser.GetPositionalArgs(true)
 
 	var model = _ai_helpers.GetModel(parser)
 	var curr bytes.Buffer

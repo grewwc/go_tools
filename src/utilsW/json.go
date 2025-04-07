@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
+	"math"
 	"os"
 	"reflect"
 	"strconv"
 	"unsafe"
 
+	"github.com/grewwc/go_tools/src/strW"
 	"github.com/grewwc/go_tools/src/typesW"
 	"golang.org/x/exp/constraints"
 )
@@ -19,12 +22,13 @@ type Json struct {
 
 func NewJsonFromFile(filename string) *Json {
 	filename = ExpandUser(filename)
-	b, err := os.ReadFile(filename)
+	b, err := os.Open(filename)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	var res Json
-	if err = json.Unmarshal(b, &res.data); err != nil {
+	d := json.NewDecoder(b)
+	if err = d.Decode(&res.data); err != nil {
 		panic(err)
 	}
 	return &res
@@ -33,7 +37,7 @@ func NewJsonFromFile(filename string) *Json {
 func NewJsonFromByte(data []byte) *Json {
 	var res Json
 	if err := json.Unmarshal(data, &res.data); err != nil {
-		panic(typesW.BytesToStr(data))
+		panic(strW.SubStringQuiet(typesW.BytesToStr(data), 0, 128))
 	}
 	return &res
 }
@@ -153,9 +157,9 @@ func getT[T type_, U keytype](j *Json, key U) T {
 	}
 	if res, ok := data[strKey].(T); ok {
 		return res
-	} else if res, ok := data[strKey].(*T); ok {
-		return *res
-	} else if reflect.TypeOf(data[strKey]).Kind() == reflect.Map && reflect.TypeOf(*new(T)) == reflect.TypeOf(*new(Json)) {
+	} else if ptrRes, ok := data[strKey].(*T); ok {
+		return *ptrRes
+	} else if k := reflect.TypeOf(data[strKey]).Kind(); k == reflect.Map && reflect.TypeOf(*new(T)) == reflect.TypeOf(*new(Json)) {
 		obj, ok := data[strKey].(map[string]interface{})
 		if !ok {
 			fmt.Printf("ERROR: key %s is not Json object, maybe array?\n", strKey)
@@ -166,14 +170,19 @@ func getT[T type_, U keytype](j *Json, key U) T {
 		}
 		return *(*T)(unsafe.Pointer(newJson))
 
-	} else if reflect.TypeOf(data[strKey]).Kind() == reflect.Slice {
+	} else if k == reflect.Slice {
 		obj, _ := data[strKey].([]interface{})
 		res := Json{
 			data: obj,
 		}
 		return *(*T)(unsafe.Pointer(&res))
+	} else if k == reflect.Float64 &&
+		reflect.TypeOf(*new(T)).Kind() == reflect.Int &&
+		math.Trunc(data[strKey].(float64)) == data[strKey].(float64) {
+		val := int(data[strKey].(float64))
+		return *(*T)(unsafe.Pointer(&val))
 	} else {
-		fmt.Printf("ERROR: key (\"%s\") is not type (\"%s\")\n", strKey, reflect.TypeOf(*new(T)))
+		fmt.Printf("ERROR: key (\"%s\", type: \"%s\") is not type (\"%s\")\n", strKey, reflect.TypeOf(data[strKey]), reflect.TypeOf(*new(T)))
 		return *new(T)
 	}
 }

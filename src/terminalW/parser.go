@@ -71,8 +71,8 @@ func (r *Parser) GetIntFlagValOrDefault(flagName string, val int) int {
 	return val
 }
 
-func (r *Parser) GetPositionalArgs(removeNumArg bool) []string {
-	if removeNumArg {
+func (r *Parser) GetPositionalArgs(excludeNumArg bool) []string {
+	if excludeNumArg {
 		remove := fmt.Sprintf("-%d", r.GetNumArgs())
 		copy := r.Positional.ShallowCopy()
 		copy.Delete(remove)
