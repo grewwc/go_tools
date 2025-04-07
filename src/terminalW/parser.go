@@ -23,6 +23,8 @@ type Parser struct {
 	Optional      map[string]string // key is prefix with '-'
 	Positional    *containerW.Queue
 	defaultValMap *containerW.TreeMap[string, string] // key is prefix with '-'
+
+	cmd string
 	*flag.FlagSet
 }
 
@@ -46,6 +48,10 @@ func (r *Parser) GetFlagVal(flagName string) (string, error) {
 		return val, nil
 	}
 	return "", errors.New("not exist")
+}
+
+func (r *Parser) GetCmd() string {
+	return r.cmd
 }
 
 func (r *Parser) MustGetFlagValAsInt(flagName string) int {
@@ -410,7 +416,7 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 	// if len(os.Args) <= 1 {
 	// 	return
 	// }
-
+	r.cmd = strings.Join(os.Args, " ")
 	args := make([]string, len(os.Args))
 	for i, arg := range os.Args {
 		args[i] = fmt.Sprintf("%q", arg)
@@ -433,7 +439,8 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 // ParseArgs takes command line as argument, not from terminal directly
 // cmd contains the Programs itself
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
-	// cmd = strW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
+	r.cmd = cmd
+	cmd = strW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
 	cmdSlice := strW.SplitNoEmptyKeepQuote(cmd, ' ')
 	// if len(cmdSlice) <= 1 {
 	// 	return
