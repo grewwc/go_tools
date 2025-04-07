@@ -7,7 +7,7 @@ import (
 )
 
 func FindAll(str, substr string) []int {
-	return KmpSearch(str, substr)
+	return KmpSearch(str, substr, -1)
 }
 
 // StripPrefix: strip prefix

@@ -25,11 +25,11 @@ func Contains(s, sub string) bool {
 	if len(sub) == 0 {
 		return true
 	}
-	matches := KmpSearch(s, sub)
+	matches := KmpSearch(s, sub, 1)
 	return len(matches) > 0
 }
 
-func KmpSearch(text, pattern string) []int {
+func KmpSearch(text, pattern string, n int) []int {
 	if len(text) == 0 {
 		return []int{}
 	}
@@ -53,12 +53,15 @@ func KmpSearch(text, pattern string) []int {
 		if j == len(pattern) {
 			matches = append(matches, i-j)
 			j = next[j-1]
+			if n > 0 && len(matches) >= n {
+				break
+			}
 		}
 	}
 	return matches
 }
 
-func KmpSearchBytes(text, pattern []byte) []int {
+func KmpSearchBytes(text, pattern []byte, n int) []int {
 	if len(text) == 0 {
 		return []int{}
 	}
@@ -82,6 +85,9 @@ func KmpSearchBytes(text, pattern []byte) []int {
 		if j == len(pattern) {
 			matches = append(matches, i-j)
 			j = next[j-1]
+			if n > 0 && len(matches) >= n {
+				break
+			}
 		}
 	}
 	return matches
@@ -132,7 +138,7 @@ func AnyHasPrefix(str string, sub ...string) bool {
 func TrimAfter(str, pattern string) string {
 	bStr := typesW.StrToBytes(str)
 	bPattern := typesW.StrToBytes(pattern)
-	indices := KmpSearchBytes(bStr, bPattern)
+	indices := KmpSearchBytes(bStr, bPattern, 1)
 	if len(indices) == 0 {
 		return str
 	}
@@ -142,7 +148,7 @@ func TrimAfter(str, pattern string) string {
 func TrimBefore(str, pattern string) string {
 	bStr := typesW.StrToBytes(str)
 	bPattern := typesW.StrToBytes(pattern)
-	indices := KmpSearchBytes(bStr, bPattern)
+	indices := KmpSearchBytes(bStr, bPattern, 1)
 	if len(indices) == 0 {
 		return str
 	}

@@ -369,7 +369,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 		key := fmt.Sprintf("-%s%c", f.Name, sep)
 		// fmt.Println("==>", f.Name, f.DefValue)
 		r.defaultValMap.Put(fmt.Sprintf("-%s", f.Name), f.DefValue)
-		indices := strW.KmpSearch(cmd, key)
+		indices := strW.KmpSearch(cmd, key, -1)
 		if len(indices) >= 1 {
 			for _, idx := range indices {
 				substr := strW.SubStringQuiet(cmd, idx, idx+len(key)-1)

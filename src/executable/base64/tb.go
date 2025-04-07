@@ -62,7 +62,7 @@ func base64ToImage(fname, outName string) {
 	}
 
 	s := ";base64,"
-	indices := strW.KmpSearchBytes(imgBytes, typesW.StrToBytes(s))
+	indices := strW.KmpSearchBytes(imgBytes, typesW.StrToBytes(s), 1)
 	if len(indices) == 1 {
 		imgBytes = imgBytes[indices[0]+len(s):]
 	}
