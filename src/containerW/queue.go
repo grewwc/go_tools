@@ -71,14 +71,3 @@ func (q *Queue) ShallowCopy() *Queue {
 	}
 	return res
 }
-
-func (q *Queue) Delete(item interface{}) bool {
-	var removed bool
-	for curr := q.data.Front(); curr != nil; curr = curr.Next() {
-		if curr.Value == item {
-			q.data.Remove(curr)
-			removed = true
-		}
-	}
-	return removed
-}

@@ -25,11 +25,10 @@ func TestParser(t *testing.T) {
 	mustContain(t, parser, "f")
 
 	// test positional args
-	aim := containerW.NewOrderedSet()
-	aim.AddAll("program dir", "night")
-	if !aim.Equals(*parser.Positional) {
-		t.Log(parser.Positional)
-		t.Log(aim)
+	aim := containerW.NewArrayList("program dir", "night")
+	if !aim.Equals(parser.Positional) {
+		t.Log(parser.Positional.ToStringSlice(), parser.Positional.Len())
+		t.Log(aim.ToStringSlice(), aim.Size())
 		t.Fail()
 	}
 

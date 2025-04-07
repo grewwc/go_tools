@@ -21,3 +21,19 @@ type ISortedMap[K, V any] interface {
 type IConcurrentMap[K, V any] interface {
 	IMap[K, V]
 }
+
+type IList interface {
+	Add(interface{})
+	AddAll(...interface{})
+	Delete(interface{}) bool
+	Len() int
+	Empty() bool
+	Iterate() <-chan interface{}
+	ShallowCopy() IList
+	Contains(interface{}) bool
+	Equals(IList) bool
+	Get(int) interface{}
+	Set(int, interface{}) interface{}
+	Remove(int) interface{}
+	ToStringSlice() []string
+}

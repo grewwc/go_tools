@@ -12,6 +12,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/containerW"
 	"github.com/grewwc/go_tools/src/strW"
+	"github.com/grewwc/go_tools/src/typesW"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 
 type Parser struct {
 	Optional      map[string]string // key is prefix with '-'
-	Positional    *containerW.Queue
+	Positional    typesW.IList
 	defaultValMap *containerW.TreeMap[string, string] // key is prefix with '-'
 
 	cmd string
@@ -31,7 +32,7 @@ type Parser struct {
 func NewParser() *Parser {
 	return &Parser{
 		Optional:      make(map[string]string),
-		Positional:    containerW.NewQueue(),
+		Positional:    containerW.NewArrayList(),
 		defaultValMap: containerW.NewTreeMap[string, string](nil),
 		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
 	}
@@ -281,7 +282,7 @@ func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
 	return false
 }
 
-func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Queue, []string, []string, []string) {
+func classifyArguments(cmd string, boolOptionals ...string) (*containerW.ArrayList, []string, []string, []string) {
 	// fmt.Println("here", strings.ReplaceAll(cmd, "sep", "|"))
 	const (
 		positionalMode = iota
@@ -295,7 +296,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Queue, 
 	prev := startMode
 
 	mode := spaceMode
-	var positionals = containerW.NewQueue()
+	var positionals = containerW.NewArrayList()
 	var keys []string
 	var boolKeys []string
 	var vals []string
@@ -327,7 +328,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Queue, 
 		case positionalMode:
 			if ch == sep {
 				mode = spaceMode
-				positionals.Enqueue(pBuf.String())
+				positionals.Add(pBuf.String())
 				pBuf.Reset()
 				prev = positionalMode
 				continue

@@ -1203,7 +1203,7 @@ func main() {
 		var id string
 		tags := positional.ToStringSlice()
 		isObjectID := false
-		if positional.Size() > 0 {
+		if positional.Len() > 0 {
 			isObjectID = _helpers.IsObjectID(tags[0])
 		}
 		// tags 里面可能是 objectid
@@ -1424,7 +1424,7 @@ func main() {
 		listSpecial = true
 		tags := positional.ToStringSlice()
 		isObjectID := false
-		if positional.Size() > 0 {
+		if positional.Len() > 0 {
 			isObjectID = _helpers.IsObjectID(tags[0])
 		}
 		// tags 里面可能是 objectid
@@ -1450,7 +1450,7 @@ func main() {
 		positional.Delete("log")
 		nextDay := 0
 		var err error
-		if positional.Size() == 1 {
+		if positional.Len() == 1 {
 			if nextDay, err = strconv.Atoi(positional.ToStringSlice()[0]); err != nil {
 				nextDay = 0
 			}
