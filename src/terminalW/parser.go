@@ -440,7 +440,7 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 // cmd contains the Programs itself
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	r.cmd = cmd
-	cmd = strW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
+	// cmd = strW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
 	cmdSlice := strW.SplitNoEmptyKeepQuote(cmd, ' ')
 	// if len(cmdSlice) <= 1 {
 	// 	return
