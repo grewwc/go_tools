@@ -26,6 +26,10 @@ var wg sync.WaitGroup
 var r *regexp.Regexp = nil
 var numLines int = 1
 
+const (
+	MAX_LEN = 128
+)
+
 func colorTargetString(line string, matchedStrings []string) string {
 	var result string
 	for _, matchedString := range matchedStrings {
@@ -46,7 +50,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 	var matched bool
 	var matchedStrings []string
 	scanner := bufio.NewScanner(file)
-	// scanner.Buffer(make([]byte, 0, 100), 1024*1024*16)
+	scanner.Buffer(make([]byte, 0, 256), 1024*1024*1024)
 	lineno := 0
 	lineCnt := 1
 	var line string
@@ -65,12 +69,9 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			lineno++
 			lineCnt++
 			matched, matchedStrings = fn(target, line)
-			fmt.Println("begin")
 			if matched {
-				fmt.Println("found")
 				goto noMatchNeed
 			} else {
-				fmt.Println("here")
 				line = strW.SubStringQuiet(line, len(line)-len(target), len(line))
 			}
 		}
@@ -91,7 +92,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			filename = filepath.ToSlash(filename)
 			dir := filepath.Dir(filename)
 			base := filepath.Base(filename)
-
+			line := strW.SubStringQuiet(line, 0, MAX_LEN)
 			fmt.Fprintf(color.Output, "%s \"%s%c%s\" [%d]:  %s\n\n", color.GreenString(">>"),
 				dir, filepath.Separator, color.YellowString(base), lineno,
 				colorTargetString(strings.TrimSpace(line), matchedStrings))
