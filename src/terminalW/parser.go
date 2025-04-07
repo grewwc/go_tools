@@ -21,7 +21,7 @@ const (
 
 type Parser struct {
 	Optional      map[string]string // key is prefix with '-'
-	Positional    *containerW.OrderedSet
+	Positional    *containerW.Queue
 	defaultValMap *containerW.TreeMap[string, string] // key is prefix with '-'
 	*flag.FlagSet
 }
@@ -29,7 +29,7 @@ type Parser struct {
 func NewParser() *Parser {
 	return &Parser{
 		Optional:      make(map[string]string),
-		Positional:    containerW.NewOrderedSet(),
+		Positional:    containerW.NewQueue(),
 		defaultValMap: containerW.NewTreeMap[string, string](nil),
 		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
 	}
@@ -275,7 +275,7 @@ func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
 	return false
 }
 
-func classifyArguments(cmd string, boolOptionals ...string) (*containerW.OrderedSet, []string, []string, []string) {
+func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Queue, []string, []string, []string) {
 	// fmt.Println("here", strings.ReplaceAll(cmd, "sep", "|"))
 	const (
 		positionalMode = iota
@@ -284,12 +284,12 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 		spaceMode
 		boolOptionalMode
 
-		StartMode
+		startMode
 	)
-	prev := StartMode
+	prev := startMode
 
 	mode := spaceMode
-	var positionals = containerW.NewOrderedSet()
+	var positionals = containerW.NewQueue()
 	var keys []string
 	var boolKeys []string
 	var vals []string
@@ -298,6 +298,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 	var vBuf bytes.Buffer
 
 	for _, ch := range cmd {
+		// fmt.Println("beg", ch, prev, mode)
 		switch mode {
 		case spaceMode:
 			if ch == sep {
@@ -307,7 +308,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 				mode = optionalKeyMode
 				kBuf.WriteRune(ch)
 			} else {
-				if prev == boolOptionalMode || prev == StartMode || prev == positionalMode || prev == optionalValMode {
+				if prev == boolOptionalMode || prev == startMode || prev == positionalMode || prev == optionalValMode {
 					mode = positionalMode
 					pBuf.WriteRune(ch)
 				} else {
@@ -320,7 +321,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 		case positionalMode:
 			if ch == sep {
 				mode = spaceMode
-				positionals.Add(pBuf.String())
+				positionals.Enqueue(pBuf.String())
 				pBuf.Reset()
 				prev = positionalMode
 				continue
@@ -355,7 +356,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.Ordered
 			vBuf.WriteRune(ch)
 		}
 	}
-	// fmt.Println(positionals.ToStringSlice(), boolKeys, keys, vals)
+	// fmt.Println(positionals, boolKeys, keys, vals)
 	return positionals, boolKeys, keys, vals
 }
 
@@ -432,12 +433,12 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 // ParseArgs takes command line as argument, not from terminal directly
 // cmd contains the Programs itself
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
-	cmd = strW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
+	// cmd = strW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
 	cmdSlice := strW.SplitNoEmptyKeepQuote(cmd, ' ')
 	// if len(cmdSlice) <= 1 {
 	// 	return
 	// }
-	cmd = strings.Join(cmdSlice[1:], fmt.Sprintf("%c", sep))
+	cmd = strings.Join(cmdSlice[1:], string(sep))
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)
 	r.parseArgs(cmd, boolOptionals...)
 }

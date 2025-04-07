@@ -1,6 +1,8 @@
 package containerW
 
-import "container/list"
+import (
+	"container/list"
+)
 
 type Queue struct {
 	data *list.List
@@ -21,7 +23,7 @@ func (q *Queue) Enqueue(item interface{}) {
 func (q *Queue) Front() interface{} {
 	front := q.data.Front()
 	if front == nil {
-		panic("empty queue")
+		return nil
 	}
 
 	return front.Value
@@ -39,4 +41,44 @@ func (q *Queue) Empty() bool {
 
 func (q *Queue) Size() int {
 	return q.data.Len()
+}
+
+func (q *Queue) Iterate() <-chan interface{} {
+	ch := make(chan interface{})
+	go func() {
+		defer close(ch)
+		for curr := q.data.Front(); curr != nil; curr = curr.Next() {
+			ch <- curr.Value
+		}
+	}()
+	return ch
+}
+
+func (q *Queue) ToStringSlice() []string {
+	res := make([]string, 0, q.data.Len())
+	for s := range q.Iterate() {
+		res = append(res, s.(string))
+	}
+	return res
+}
+
+func (q *Queue) ShallowCopy() *Queue {
+	res := NewQueue()
+	for item := range q.Iterate() {
+		if item != nil {
+			res.Enqueue(item)
+		}
+	}
+	return res
+}
+
+func (q *Queue) Delete(item interface{}) bool {
+	var removed bool
+	for curr := q.data.Front(); curr != nil; curr = curr.Next() {
+		if curr.Value == item {
+			q.data.Remove(curr)
+			removed = true
+		}
+	}
+	return removed
 }

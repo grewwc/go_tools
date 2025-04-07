@@ -192,6 +192,9 @@ func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 			parsed.SetFlagValue("s", "true")
 		}
 		question = strings.Join(tempParser.GetPositionalArgs(true), " ")
+		// fmt.Println("getQuestion: ")
+		// fmt.Println(question)
+		// os.Exit(0)
 		if tempParser.GetNumArgs() != -1 {
 			question = fmt.Sprintf("%s -%d", question, tempParser.GetNumArgs())
 		}

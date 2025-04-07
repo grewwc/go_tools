@@ -73,3 +73,12 @@ func TestContains(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkStrContains(b *testing.B) {
+	x := genRandomStrings(10000)
+	y := genRandomStrings(1000)
+	for i := 0; i < b.N; i++ {
+		strW.Contains(x, y)
+		// strings.Contains(x, y)
+	}
+}

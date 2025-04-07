@@ -158,8 +158,10 @@ func UserInput(msg string, multiline bool) string {
 		panic(err)
 	}
 	defer f.Close()
+	defer line.Close()
 	line.ReadHistory(f)
 	line.SetCtrlCAborts(true)
+
 	var lines []string
 	for {
 		input, err := line.Prompt(msg)
