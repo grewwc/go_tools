@@ -117,7 +117,7 @@ func checkFileIgnoreCase(filename string) {
 		// undefined behavior for other languages
 		lower := strings.ToLower(line)
 		targetLower := strings.ToLower(target)
-		return strW.Contains(lower, targetLower), []string{target}
+		return strings.Contains(lower, targetLower), []string{target}
 
 	}, numLines)
 }
