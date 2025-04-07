@@ -115,10 +115,20 @@ func checkFileIgnoreCase(filename string) {
 	checkFileFunc(filename, func(target, line string) (bool, []string) {
 		// only support English
 		// undefined behavior for other languages
-		lower := strings.ToLower(line)
-		targetLower := strings.ToLower(target)
-		return strings.Contains(lower, targetLower), []string{target}
-
+		prevIdx, idx := 0, 0
+		result := make([]string, 1)
+		count := 0
+		for {
+			idx = strings.Index(strings.ToLower(line[prevIdx:]), target)
+			if idx == -1 {
+				return count != 0, result
+			}
+			idx += prevIdx
+			count++
+			result = append(result, line[idx:idx+len(target)])
+			idx += len(target)
+			prevIdx = idx
+		}
 	}, numLines)
 }
 
