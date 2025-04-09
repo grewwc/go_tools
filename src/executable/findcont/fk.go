@@ -15,10 +15,10 @@ import (
 	"sync/atomic"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
 
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 var target string
@@ -41,7 +41,7 @@ func colorTargetString(line string, matchedStrings []string) string {
 func checkFileFunc(filename string, fn func(target, line string) (bool, []string), numLines int) {
 	file, err := os.Open(filename)
 	if err != nil {
-		if terminalW.Verbose {
+		if terminalw.Verbose {
 			fmt.Fprintln(os.Stderr, err)
 		}
 		return
@@ -72,19 +72,19 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			if matched {
 				goto noMatchNeed
 			} else {
-				line = strW.SubStringQuiet(line, len(line)-len(target), len(line))
+				line = strw.SubStringQuiet(line, len(line)-len(target), len(line))
 			}
 		}
 		matched, matchedStrings = fn(target, line)
 	noMatchNeed:
 		if matched { // cannot reverse the order
-			atomic.AddInt64(&terminalW.Count, 1)
-			if terminalW.Count > terminalW.NumPrint {
+			atomic.AddInt64(&terminalw.Count, 1)
+			if terminalw.Count > terminalw.NumPrint {
 				return
 			}
 			filename, err = filepath.Abs(filename)
 			if err != nil {
-				if terminalW.Verbose {
+				if terminalw.Verbose {
 					fmt.Fprintln(os.Stderr, err)
 				}
 				return
@@ -92,7 +92,7 @@ func checkFileFunc(filename string, fn func(target, line string) (bool, []string
 			filename = filepath.ToSlash(filename)
 			dir := filepath.Dir(filename)
 			base := filepath.Base(filename)
-			line := strW.SubStringQuiet(line, 0, MAX_LEN)
+			line := strw.SubStringQuiet(line, 0, MAX_LEN)
 			fmt.Fprintf(color.Output, "%s \"%s%c%s\" [%d]:  %s\n\n", color.GreenString(">>"),
 				dir, filepath.Separator, color.YellowString(base), lineno,
 				colorTargetString(strings.TrimSpace(line), matchedStrings))
@@ -173,8 +173,8 @@ func main() {
 	var num int64 = 5
 	var isReg = false
 	var isIgnoreCase = false
-	parser := terminalW.NewParser()
-	parser.Int64("n", terminalW.NumPrint, "number of found results to print")
+	parser := terminalw.NewParser()
+	parser.Int64("n", terminalw.NumPrint, "number of found results to print")
 	parser.String("t", "", "what type of file to search")
 	parser.Bool("v", false, "if print error")
 	parser.String("d", ".", "root directory for searching")
@@ -215,18 +215,18 @@ func main() {
 	if num < 0 || all {
 		num = math.MaxInt64
 	}
-	terminalW.NumPrint = num
-	terminalW.Verbose = parser.ContainsFlagStrict("v")
+	terminalw.NumPrint = num
+	terminalw.Verbose = parser.ContainsFlagStrict("v")
 	temp, err := strconv.Atoi(parser.GetFlagValueDefault("level", strconv.Itoa(math.MaxInt32)))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	terminalW.MaxLevel = int32(temp)
+	terminalw.MaxLevel = int32(temp)
 
 	// below the main thing is to define the task
 	var task func(string)
 
-	// fmt.Println(terminalW.Extensions)
+	// fmt.Println(terminalw.Extensions)
 	switch len(args) {
 	case 1:
 		target = args[0]
@@ -259,8 +259,8 @@ func main() {
 
 	if files != "" {
 		files = strings.ReplaceAll(files, ",", " ")
-		for _, f := range strW.SplitNoEmpty(files, " ") {
-			terminalW.FileNamesToCheck.Add(f)
+		for _, f := range strw.SplitNoEmpty(files, " ") {
+			terminalw.FileNamesToCheck.Add(f)
 		}
 		ext = ""
 		extExclude = ""
@@ -272,18 +272,18 @@ func main() {
 
 	if parser.ContainsFlagStrict("p") {
 		res := parser.MustGetFlagValAsInt("p")
-		terminalW.ChangeThreads(res)
+		terminalw.ChangeThreads(res)
 	}
 
 	if notFiles != "" {
 		notFiles = strings.ReplaceAll(notFiles, ",", "")
-		for _, f := range strW.SplitNoEmpty(notFiles, " ") {
-			terminalW.FileNamesNOTCheck.Add(f)
-			terminalW.FileNamesToCheck.Delete(f)
+		for _, f := range strw.SplitNoEmpty(notFiles, " ") {
+			terminalw.FileNamesNOTCheck.Add(f)
+			terminalw.FileNamesToCheck.Delete(f)
 		}
 		// because previous notFiles may make files empty
-		if files != "" && terminalW.FileNamesToCheck.Empty() {
-			terminalW.FileNamesToCheck.Add(nil)
+		if files != "" && terminalw.FileNamesToCheck.Empty() {
+			terminalw.FileNamesToCheck.Add(nil)
 		}
 	}
 
@@ -310,17 +310,17 @@ func main() {
 	}
 
 	if ext != "" {
-		terminalW.Extensions = terminalW.FormatFileExtensions(ext)
-		terminalW.CheckExtension = true
+		terminalw.Extensions = terminalw.FormatFileExtensions(ext)
+		terminalw.CheckExtension = true
 	} else {
-		terminalW.Extensions = utilsW.DefaultExtensions.ShallowCopy()
-		terminalW.CheckExtension = false
+		terminalw.Extensions = utilw.DefaultExtensions.ShallowCopy()
+		terminalw.CheckExtension = false
 	}
 	if extExclude != "" {
 		// need to exclude some type of files
-		excludeSet := terminalW.FormatFileExtensions(extExclude)
-		terminalW.Extensions.Subtract(*excludeSet)
-		terminalW.CheckExtension = true
+		excludeSet := terminalw.FormatFileExtensions(extExclude)
+		terminalw.Extensions.Subtract(*excludeSet)
+		terminalw.CheckExtension = true
 	}
 
 	if isReg && isIgnoreCase {
@@ -331,13 +331,13 @@ func main() {
 	// fmt.Println(numLines)
 	fmt.Println()
 	wg.Add(1)
-	go terminalW.Find(rootDir, task, &wg, 0)
+	go terminalw.Find(rootDir, task, &wg, 0)
 	wg.Wait()
 
-	terminalW.Once.Do(func() {
-		summaryString := fmt.Sprintf("%d matches found\n", terminalW.Count)
+	terminalw.Once.Do(func() {
+		summaryString := fmt.Sprintf("%d matches found\n", terminalw.Count)
 		fmt.Println(strings.Repeat("-", len(summaryString)))
-		matches := int64(math.Min(float64(terminalW.Count), float64(terminalW.NumPrint)))
+		matches := int64(math.Min(float64(terminalw.Count), float64(terminalw.NumPrint)))
 		fmt.Printf("%v matches found\n", matches)
 	})
 }

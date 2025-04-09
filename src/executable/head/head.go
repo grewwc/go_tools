@@ -12,8 +12,8 @@ import (
 	"strconv"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 	"github.com/grewwc/go_tools/src/windowsW"
 )
 
@@ -23,7 +23,7 @@ func init() {
 
 func main() {
 	var numOfLines = 10
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.ParseArgsCmd()
 	if parser == nil {
 		return
@@ -55,7 +55,7 @@ func main() {
 			continue
 		}
 		for _, filename := range filenames {
-			if utilsW.IsDir(filename) {
+			if utilw.IsDir(filename) {
 				continue
 			}
 			f, err := os.Open(filename)

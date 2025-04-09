@@ -8,11 +8,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
-func removeSingle(filename string, parser terminalW.Parser) {
+func removeSingle(filename string, parser terminalw.Parser) {
 	if parser.ContainsFlagStrict("-rf") {
 		err := os.RemoveAll(filename)
 		if err != nil {
@@ -26,7 +26,7 @@ func removeSingle(filename string, parser terminalW.Parser) {
 	}
 }
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.ParseArgsCmd("rf")
 	if parser == nil {
 		fmt.Println("usage: rm -rf ")
@@ -34,7 +34,7 @@ func main() {
 	}
 	args := parser.Positional.ToStringSlice()
 	for _, filename := range args {
-		for d, filenames := range utilsW.LsDirGlob(filename) {
+		for d, filenames := range utilw.LsDirGlob(filename) {
 			if d == "./" {
 				for _, fname := range filenames {
 					removeSingle(fname, *parser)

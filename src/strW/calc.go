@@ -1,4 +1,4 @@
-package strW
+package strw
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/typesW"
+	"github.com/grewwc/go_tools/src/typew"
 )
 
 var multiMinus = regexp.MustCompile(`(--)+`)
@@ -82,7 +82,7 @@ func plus(a, b string) string {
 		idx++
 	}
 	res = res[idx:]
-	str := typesW.BytesToStr(res)
+	str := typew.BytesToStr(res)
 	str = prependLeadingZero(str, numDot)
 	str = removeSuffixZero(str)
 	if isMinus {
@@ -177,7 +177,7 @@ func Minus(a, b string) string {
 		idx++
 	}
 	res = res[idx:]
-	str := typesW.BytesToStr(res)
+	str := typew.BytesToStr(res)
 	str = prependLeadingZero(str, numDot)
 	str = removeSuffixZero(str)
 	if isMinus {
@@ -224,7 +224,7 @@ func mulInteger(s1, s2 string) string {
 			hold = "0"
 		}
 	}
-	return typesW.BytesToStr(res)
+	return typew.BytesToStr(res)
 }
 
 func mul(a, b string) string {

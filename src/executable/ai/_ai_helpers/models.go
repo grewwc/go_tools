@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 const (
@@ -25,16 +25,16 @@ const (
 )
 
 func getDefaultModel() string {
-	config := utilsW.GetAllConfig()
+	config := utilw.GetAllConfig()
 	return config.GetOrDefault("ai.model.default", QWEN_TURBO_LATEST).(string)
 }
 
 func GetEndpoint() string {
-	config := utilsW.GetAllConfig()
+	config := utilw.GetAllConfig()
 	return config.GetOrDefault("ai.model.endpoint", QWEN_ENDPOINT).(string)
 }
 
-func GetModel(parsed *terminalW.Parser) string {
+func GetModel(parsed *terminalw.Parser) string {
 	if parsed.ContainsFlagStrict("code") {
 		return QWEN_CODER_PLUS_LATEST
 	}
@@ -76,7 +76,7 @@ func GetModel(parsed *terminalW.Parser) string {
 	}
 }
 
-var NonTextFile = utilsW.NewThreadSafeVal([]string{})
+var NonTextFile = utilw.NewThreadSafeVal([]string{})
 
 func GetModelByInput(prevModel string, input *string) string {
 	if len(NonTextFile.Get().([]string)) > 0 {
@@ -98,7 +98,7 @@ func GetModelByInput(prevModel string, input *string) string {
 	p := regexp.MustCompile(` -\d$`)
 	if found := p.FindString(trimed); found != "" {
 		*input = p.ReplaceAllString(trimed, "")
-		parser := terminalW.NewParser()
+		parser := terminalw.NewParser()
 		parser.ParseArgs(fmt.Sprintf("a %s", found))
 		return GetModel(parser)
 	}

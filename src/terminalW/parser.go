@@ -1,4 +1,4 @@
-package terminalW
+package terminalw
 
 import (
 	"bytes"
@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/typesW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/typew"
 )
 
 const (
@@ -22,8 +22,8 @@ const (
 
 type Parser struct {
 	Optional      map[string]string // key is prefix with '-'
-	Positional    typesW.IList
-	defaultValMap *containerW.TreeMap[string, string] // key is prefix with '-'
+	Positional    typew.IList
+	defaultValMap *conw.TreeMap[string, string] // key is prefix with '-'
 
 	cmd string
 	*flag.FlagSet
@@ -32,8 +32,8 @@ type Parser struct {
 func NewParser() *Parser {
 	return &Parser{
 		Optional:      make(map[string]string),
-		Positional:    containerW.NewArrayList(),
-		defaultValMap: containerW.NewTreeMap[string, string](nil),
+		Positional:    conw.NewArrayList(),
+		defaultValMap: conw.NewTreeMap[string, string](nil),
 		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
 	}
 }
@@ -147,16 +147,16 @@ func (r *Parser) MustGetFlagVal(flagName string) string {
 	return res
 }
 
-func (r *Parser) GetFlags() *containerW.OrderedSet {
-	res := containerW.NewOrderedSet()
+func (r *Parser) GetFlags() *conw.OrderedSet {
+	res := conw.NewOrderedSet()
 	for k := range r.Optional {
 		res.Add(k)
 	}
 	return res
 }
 
-func (r *Parser) GetBooleanArgs() *containerW.OrderedSet {
-	res := containerW.NewOrderedSet()
+func (r *Parser) GetBooleanArgs() *conw.OrderedSet {
+	res := conw.NewOrderedSet()
 	for k, v := range r.Optional {
 		if v == "" {
 			if k[0] == '-' {
@@ -173,7 +173,7 @@ func (r *Parser) GetBooleanArgs() *containerW.OrderedSet {
 // ContainsFlag checks if an optional flag is set
 // "main.exe -force" ==> [ContainsFlag("-f") == true, ContainsFlag("-force") == true]
 func (r *Parser) ContainsFlag(flagName string) bool {
-	flagName = strW.StripPrefix(flagName, "-")
+	flagName = strw.StripPrefix(flagName, "-")
 	buf := bytes.NewBufferString("")
 	for option := range r.Optional {
 		buf.WriteString(option)
@@ -282,7 +282,7 @@ func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
 	return false
 }
 
-func classifyArguments(cmd string, boolOptionals ...string) (*containerW.ArrayList, []string, []string, []string) {
+func classifyArguments(cmd string, boolOptionals ...string) (*conw.ArrayList, []string, []string, []string) {
 	// fmt.Println("here", strings.ReplaceAll(cmd, "sep", "|"))
 	const (
 		positionalMode = iota
@@ -296,7 +296,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*containerW.ArrayLi
 	prev := startMode
 
 	mode := spaceMode
-	var positionals = containerW.NewArrayList()
+	var positionals = conw.NewArrayList()
 	var keys []string
 	var boolKeys []string
 	var vals []string
@@ -377,10 +377,10 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 		key := fmt.Sprintf("-%s%c", f.Name, sep)
 		// fmt.Println("==>", f.Name, f.DefValue)
 		r.defaultValMap.Put(fmt.Sprintf("-%s", f.Name), f.DefValue)
-		indices := strW.KmpSearch(cmd, key, -1)
+		indices := strw.KmpSearch(cmd, key, -1)
 		if len(indices) >= 1 {
 			for _, idx := range indices {
-				substr := strW.SubStringQuiet(cmd, idx, idx+len(key)-1)
+				substr := strw.SubStringQuiet(cmd, idx, idx+len(key)-1)
 				cmd = strings.ReplaceAll(cmd, substr, fmt.Sprintf("%c%s", dash, f.Name))
 			}
 		}
@@ -441,8 +441,8 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 // cmd contains the Programs itself
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	r.cmd = cmd
-	// cmd = strW.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
-	cmdSlice := strW.SplitNoEmptyKeepQuote(cmd, ' ')
+	// cmd = strw.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
+	cmdSlice := strw.SplitNoEmptyKeepQuote(cmd, ' ')
 	// if len(cmdSlice) <= 1 {
 	// 	return
 	// }

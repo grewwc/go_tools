@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 const (
@@ -56,9 +56,9 @@ func (this sortByModifiedDate) Swap(i, j int) {
 
 func (this sortByModifiedDate) Less(i, j int) bool {
 	if this.newerFirst {
-		return utilsW.IsNewer(this.files[i], this.files[j])
+		return utilw.IsNewer(this.files[i], this.files[j])
 	}
-	return utilsW.IsNewer(this.files[j], this.files[i])
+	return utilw.IsNewer(this.files[j], this.files[i])
 }
 
 type sortByStringNum struct {

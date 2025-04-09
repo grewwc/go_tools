@@ -1,9 +1,9 @@
-package strW
+package strw
 
 import (
 	"strings"
 
-	"github.com/grewwc/go_tools/src/algoW"
+	"github.com/grewwc/go_tools/src/algow"
 )
 
 func FindAll(str, substr string) []int {
@@ -38,7 +38,7 @@ func SubStringQuiet(s string, beg, end int) string {
 	if beg >= len(s) || beg >= end {
 		return ""
 	}
-	beg = algoW.Max(beg, 0)
-	end = algoW.Min(end, len(s))
+	beg = algow.Max(beg, 0)
+	end = algow.Min(end, len(s))
 	return s[beg:end]
 }

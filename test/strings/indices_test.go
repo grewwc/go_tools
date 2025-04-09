@@ -4,15 +4,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grewwc/go_tools/src/algoW"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/typesW"
+	"github.com/grewwc/go_tools/src/algow"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/typew"
 )
 
 func TestFindAll(t *testing.T) {
 	allString := "test.exe \"program dir\" -f file -a something night -v"
 	substr := "something"
-	result := strW.FindAll(allString, substr)
+	result := strw.FindAll(allString, substr)
 	if strings.Index(allString, substr) != result[0] {
 		t.Errorf("FindAll(%q, %q) = %v, want %v", allString, substr, result, strings.Index(allString, substr))
 	}
@@ -20,12 +20,12 @@ func TestFindAll(t *testing.T) {
 
 func genRandomStrings(n int) string {
 	allChars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	indices := algoW.RandInt(0, len(allChars), n)
+	indices := algow.RandInt(0, len(allChars), n)
 	buf := make([]byte, len(indices))
 	for i, idx := range indices {
 		buf[i] = allChars[idx]
 	}
-	return typesW.BytesToStr(buf)
+	return typew.BytesToStr(buf)
 }
 
 func TestContains(t *testing.T) {
@@ -67,7 +67,7 @@ func TestContains(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := strW.Contains(test.s, test.sub)
+		result := strw.Contains(test.s, test.sub)
 		if result != test.expected {
 			t.Errorf("Contains(%q, %q) = %v, want %v", test.s, test.sub, result, test.expected)
 		}
@@ -78,7 +78,7 @@ func BenchmarkStrContains(b *testing.B) {
 	x := genRandomStrings(10000)
 	y := genRandomStrings(1000)
 	for i := 0; i < b.N; i++ {
-		strW.Contains(x, y)
+		strw.Contains(x, y)
 		// strings.Contains(x, y)
 	}
 }

@@ -17,13 +17,13 @@ import (
 	"unicode"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/conw"
 	"github.com/grewwc/go_tools/src/sortW"
 
 	"github.com/grewwc/go_tools/src/executable/memo/_helpers"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -56,7 +56,7 @@ const (
 
 var (
 	txtOutputName      = "output.txt"
-	specialTagPatterns = containerW.NewSet("learn")
+	specialTagPatterns = conw.NewSet("learn")
 )
 
 var (
@@ -68,7 +68,7 @@ var (
 )
 
 var (
-	remote = utilsW.NewThreadSafeVal(false)
+	remote = utilw.NewThreadSafeVal(false)
 	mu     sync.Mutex
 )
 
@@ -96,7 +96,7 @@ type tag struct {
 }
 
 func (t tag) String() string {
-	return utilsW.ToString(t, "ID", "Name", "Count")
+	return utilw.ToString(t, "ID", "Name", "Count")
 }
 
 func newRecord(title string, tags ...string) *record {
@@ -114,7 +114,7 @@ func newRecord(title string, tags ...string) *record {
 func init() {
 	// var cancel context.CancelFunc
 	// get the uri
-	m := utilsW.GetAllConfig()
+	m := utilw.GetAllConfig()
 	uriFromConfig := m.GetOrDefault(localMongoConfigName, "")
 	if uriFromConfig != "" {
 		uri = uriFromConfig.(string)
@@ -130,7 +130,7 @@ func init() {
 	}
 
 	// read the special tag patters from .configW
-	for _, val := range strW.SplitNoEmpty(m.GetOrDefault(specialTagConfigname, "").(string), ",") {
+	for _, val := range strw.SplitNoEmpty(m.GetOrDefault(specialTagConfigname, "").(string), ",") {
 		specialTagPatterns.Add(val)
 	}
 
@@ -143,7 +143,7 @@ func initAtlas() {
 		return
 	}
 	fmt.Println("connecting to Mongo Atlas...")
-	m := utilsW.GetAllConfig()
+	m := utilw.GetAllConfig()
 	var err error
 	// mongo atlas init
 	atlasURI := m.GetOrDefault(atlasMongoConfigName, "").(string)
@@ -168,7 +168,7 @@ func initAtlas() {
 }
 
 func (r record) String() string {
-	return utilsW.ToString(r, "AddDate", "ModifiedDate")
+	return utilw.ToString(r, "AddDate", "ModifiedDate")
 }
 
 func incrementTagCount(db *mongo.Database, tags []string, val int) {
@@ -244,7 +244,7 @@ func (r *record) do(action string, options ...string) {
 		}
 		noUpdateModifiedDate := false
 		if len(options) > 0 {
-			s := containerW.NewSet()
+			s := conw.NewSet()
 			for _, option := range options {
 				s.Add(option)
 			}
@@ -402,7 +402,7 @@ func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, t
 	if !listSpecial {
 		resCopy := make([]*record, 0, len(res))
 		for _, r := range res {
-			trie := containerW.NewTrie()
+			trie := conw.NewTrie()
 			tags := r.Tags
 			for _, t := range tags {
 				trie.Insert(t)
@@ -424,7 +424,7 @@ func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, t
 	return res, written
 }
 
-func update(parser *terminalW.Parser, fromFile bool, fromEditor bool, prev bool) {
+func update(parser *terminalw.Parser, fromFile bool, fromEditor bool, prev bool) {
 	var err error
 	var changed bool
 	var cli = client
@@ -454,7 +454,7 @@ func update(parser *terminalW.Parser, fromFile bool, fromEditor bool, prev bool)
 	fmt.Print("input the title: ")
 	var title string
 	if fromEditor {
-		newRecord.Title = utilsW.InputWithEditor(oldTitle, useVsCode)
+		newRecord.Title = utilw.InputWithEditor(oldTitle, useVsCode)
 		if newRecord.Title != oldTitle {
 			changed = true
 		}
@@ -463,14 +463,14 @@ func update(parser *terminalW.Parser, fromFile bool, fromEditor bool, prev bool)
 		scanner.Scan()
 		title = strings.TrimSpace(scanner.Text())
 		if fromFile {
-			title = utilsW.ReadString(title)
+			title = utilw.ReadString(title)
 		}
 		if title != "" {
 			changed = true
 			newRecord.Title = title
 		}
 	}
-	tags := strings.TrimSpace(utilsW.UserInput("input the tags: ", false))
+	tags := strings.TrimSpace(utilw.UserInput("input the tags: ", false))
 	tags = strings.ReplaceAll(tags, ",", " ")
 	var tagsRunes []rune
 	for _, r := range tags {
@@ -481,7 +481,7 @@ func update(parser *terminalW.Parser, fromFile bool, fromEditor bool, prev bool)
 	tags = string(tagsRunes)
 	if tags != "" {
 		changed = true
-		newRecord.Tags = strW.SplitNoEmpty(tags, " ")
+		newRecord.Tags = strw.SplitNoEmpty(tags, " ")
 		c := make(chan interface{}, 1)
 		go func(c chan interface{}) {
 			incrementTagCount(cli.Database(dbName), oldTags, -1)
@@ -520,7 +520,7 @@ func insert(fromEditor bool, filename, tagName string) {
 	tagName = strings.TrimSpace(tagName)
 	if filename != "" {
 		title = strings.ReplaceAll(filename, ",", " ")
-		titleSlice = strW.SplitNoEmpty(title, " ")
+		titleSlice = strw.SplitNoEmpty(title, " ")
 		if len(titleSlice) == 1 {
 			titleSlice, err = filepath.Glob(title)
 			// fmt.Println("here", titleSlice)
@@ -529,22 +529,22 @@ func insert(fromEditor bool, filename, tagName string) {
 			}
 		}
 		for i := range titleSlice {
-			titleSlice[i] = filepath.Base(titleSlice[i]) + "\n" + utilsW.ReadString(titleSlice[i])
+			titleSlice[i] = filepath.Base(titleSlice[i]) + "\n" + utilw.ReadString(titleSlice[i])
 		}
 	} else if fromEditor {
 		fmt.Print("input the title: ")
-		title = utilsW.InputWithEditor("", useVsCode)
+		title = utilw.InputWithEditor("", useVsCode)
 		fmt.Println()
 	} else {
-		title = strings.TrimSpace(utilsW.UserInput("input the title: ", false))
+		title = strings.TrimSpace(utilw.UserInput("input the title: ", false))
 	}
 	if len(tagName) == 0 {
-		tagsStr = strings.TrimSpace(utilsW.UserInput("input the tags: ", false))
+		tagsStr = strings.TrimSpace(utilw.UserInput("input the tags: ", false))
 	} else {
 		tagsStr = tagName
 	}
 	tagsStr = strings.ReplaceAll(tagsStr, ",", " ")
-	tags := strW.SplitNoEmpty(tagsStr, " ")
+	tags := strw.SplitNoEmpty(tagsStr, " ")
 	if len(tags) == 0 {
 		tags = []string{autoTag}
 	}
@@ -563,7 +563,7 @@ func insert(fromEditor bool, filename, tagName string) {
 		<-c
 		fmt.Println("Inserted: ")
 		fmt.Println("\tTags:", r.Tags)
-		fmt.Println("\tTitle:", strW.SubStringQuiet(r.Title, 0, titleLen))
+		fmt.Println("\tTitle:", strw.SubStringQuiet(r.Title, 0, titleLen))
 	}
 }
 
@@ -675,7 +675,7 @@ func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 	<-c
 	fmt.Print("input the New Title: ")
 	if fromEditor {
-		newTitle := utilsW.InputWithEditor(r.Title, useVsCode)
+		newTitle := utilw.InputWithEditor(r.Title, useVsCode)
 		if newTitle == r.Title {
 			fmt.Println("content not changed ")
 			return
@@ -691,7 +691,7 @@ func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 		}
 		r.Title = newTitle
 		if fromFile {
-			newTitle = utilsW.ReadString(r.Title)
+			newTitle = utilw.ReadString(r.Title)
 			if newTitle == r.Title {
 				fmt.Println("content not changed")
 				return
@@ -706,7 +706,7 @@ func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 	<-c
 	fmt.Println("New Record: ")
 	fmt.Println("\tTags:", r.Tags)
-	fmt.Println("\tTitle:", strW.SubStringQuiet(r.Title, 0, titleLen))
+	fmt.Println("\tTitle:", strw.SubStringQuiet(r.Title, 0, titleLen))
 }
 
 func addTag(add bool, id string, prev bool) {
@@ -737,7 +737,7 @@ func addTag(add bool, id string, prev bool) {
 	}(c)
 	<-c
 	go func(c chan interface{}) {
-		s := containerW.NewSet()
+		s := conw.NewSet()
 		for _, tag := range r.Tags {
 			s.Add(tag)
 		}
@@ -745,13 +745,13 @@ func addTag(add bool, id string, prev bool) {
 	}(c)
 	fmt.Print("input the Tag: ")
 	scanner.Scan()
-	newTags := strW.SplitNoEmpty(strings.ReplaceAll(strings.TrimSpace(scanner.Text()), ",", " "), " ")
+	newTags := strw.SplitNoEmpty(strings.ReplaceAll(strings.TrimSpace(scanner.Text()), ",", " "), " ")
 
-	s := (<-c).(*containerW.Set)
+	s := (<-c).(*conw.Set)
 	if s.Size() == 1 && !add {
 		panic("can't delete the tag, because it's the only tag")
 	}
-	newTagSet := containerW.NewSet()
+	newTagSet := conw.NewSet()
 	for _, newTag := range newTags {
 		if strings.TrimSpace(newTag) == "" {
 			continue
@@ -787,7 +787,7 @@ func addTag(add bool, id string, prev bool) {
 	<-c
 	fmt.Println("New Record: ")
 	fmt.Println("\tTags:", r.Tags)
-	fmt.Println("\tTitle:", strW.SubStringQuiet(r.Title, 0, titleLen))
+	fmt.Println("\tTitle:", strw.SubStringQuiet(r.Title, 0, titleLen))
 }
 
 func printSeperator() {
@@ -798,8 +798,8 @@ func coloringRecord(r *record, p *regexp.Regexp) {
 	if p != nil {
 		all := bytes.NewBufferString("")
 		indices := p.FindAllStringIndex(r.Title, -1)
-		beg := containerW.NewQueue()
-		end := containerW.NewQueue()
+		beg := conw.NewQueue()
+		end := conw.NewQueue()
 		bt := []byte(r.Title)
 		for _, idx := range indices {
 			i, j := idx[0], idx[1]
@@ -875,7 +875,7 @@ func syncByID(id string, push, quiet bool) {
 	if quiet {
 		n = 20
 	}
-	fmt.Printf("finished %s %s: \n", msg, color.GreenString(strW.SubStringQuiet(r.Title, 0, n)))
+	fmt.Printf("finished %s %s: \n", msg, color.GreenString(strw.SubStringQuiet(r.Title, 0, n)))
 	// printSeperator()
 	// fmt.Println(r)
 	// printSeperator()
@@ -936,7 +936,7 @@ func filterTags(tags []tag, prefix []string) []tag {
 
 func main() {
 	var n int64 = 100
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("i", false, "insert a record")
 	parser.String("ct", "", "change a record title")
 	parser.String("u", "", "update a record")
@@ -1001,7 +1001,7 @@ func main() {
 
 	positional := parser.Positional
 	prefix := parser.ContainsAnyFlagStrict("prefix", "pre")
-	isWindows := utilsW.WINDOWS == utilsW.GetPlatform()
+	isWindows := utilw.WINDOWS == utilw.GetPlatform()
 	onlyHold := parser.ContainsFlagStrict("onlyhold") ||
 		(parser.ContainsFlagStrict("hold") && parser.GetFlagValueDefault("hold", "") == "")
 
@@ -1089,13 +1089,13 @@ func main() {
 	toBinary := parser.ContainsAnyFlagStrict("binary", "b")
 
 	if (parser.ContainsFlagStrict("t") || parser.CoExists("t", "a")) && !listTagsAndOrderByTime {
-		tags = strW.SplitNoEmpty(strings.TrimSpace(parser.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
+		tags = strw.SplitNoEmpty(strings.TrimSpace(parser.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	}
 
 	if parser.ContainsFlagStrict("clean-tag") {
 		t := parser.GetFlagValueDefault("clean-tag", "")
 		t = strings.ReplaceAll(t, ",", " ")
-		tags = strW.SplitNoEmpty(t, " ")
+		tags = strw.SplitNoEmpty(t, " ")
 		coloredTags := make([]string, len(tags))
 		if len(tags) == 0 {
 			fmt.Println("empty tags")
@@ -1147,10 +1147,10 @@ func main() {
 				for _, record := range records {
 					printSeperator()
 					coloringRecord(record, nil)
-					if !utilsW.IsText([]byte(record.Title)) {
+					if !utilw.IsText([]byte(record.Title)) {
 						record.Title = color.HiYellowString("<binary>")
 					}
-					fmt.Println(utilsW.ToString(record, ignoreFields...))
+					fmt.Println(utilw.ToString(record, ignoreFields...))
 					fmt.Println(color.HiRedString(record.ID.String()))
 				}
 			} else if toBinary {
@@ -1159,9 +1159,9 @@ func main() {
 					idx := strings.IndexByte(content, '\n')
 					filename := content[:idx]
 					title := content[idx+1:]
-					if !utilsW.IsExist(filename) ||
-						(utilsW.IsExist(filename) && parser.ContainsFlagStrict("force")) ||
-						(utilsW.IsExist(filename) && utilsW.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) {
+					if !utilw.IsExist(filename) ||
+						(utilw.IsExist(filename) && parser.ContainsFlagStrict("force")) ||
+						(utilw.IsExist(filename) && utilw.PromptYesOrNo((fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", filename)))) {
 						if err := os.WriteFile(filename, []byte(title), 0666); err != nil {
 							panic(err)
 						}
@@ -1169,8 +1169,8 @@ func main() {
 				}
 			} else { // to file
 				var err error
-				if (utilsW.IsExist(txtOutputName) && utilsW.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", txtOutputName))) ||
-					!utilsW.IsExist(txtOutputName) {
+				if (utilw.IsExist(txtOutputName) && utilw.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", txtOutputName))) ||
+					!utilw.IsExist(txtOutputName) {
 					buf := bytes.NewBufferString("")
 					for _, r := range records {
 						buf.WriteString(fmt.Sprintf("%s %v %s\n", strings.Repeat("-", 10), r.Tags, strings.Repeat("-", 10)))
@@ -1193,7 +1193,7 @@ func main() {
 					wg.Done()
 				}(r)
 			}
-			utilsW.TimeoutWait(&wg, 30*time.Second)
+			utilw.TimeoutWait(&wg, 30*time.Second)
 		}
 		return
 	}
@@ -1286,7 +1286,7 @@ func main() {
 
 			// modified date map
 			mtMap := getAllTagsModifiedDate(allRecords)
-			testTags := containerW.NewOrderedMap()
+			testTags := conw.NewOrderedMap()
 			for _, r := range allRecords {
 				for _, t := range r.Tags {
 					testTags.Put(t, testTags.GetOrDefault(t, 0).(int)+1)
@@ -1337,16 +1337,16 @@ func main() {
 		}
 		cursor.All(ctx, &tags)
 	print:
-		_, w, err = utilsW.GetTerminalSize()
+		_, w, err = utilw.GetTerminalSize()
 		// filter records
 		if parser.GetFlagValueDefault("ex", "") != "" {
-			tags = filterTags(tags, utilsW.GetCommandList(parser.MustGetFlagVal("ex")))
+			tags = filterTags(tags, utilw.GetCommandList(parser.MustGetFlagVal("ex")))
 		}
 		for _, tag := range tags {
 			if verbose {
 				tag.Name = color.HiGreenString(tag.Name)
 				printSeperator()
-				fmt.Println(utilsW.ToString(tag))
+				fmt.Println(utilw.ToString(tag))
 			} else {
 				fmt.Fprintf(buf, `%s[%d]  `, tag.Name, tag.Count)
 			}
@@ -1355,9 +1355,9 @@ func main() {
 			if err == nil {
 				terminalIndent := 2
 				delimiter := "   "
-				raw := strW.Wrap(buf.String(), w-terminalIndent, terminalIndent, delimiter)
-				for _, line := range strW.SplitNoEmpty(raw, "\n") {
-					arr := strW.SplitNoEmpty(line, " ")
+				raw := strw.Wrap(buf.String(), w-terminalIndent, terminalIndent, delimiter)
+				for _, line := range strw.SplitNoEmpty(raw, "\n") {
+					arr := strw.SplitNoEmpty(line, " ")
 					changedArr := make([]string, len(arr))
 					for i := range arr {
 						idx := strings.Index(arr[i], "[")
@@ -1404,8 +1404,8 @@ func main() {
 			panic("not supported")
 		} else {
 			var err error
-			if (utilsW.IsExist(txtOutputName) && utilsW.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", txtOutputName))) ||
-				!utilsW.IsExist(txtOutputName) {
+			if (utilw.IsExist(txtOutputName) && utilw.PromptYesOrNo(fmt.Sprintf("%q already exists, do you want ot overwirte it? (y/n): ", txtOutputName))) ||
+				!utilw.IsExist(txtOutputName) {
 				buf := bytes.NewBufferString("")
 				for _, r := range records {
 					buf.WriteString(fmt.Sprintf("%s %v %s\n", strings.Repeat("-", 10), r.Tags, strings.Repeat("-", 10)))
@@ -1473,9 +1473,9 @@ func main() {
 	// log week work
 	if positional.Contains("week") {
 		// merge from log.yyyy-MM-dd
-		firstDay := utilsW.GetFirstDayOfThisWeek()
+		firstDay := utilw.GetFirstDayOfThisWeek()
 		now := time.Now()
-		tag := firstDay.Format(fmt.Sprintf("%s.%s", "week", utilsW.DateFormat))
+		tag := firstDay.Format(fmt.Sprintf("%s.%s", "week", utilw.DateFormat))
 		rs, _ := listRecords(-1, true, true, true, []string{tag}, false, "", false, false, false)
 		title := bytes.NewBufferString("")
 		newWeekRecord := false
@@ -1487,13 +1487,13 @@ func main() {
 			newWeekRecord = true
 		}
 		for firstDay.Before(now) {
-			dayTag := firstDay.Format(fmt.Sprintf("%s.%s", "log", utilsW.DateFormat))
+			dayTag := firstDay.Format(fmt.Sprintf("%s.%s", "log", utilw.DateFormat))
 			r, _ := listRecords(-1, true, true, true, []string{dayTag}, false, "", false, false, false)
 			if len(r) > 1 {
 				panic("log failed")
 			}
 			if len(r) == 1 {
-				title.WriteString(fmt.Sprintf("-- %s --", firstDay.Format(utilsW.DateFormat)))
+				title.WriteString(fmt.Sprintf("-- %s --", firstDay.Format(utilw.DateFormat)))
 				title.WriteString("\n")
 				title.WriteString(r[0].Title)
 				title.WriteString("\n\n")
@@ -1523,7 +1523,7 @@ func main() {
 		if len(rs) == 0 {
 			newRecord(logMsg, tag).save(false)
 		} else {
-			s := containerW.NewOrderedSet()
+			s := conw.NewOrderedSet()
 			for _, title := range strings.Split(rs[0].Title, "\n") {
 				s.Add(title)
 			}

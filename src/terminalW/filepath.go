@@ -1,4 +1,4 @@
-package terminalW
+package terminalw
 
 import (
 	"fmt"

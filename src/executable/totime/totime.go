@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 )
 
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("ts", false, "get current timestamp")
 	parser.ParseArgsCmd()
 	if parser.Empty() || parser.ContainsFlagStrict("-h") {
@@ -33,7 +33,7 @@ func main() {
 	}
 	unixTime, err := strconv.Atoi(posArr[0])
 	if err != nil {
-		fmt.Println(utilsW.ToUnix(posArr[0]), "s")
+		fmt.Println(utilw.ToUnix(posArr[0]), "s")
 		return
 	}
 	res := time.Unix(int64(unixTime), 0)

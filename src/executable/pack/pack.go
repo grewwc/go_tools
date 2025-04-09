@@ -11,10 +11,10 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 var (
@@ -22,8 +22,8 @@ var (
 )
 
 var (
-	excludeFileExtension = containerW.NewTrie()
-	fileExtension        = containerW.NewTrie()
+	excludeFileExtension = conw.NewTrie()
+	fileExtension        = conw.NewTrie()
 )
 
 // 控制打开文件数量
@@ -101,20 +101,20 @@ func processTarGzFile(fname string, prefix string) {
 
 func clean(fname string) {
 	fmt.Printf("cleaning %s\n", fname)
-	if utilsW.IsExist(fname) {
+	if utilw.IsExist(fname) {
 		msg := fmt.Sprintf("error occurred, clean %q\n", fname)
 		log.Fatalln(color.RedString(msg))
 		os.Remove(fname)
 	}
 }
 
-func printHelp(parser *terminalW.Parser) {
+func printHelp(parser *terminalw.Parser) {
 	parser.PrintDefaults()
-	fmt.Printf("%s dest.tar.gz source_dir\n", utilsW.BaseNoExt(utilsW.GetCurrentFileName()))
+	fmt.Printf("%s dest.tar.gz source_dir\n", utilw.BaseNoExt(utilw.GetCurrentFileName()))
 }
 
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.String("ex", "", "exclude file/directory")
 	parser.String("exclude", "", "exclude file/directory, (i.e.: ${somedir}/.git, NOT .git")
 	parser.Bool("v", false, "verbose")
@@ -136,14 +136,14 @@ func main() {
 	nt = strings.ReplaceAll(nt, ",", " ")
 	t := parser.GetFlagValueDefault("t", "")
 	t = strings.ReplaceAll(t, ",", " ")
-	for _, val := range strW.SplitNoEmpty(nt, " ") {
+	for _, val := range strw.SplitNoEmpty(nt, " ") {
 		if val[0] != '.' {
 			val = "." + val
 		}
 		// fmt.Println("here", val)
 		excludeFileExtension.Insert(val)
 	}
-	for _, val := range strW.SplitNoEmpty(t, " ") {
+	for _, val := range strw.SplitNoEmpty(t, " ") {
 		if val[0] != '.' {
 			val = "." + val
 		}
@@ -158,9 +158,9 @@ func main() {
 		err = nil
 	}
 	if exclude != "" {
-		for _, ex := range strW.SplitNoEmptyKeepQuote(exclude, ',') {
+		for _, ex := range strw.SplitNoEmptyKeepQuote(exclude, ',') {
 			ex = strings.TrimSpace(ex)
-			excludeSlice = append(excludeSlice, utilsW.Abs(ex))
+			excludeSlice = append(excludeSlice, utilw.Abs(ex))
 		}
 	}
 
@@ -175,14 +175,14 @@ func main() {
 
 	verbose := parser.ContainsFlagStrict("v")
 	showProgress := parser.MustGetFlagVal("prog")
-	excludeSet := containerW.NewSet()
+	excludeSet := conw.NewSet()
 
 	for _, ex := range excludes {
 		filepath.Walk(ex, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
-			excludeSet.Add(utilsW.Abs(path))
+			excludeSet.Add(utilw.Abs(path))
 			return nil
 		})
 	}
@@ -197,7 +197,7 @@ func main() {
 	}
 	outName := args[0]
 
-	if !strW.AnyEquals(filepath.Ext(outName), ".gz", ".tgz") {
+	if !strw.AnyEquals(filepath.Ext(outName), ".gz", ".tgz") {
 		msg := color.RedString(fmt.Sprintf("%q is not a valid outname", outName))
 		panic(msg)
 	}
@@ -226,8 +226,8 @@ func main() {
 		os.Exit(0)
 	}
 	// to tar files
-	if utilsW.IsExist(outName) {
-		ans := utilsW.PromptYesOrNo(fmt.Sprintf("%s exists, overwrite? (y/n) ", color.HiRedString(outName)))
+	if utilw.IsExist(outName) {
+		ans := utilw.PromptYesOrNo(fmt.Sprintf("%s exists, overwrite? (y/n) ", color.HiRedString(outName)))
 		if ans {
 			fmt.Printf("overrite %s!\n", color.RedString(outName))
 		} else {
@@ -262,7 +262,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			absPath := utilsW.Abs(path)
+			absPath := utilw.Abs(path)
 			ext := filepath.Ext(path)
 			if t != "" {
 				// 没有文件后缀的也忽略
@@ -285,7 +285,7 @@ func main() {
 		}
 		return
 	}
-	if err = utilsW.TarGz(outName, allFiles, verbose, showProgress == "true"); err != nil {
+	if err = utilw.TarGz(outName, allFiles, verbose, showProgress == "true"); err != nil {
 		if parser.ContainsFlagStrict("clean") {
 			clean(outName)
 		}

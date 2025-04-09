@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/typesW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/typew"
 )
 
 const (
@@ -39,7 +39,7 @@ func isDigit(ch byte) bool {
 }
 
 func reportErr(msg []byte) {
-	panic(fmt.Sprintf("invalid expression: %s", typesW.BytesToStr(msg)))
+	panic(fmt.Sprintf("invalid expression: %s", typew.BytesToStr(msg)))
 }
 
 func pow(a, b string) string {
@@ -58,14 +58,14 @@ func calcWithOp(first, second string, op byte) string {
 	var val string
 	switch op {
 	case '+':
-		val = strW.Plus(first, second)
+		val = strw.Plus(first, second)
 	case '-':
-		val = strW.Minus(first, second)
+		val = strw.Minus(first, second)
 	case '*':
-		val = strW.Mul(first, second)
+		val = strw.Mul(first, second)
 	case '/':
 		// val = div(first, second)
-		val = strW.Div(first, second, prec)
+		val = strw.Div(first, second, prec)
 	case '^':
 		secondVal, err := strconv.Atoi(second)
 		if err != nil {
@@ -73,11 +73,11 @@ func calcWithOp(first, second string, op byte) string {
 		} else {
 			val = first
 			for i := 1; i < secondVal; i++ {
-				val = strW.Mul(val, first)
+				val = strw.Mul(val, first)
 			}
 		}
 	case '%':
-		val = strW.Mod(first, second)
+		val = strw.Mod(first, second)
 	}
 	// fmt.Printf("calc: %s %s %s = %s\n", first, string(op), second, val)
 	return val
@@ -85,8 +85,8 @@ func calcWithOp(first, second string, op byte) string {
 
 func calc(expr []byte) string {
 	state := INIT
-	opSt := containerW.NewStack(4)
-	numSt := containerW.NewStack(8)
+	opSt := conw.NewStack(4)
+	numSt := conw.NewStack(8)
 	var buf bytes.Buffer
 	for i := 0; i < len(expr); {
 		ch := expr[i]
@@ -112,7 +112,7 @@ func calc(expr []byte) string {
 				return ""
 			}
 			idx += i + 1
-			nestedResult := calc(typesW.StrToBytes(processInputStr(typesW.BytesToStr(expr[i+1 : idx]))))
+			nestedResult := calc(typew.StrToBytes(processInputStr(typew.BytesToStr(expr[i+1 : idx]))))
 			if nestedResult == "" {
 				return ""
 			}
@@ -231,12 +231,12 @@ func test() {
 	x = "2*2"
 	x = `(4527.9869-4661)/4661*100`
 	prec = 16
-	res := calc(typesW.StrToBytes(processInputStr(x)))
+	res := calc(typew.StrToBytes(processInputStr(x)))
 	fmt.Println(res)
 }
 
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Int("prec", 16, "division precision. default is: 16")
 	parser.Bool("h", false, "print help info")
 	parser.ParseArgsCmd()
@@ -258,7 +258,7 @@ func main() {
 		prec = parser.GetNumArgs()
 	}
 
-	res := calc(typesW.StrToBytes(processInputStr(expr)))
+	res := calc(typew.StrToBytes(processInputStr(expr)))
 	fmt.Println(res)
 	// test()
 

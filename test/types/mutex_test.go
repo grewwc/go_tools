@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/grewwc/go_tools/src/typesW"
+	"github.com/grewwc/go_tools/src/typew"
 )
 
-var mu = typesW.NewReentrantMutex()
+var mu = typew.NewReentrantMutex()
 
 var count = 0
 
@@ -73,7 +73,7 @@ func BenchmarkReentrantMutex(b *testing.B) {
 }
 
 func BenchmarkCompareFunc(b *testing.B) {
-	f := typesW.CreateDefaultCmp[int]()
+	f := typew.CreateDefaultCmp[int]()
 	// f := func(a, b any) int {
 	// 	return a.(int) - b.(int)
 	// }

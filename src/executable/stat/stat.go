@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/utilw"
 	"github.com/grewwc/go_tools/src/windowsW"
 )
 
@@ -59,7 +59,7 @@ func processSingle(filename string) {
 		log.Fatalln(err)
 	}
 	mTime := f.ModTime()
-	size, err := utilsW.GetDirSize(filename)
+	size, err := utilw.GetDirSize(filename)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -67,7 +67,7 @@ func processSingle(filename string) {
 	modeNum := modeStrToNum(modeStr)
 
 	fmt.Printf("    File: %s\tSize: %s\tAccess: (%s/%s)\n",
-		color.HiGreenString(filename), strW.FormatInt64(size), modeNum, modeStr)
+		color.HiGreenString(filename), strw.FormatInt64(size), modeNum, modeStr)
 	fmt.Printf("  Create: %v\n", cTime)
 	fmt.Printf("  Modify: %v\n", mTime)
 }
@@ -75,7 +75,7 @@ func processSingle(filename string) {
 func main() {
 	args := os.Args[1:]
 	for _, filename := range args {
-		files := utilsW.LsDirGlob(filename)
+		files := utilw.LsDirGlob(filename)
 		for d, fnames := range files {
 			if d == "./" {
 				for _, fname := range fnames {

@@ -7,23 +7,23 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
-var ignoreName = containerW.NewSet()
-var forceRebuildName = containerW.NewSet()
+var ignoreName = conw.NewSet()
+var forceRebuildName = conw.NewSet()
 
 func init() {
-	if utilsW.GetPlatform() != utilsW.WINDOWS {
+	if utilw.GetPlatform() != utilw.WINDOWS {
 		// add Folder name, NOT filename
 		ignoreName.AddAll("cat", "head", "rm", "stat", "tail", "touch", "open", "ls")
 	}
 }
 
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("h", false, "print help information")
 	parser.Bool("f", false, "force rebuild (shortcut form)")
 	parser.Bool("a", false, "force rebuild all")
@@ -36,16 +36,16 @@ func main() {
 		forceRebuildName.Add(fnameStr + ".go")
 	}
 
-	subdirs := utilsW.LsDir(utilsW.GetDirOfTheFile(), nil, nil)
+	subdirs := utilw.LsDir(utilw.GetDirOfTheFile(), nil, nil)
 	// fmt.Println(forceRebuildName.ToSlice(), subdirs)
-	outputDir := filepath.Join(utilsW.GetDirOfTheFile(), "../", "../", "bin/")
-	if !utilsW.IsExist(outputDir) {
+	outputDir := filepath.Join(utilw.GetDirOfTheFile(), "../", "../", "bin/")
+	if !utilw.IsExist(outputDir) {
 		os.MkdirAll(outputDir, os.ModePerm)
-	} else if !utilsW.IsDir(outputDir) {
+	} else if !utilw.IsDir(outputDir) {
 		log.Fatalf("cannot install, because %q is not a directory", outputDir)
 	}
 	for _, subdir := range subdirs {
-		if !utilsW.IsDir(filepath.Join(utilsW.GetDirOfTheFile(), subdir)) || strings.Trim(subdir, " ") == "bin" {
+		if !utilw.IsDir(filepath.Join(utilw.GetDirOfTheFile(), subdir)) || strings.Trim(subdir, " ") == "bin" {
 			continue
 		}
 
@@ -53,14 +53,14 @@ func main() {
 			continue
 		}
 
-		err := os.Chdir(filepath.Join(utilsW.GetDirOfTheFile(), subdir))
+		err := os.Chdir(filepath.Join(utilw.GetDirOfTheFile(), subdir))
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 		defer os.Chdir("../")
 		var filename string
-		filenames := utilsW.LsDir(".", nil, nil)
+		filenames := utilw.LsDir(".", nil, nil)
 		// find the first go file to build as binary
 		for _, name := range filenames {
 			if filepath.Ext(name) != ".go" {
@@ -69,19 +69,19 @@ func main() {
 			filename = name
 		}
 
-		executableFilename := filepath.Join(outputDir, utilsW.TrimFileExt(filename))
-		if utilsW.GetPlatform() == utilsW.WINDOWS {
+		executableFilename := filepath.Join(outputDir, utilw.TrimFileExt(filename))
+		if utilw.GetPlatform() == utilw.WINDOWS {
 			executableFilename += ".exe"
 		}
 		// fmt.Println("what", filename, forceRebuildName)
 		if (!all && !force && !forceRebuildName.Contains(filename)) &&
-			(utilsW.IsExist(executableFilename) && utilsW.IsNewer(executableFilename, filename)) {
+			(utilw.IsExist(executableFilename) && utilw.IsNewer(executableFilename, filename)) {
 			continue
 		}
 
 		fmt.Printf("building %q\n", filename)
 		cmd := fmt.Sprintf(`go build -a -ldflags="-s -w" -o %s`, filepath.Join(outputDir, filepath.Base(executableFilename)))
-		if _, err := utilsW.RunCmd(cmd, nil); err != nil {
+		if _, err := utilw.RunCmd(cmd, nil); err != nil {
 			panic(err)
 		}
 

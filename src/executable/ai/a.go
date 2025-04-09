@@ -15,10 +15,10 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/executable/ai/_ai_helpers"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/typesW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 const (
@@ -59,7 +59,7 @@ var (
 	endThinkingTag = color.YellowString("<end thinking>")
 )
 
-func getText(j *utilsW.Json) string {
+func getText(j *utilw.Json) string {
 	choices := j.GetJson("choices")
 	if choices.Len() == 0 {
 		return ""
@@ -85,28 +85,28 @@ func getText(j *utilsW.Json) string {
 
 func handleResponse(resp io.Reader) <-chan string {
 	keyword := "data: {"
-	doneKeyword := typesW.StrToBytes("data: [DONE]")
+	doneKeyword := typew.StrToBytes("data: [DONE]")
 	ch := make(chan string)
 	go func() {
 		defer func() {
 			recover()
 			close(ch)
 		}()
-		for content := range strW.SplitByToken(resp, keyword, true) {
+		for content := range strw.SplitByToken(resp, keyword, true) {
 			if content == keyword || content == "" {
 				continue
 			}
-			b := typesW.StrToBytes(content)
+			b := typew.StrToBytes(content)
 			b = bytes.TrimSpace(b)
 			b = bytes.TrimSuffix(b, doneKeyword)
-			b = bytes.TrimSuffix(b, typesW.StrToBytes(keyword))
+			b = bytes.TrimSuffix(b, typew.StrToBytes(keyword))
 			b = bytes.TrimSpace(b)
 			b = append([]byte{'{'}, b...)
 			// fmt.Println("==>")
 			// fmt.Println(string(b))
 			// fmt.Println("===")
 			// os.Exit(0)
-			j := utilsW.NewJsonFromByte(b)
+			j := utilw.NewJsonFromByte(b)
 			ch <- getText(j)
 		}
 	}()
@@ -114,7 +114,7 @@ func handleResponse(resp io.Reader) <-chan string {
 }
 
 func init() {
-	config := utilsW.GetAllConfig()
+	config := utilw.GetAllConfig()
 	apiKey = config.GetOrDefault("api_key", "").(string)
 	if apiKey == "" {
 		fmt.Println("set api_key in ~/.configW")
@@ -123,17 +123,17 @@ func init() {
 
 	historyFile = config.GetOrDefault("history_file", "").(string)
 	if historyFile == "" {
-		historyFile = utilsW.ExpandUser("~/.history_file.txt")
+		historyFile = utilw.ExpandUser("~/.history_file.txt")
 	}
 }
 
 func buildMessageArr(n int) []Message {
-	if !utilsW.IsTextFile(historyFile) {
+	if !utilw.IsTextFile(historyFile) {
 		return []Message{}
 	}
-	history := utilsW.ReadString(historyFile)
+	history := utilw.ReadString(historyFile)
 	result := make([]Message, 0)
-	lines := strW.SplitNoEmptyKeepQuote(history, '\x01')
+	lines := strw.SplitNoEmptyKeepQuote(history, '\x01')
 	for _, line := range lines {
 		if line == "" {
 			continue
@@ -149,7 +149,7 @@ func buildMessageArr(n int) []Message {
 		n = len(lines)
 	}
 	if len(lines) > maxHistoryLines {
-		utilsW.WriteToFile(historyFile, typesW.StrToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
+		utilw.WriteToFile(historyFile, typew.StrToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
 	}
 	return result[len(lines)-n:]
 }
@@ -173,12 +173,12 @@ func modifyQuestion(question string) string {
 	return question
 }
 
-func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
+func getQuestion(parsed *terminalw.Parser, userInput bool) (question string) {
 	var fileContent string
 	if userInput {
 		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
-		question = utilsW.UserInput("> ", multiLine)
-		tempParser := terminalW.NewParser()
+		question = utilw.UserInput("> ", multiLine)
+		tempParser := terminalw.NewParser()
 		tempParser.Bool("x", false, "")
 		tempParser.Bool("c", false, "")
 		tempParser.ParseArgs(fmt.Sprintf("a %s", question), "x", "c")
@@ -211,7 +211,7 @@ func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 		parsed.RemoveFlagValue("f")
 	}
 	if parsed.ContainsFlagStrict("c") {
-		fileContent += utilsW.ReadClipboardText()
+		fileContent += utilw.ReadClipboardText()
 		parsed.RemoveFlagValue("c")
 	}
 	// short output
@@ -223,14 +223,14 @@ func getQuestion(parsed *terminalW.Parser, userInput bool) (question string) {
 	return
 }
 
-func getNumHistory(parsed *terminalW.Parser) int {
+func getNumHistory(parsed *terminalw.Parser) int {
 	if parsed.ContainsFlagStrict("x") {
 		return 0
 	}
 	return parsed.GetIntFlagValOrDefault("history", defaultNumHistory)
 }
 
-func getWriteResultFile(parsed *terminalW.Parser) *os.File {
+func getWriteResultFile(parsed *terminalw.Parser) *os.File {
 	if parsed.ContainsFlagStrict("out") {
 		filename := parsed.GetFlagValueDefault("out", "")
 		if filename == "" {
@@ -250,7 +250,7 @@ func main() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Int("history", defaultNumHistory, "number of history")
 	parser.String("m", "", `model name. (configured by \"ai.model.default\") ,
 qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-latest [4], deepseek-r1 [5], qwen-turbo [6, default])`)

@@ -11,11 +11,11 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/conw"
 	_lsW "github.com/grewwc/go_tools/src/executable/ls/utils"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 var w int
@@ -23,10 +23,10 @@ var all bool
 var onlyDir, onlyFile bool
 var pattern *regexp.Regexp
 
-var ignores = containerW.NewSet()
-var wanted = containerW.NewSet()
+var ignores = conw.NewSet()
+var wanted = conw.NewSet()
 
-var errMsgs = containerW.NewQueue()
+var errMsgs = conw.NewQueue()
 var fileCnt int64
 
 func init() {
@@ -37,7 +37,7 @@ func init() {
 	// windows.GetConsoleScreenBufferInfo(stdout, &info)
 	// w = int(info.Size.X)
 	var err error
-	_, w, err = utilsW.GetTerminalSize()
+	_, w, err = utilw.GetTerminalSize()
 	if err != nil {
 		panic(err)
 	}
@@ -53,13 +53,13 @@ func formatFileStat(filename string, realSize bool) string {
 	modTime := stat.ModTime()
 	modTimeStr := fmt.Sprintf("   %04d/%02d/%02d  %02d:%02d", modTime.Year(), int(modTime.Month()), modTime.Day(), modTime.Hour(), modTime.Minute())
 	var sizeStr string
-	if !utilsW.IsDir(filename) {
-		sizeStr = strW.FormatInt64(stat.Size())
+	if !utilw.IsDir(filename) {
+		sizeStr = strw.FormatInt64(stat.Size())
 	} else {
 		var dirSize int64
 		var err error
 		if realSize {
-			dirSize, err = utilsW.GetDirSize(filename)
+			dirSize, err = utilw.GetDirSize(filename)
 		} else {
 			dirSize = stat.Size()
 		}
@@ -69,12 +69,12 @@ func formatFileStat(filename string, realSize bool) string {
 			// log.Printf("error getting size of directory: %q\n", filename)
 			// os.Exit(1)
 		}
-		sizeStr = strW.FormatInt64(dirSize)
+		sizeStr = strw.FormatInt64(dirSize)
 	}
-	if utilsW.IsDir(filename) {
+	if utilw.IsDir(filename) {
 		filename = color.HiCyanString(filename + "/")
 	}
-	if utilsW.IsExecutableOwner(filename) {
+	if utilw.IsExecutableOwner(filename) {
 		filename = color.HiGreenString(filename)
 	}
 
@@ -95,7 +95,7 @@ func printErrors() {
 }
 
 func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, sortType int,
-	dirStrings *containerW.OrderedMap) string {
+	dirStrings *conw.OrderedMap) string {
 	fileCnt = 0
 
 	// if sortType != _lsW.Unsort
@@ -127,11 +127,11 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 		if !all && filepath.Base(file)[0] == '.' {
 			continue
 		}
-		if onlyDir && !utilsW.IsDir(file) {
+		if onlyDir && !utilw.IsDir(file) {
 			continue
 		}
 
-		if onlyFile && !utilsW.IsRegular(file) {
+		if onlyFile && !utilw.IsRegular(file) {
 			continue
 		}
 
@@ -152,26 +152,26 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			fileCnt++
 			continue
 		}
-		if utilsW.IsDir(file) {
+		if utilw.IsDir(file) {
 			file += "/"
 			if rootDir[len(rootDir)-1] != '/' {
 				rootDir += "/"
 			}
-			dirStrings.Put(strW.StripPrefix(file, rootDir), "d")
+			dirStrings.Put(strw.StripPrefix(file, rootDir), "d")
 		}
-		if utilsW.IsExecutableOwner(file) {
+		if utilw.IsExecutableOwner(file) {
 			dirStrings.Put(filepath.Base(file), "e")
 		}
 		if strings.Contains(file, " ") {
 			if rootDir[len(rootDir)-1] != '/' {
 				rootDir += "/"
 			}
-			file = strW.StripPrefix(file, rootDir)
+			file = strw.StripPrefix(file, rootDir)
 			fileWithQuote := fmt.Sprintf("\"%s\"", file)
-			if utilsW.IsDir(file) {
+			if utilw.IsDir(file) {
 				dirStrings.Put(fileWithQuote, "d")
 			}
-			if utilsW.IsExecutableOwner(file) {
+			if utilw.IsExecutableOwner(file) {
 				dirStrings.Put(filepath.Base(fileWithQuote), "e")
 			}
 
@@ -182,7 +182,7 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 		if rootDir[len(rootDir)-1] != '/' {
 			rootDir += "/"
 		}
-		file = strW.StripPrefix(file, rootDir)
+		file = strw.StripPrefix(file, rootDir)
 		files += file
 		files += " "
 		fileCnt++
@@ -210,7 +210,7 @@ func main() {
 	var onlyCount bool
 	var patternStr string
 
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("l", false, "show more detailed information")
 	parser.Bool("a", false, "list hidden file")
 	parser.Bool("t", false, "sort files by last modified date")
@@ -226,7 +226,7 @@ func main() {
 	parser.String("re", "", "use regular expression to parse files to be listed")
 	parser.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h", "G")
 
-	coloredStrings := containerW.NewOrderedMap()
+	coloredStrings := conw.NewOrderedMap()
 	indent := 4
 	delimiter := "  "
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)
@@ -252,7 +252,7 @@ func main() {
 
 	moreIgnores, _ = parser.GetFlagVal("ne")
 	moreIgnores = strings.ReplaceAll(moreIgnores, ",", " ")
-	for _, moreIgnore := range strW.SplitNoEmpty(moreIgnores, " ") {
+	for _, moreIgnore := range strw.SplitNoEmpty(moreIgnores, " ") {
 		if moreIgnore[0] != '.' {
 			moreIgnore = "." + moreIgnore
 		}
@@ -261,7 +261,7 @@ func main() {
 
 	moreWanted, _ = parser.GetFlagVal("e")
 	moreWanted = strings.ReplaceAll(moreWanted, ",", " ")
-	for _, e := range strW.SplitNoEmpty(moreWanted, " ") {
+	for _, e := range strw.SplitNoEmpty(moreWanted, " ") {
 		if e[0] != '.' {
 			e = "." + e
 		}
@@ -326,7 +326,7 @@ skipTo:
 		if len(args) > 1 {
 			fmt.Printf("%s:\n", color.HiCyanString(rootDir))
 		}
-		fileMap := utilsW.LsDirGlob(rootDir)
+		fileMap := utilw.LsDirGlob(rootDir)
 		// fmt.Println("filemap: ", fileMap)
 		for d, fileSlice := range fileMap {
 			files = ""
@@ -348,11 +348,11 @@ skipTo:
 			// fmt.Println("file: ===>", files)
 			var toPrint string = files
 			if !l {
-				toPrint = strW.Wrap(files, w-indent*2, indent, delimiter)
+				toPrint = strw.Wrap(files, w-indent*2, indent, delimiter)
 			}
 			boldCyan := color.New(color.FgHiCyan, color.Bold)
 			cnt := 0
-			for _, line := range strW.SplitNoEmpty(toPrint, "\n") {
+			for _, line := range strw.SplitNoEmpty(toPrint, "\n") {
 				if strings.Contains(line, "\x01") { // \x01 means ls -l
 					line = strings.ReplaceAll(line, "\x01", "")
 					fmt.Fprintln(tw, line)
@@ -365,9 +365,9 @@ skipTo:
 				} else {
 					fmt.Printf("%s", strings.Repeat(" ", indent))
 					buf := bytes.NewBufferString("")
-					for _, word := range strW.SplitNoEmpty(line, delimiter) {
+					for _, word := range strw.SplitNoEmpty(line, delimiter) {
 						word = strings.ReplaceAll(word, "\x00", " ")
-						if coloredStrings.Contains(word) && utilsW.GetPlatform() != utilsW.WINDOWS {
+						if coloredStrings.Contains(word) && utilw.GetPlatform() != utilw.WINDOWS {
 							if coloredStrings.Get(word).(string) == "d" {
 								boldCyan.Fprintf(buf, `%s%s`, word, delimiter)
 							} else if coloredStrings.Get(word).(string) == "e" {

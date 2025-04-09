@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/typesW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 var (
@@ -24,8 +24,8 @@ var (
 )
 
 var (
-	e  *containerW.Set
-	ne *containerW.Set
+	e  *conw.Set
+	ne *conw.Set
 )
 
 type iTask func(name string) error
@@ -48,8 +48,8 @@ func removeNewLine(name string) error {
 			return err
 		}
 		if len(b) > 0 {
-			line := typesW.BytesToStr(bytes.Trim(b, "\n"))
-			if typesW.BytesToStr(bytes.TrimSpace(b)) != "" {
+			line := typew.BytesToStr(bytes.Trim(b, "\n"))
+			if typew.BytesToStr(bytes.TrimSpace(b)) != "" {
 				lines = append(lines, line)
 			}
 		}
@@ -57,7 +57,7 @@ func removeNewLine(name string) error {
 			break
 		}
 	}
-	utilsW.WriteToFile(name, typesW.StrToBytes(strings.Join(lines, "\n")))
+	utilw.WriteToFile(name, typew.StrToBytes(strings.Join(lines, "\n")))
 	return nil
 }
 
@@ -72,11 +72,11 @@ func needTruncate(ext string) bool {
 }
 
 func truncateDirOrFile(name string, task iTask) error {
-	if !force && !newline && !utilsW.PromptYesOrNo(color.RedString("Are you sure to truncate all files in %q (y/n) ", name)) {
+	if !force && !newline && !utilw.PromptYesOrNo(color.RedString("Are you sure to truncate all files in %q (y/n) ", name)) {
 		fmt.Println("Aborting...")
 		return nil
 	}
-	if utilsW.IsDir(name) {
+	if utilw.IsDir(name) {
 		if err := filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				return nil
@@ -114,11 +114,11 @@ func printHelp() {
 
 func getStringSlice(s string) []string {
 	s = strings.ReplaceAll(s, ",", " ")
-	return strW.SplitNoEmpty(s, " ")
+	return strw.SplitNoEmpty(s, " ")
 }
 
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("f", false, "force")
 	parser.Bool("v", false, "verbose")
 	parser.Bool("h", false, "print help info")
@@ -139,13 +139,13 @@ func main() {
 	excludeExt := parser.GetFlagValueDefault("exclude", "")
 	newline = parser.ContainsFlagStrict("newline")
 	if includeExt != "" {
-		e = containerW.NewSet()
+		e = conw.NewSet()
 		for _, ext := range getStringSlice(includeExt) {
 			e.Add(strings.TrimLeft(ext, "."))
 		}
 	}
 	if excludeExt != "" {
-		ne = containerW.NewSet()
+		ne = conw.NewSet()
 		for _, ext := range getStringSlice(excludeExt) {
 			ne.Add(strings.TrimLeft(ext, "."))
 		}

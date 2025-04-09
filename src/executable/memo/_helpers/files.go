@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 const (
@@ -20,7 +20,7 @@ func LogMoveImages(type_, absName string) string {
 	moveLog := ""
 
 	// Get all configuration information
-	config := utilsW.GetAllConfig()
+	config := utilw.GetAllConfig()
 
 	// Get the root directory from the configuration, if not set, use the default value
 	root := config.GetOrDefault(rootKey, "").(string)
@@ -42,13 +42,13 @@ func LogMoveImages(type_, absName string) string {
 	filepaths := make([]string, 0)
 
 	// Resolve the absolute path of the file or directory
-	absName = utilsW.ExpandWd(absName)
-	absName = utilsW.ExpandUser(absName)
+	absName = utilw.ExpandWd(absName)
+	absName = utilw.ExpandUser(absName)
 
 	// Check if the path is a directory
-	if utilsW.IsDir(absName) {
+	if utilw.IsDir(absName) {
 		// If it's a directory, get all file paths in the directory
-		for _, fname := range utilsW.LsDir(absName, nil, nil) {
+		for _, fname := range utilw.LsDir(absName, nil, nil) {
 			filepaths = append(filepaths, filepath.Join(absName, fname))
 		}
 	} else {
@@ -70,11 +70,11 @@ redo:
 		moveLog += "\n"
 
 		// Attempt to copy the file to the target location
-		if err := utilsW.CopyFile(name, target); err != nil && redoCnt < 1 {
+		if err := utilw.CopyFile(name, target); err != nil && redoCnt < 1 {
 			// If the copy fails and the retry count is less than 1, prepare to retry
 
 			// Get the list of files matching the regular expression in the current directory
-			files, err := utilsW.LsRegex(absName)
+			files, err := utilw.LsRegex(absName)
 			if err != nil {
 				// If an error occurs during the regular expression match, throw a panic
 				panic(err)

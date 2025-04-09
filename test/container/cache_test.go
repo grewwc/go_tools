@@ -3,11 +3,11 @@ package test
 import (
 	"testing"
 
-	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/conw"
 )
 
 func TestLruCache(t *testing.T) {
-	c := containerW.NewLruCache(2)
+	c := conw.NewLruCache(2)
 	c.Put("k1", 1)
 	c.Put("k2", 2)
 	if c.Get("k1").(int) != 1 {

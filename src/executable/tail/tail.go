@@ -13,9 +13,9 @@ import (
 	"strconv"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 	"github.com/grewwc/go_tools/src/windowsW"
 )
 
@@ -24,7 +24,7 @@ func init() {
 }
 
 func processSingle(filename string, numOfLines int) {
-	if utilsW.IsDir(filename) {
+	if utilw.IsDir(filename) {
 		return
 	}
 	f, err := os.Open(filename)
@@ -43,7 +43,7 @@ func processSingle(filename string, numOfLines int) {
 	var byteBuf = make([]byte, 1, 1)
 	var buf = make([]byte, 0)
 	var resBuf = bytes.NewBuffer(buf)
-	lines := containerW.NewStack(numOfLines)
+	lines := conw.NewStack(numOfLines)
 	for count < numOfLines {
 		n, err := f.Read(byteBuf)
 		cursor += int64(n)
@@ -72,14 +72,14 @@ func processSingle(filename string, numOfLines int) {
 END:
 	f.Close()
 	for !lines.Empty() {
-		fmt.Print(utilsW.ReverseString(lines.Pop().(string)))
+		fmt.Print(utilw.ReverseString(lines.Pop().(string)))
 	}
 	fmt.Printf("\n\n")
 }
 
 func main() {
 	var numOfLines = 10
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.ParseArgsCmd()
 	if parser == nil {
 		return
@@ -105,7 +105,7 @@ func main() {
 	}
 
 	for _, filename := range filenames {
-		fnameMap := utilsW.LsDirGlob(filename)
+		fnameMap := utilw.LsDirGlob(filename)
 		for d, fnames := range fnameMap {
 			for _, fname := range fnames {
 				fname = filepath.Join(d, fname)

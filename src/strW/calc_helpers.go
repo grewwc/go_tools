@@ -1,10 +1,10 @@
-package strW
+package strw
 
 import (
 	"log"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/algoW"
+	"github.com/grewwc/go_tools/src/algow"
 )
 
 // countDotdigit count digit number of a, b, and max(a, b)
@@ -28,7 +28,7 @@ func countDotdigit(a, b string, add bool) (int, int, int) {
 	if !add {
 		return ca, cb, ca + cb
 	}
-	return ca, cb, algoW.Max(ca, cb)
+	return ca, cb, algow.Max(ca, cb)
 }
 
 func prependLeadingZero(str string, decimalCount int) string {

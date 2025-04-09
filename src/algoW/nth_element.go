@@ -1,13 +1,13 @@
-package algoW
+package algow
 
-import "github.com/grewwc/go_tools/src/typesW"
+import "github.com/grewwc/go_tools/src/typew"
 
 // NthElement return nth element (increasing order)
 // Original slice will be changed
 // kth: [0, len(nums) )
-func Kth[T any](arr []T, kth int, cmp typesW.CompareFunc[T]) T {
+func Kth[T any](arr []T, kth int, cmp typew.CompareFunc[T]) T {
 	if cmp == nil {
-		cmp = typesW.CreateDefaultCmp[T]()
+		cmp = typew.CreateDefaultCmp[T]()
 	}
 	lt, gt := ThreeWayPartitionCmp(arr, cmp)
 	if lt <= kth && kth <= gt {

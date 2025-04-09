@@ -11,10 +11,10 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 const (
@@ -27,9 +27,9 @@ var lowerSizeBound float64 = -1
 
 var threadControl = make(chan struct{}, 50)
 
-var excludes *containerW.MutexSet[string] = containerW.NewMutexSet[string]()
+var excludes *conw.MutexSet[string] = conw.NewMutexSet[string]()
 
-var types *containerW.MutexSet[string] = containerW.NewMutexSet[string]()
+var types *conw.MutexSet[string] = conw.NewMutexSet[string]()
 
 func listFile(path string) ([]os.DirEntry, error) {
 	threadControl <- struct{}{}
@@ -124,21 +124,21 @@ func checkOneDirectory(root string) {
 }
 
 func getOnlyDirectories(root string) []string {
-	return utilsW.LsDir(root,
-		func(filename string) bool { return utilsW.IsDir(filename) },
+	return utilw.LsDir(root,
+		func(filename string) bool { return utilw.IsDir(filename) },
 		func(filename string) string { return filepath.Join(root, filename) })
 }
 
 func getOnlyFiles(root string) []string {
-	return utilsW.LsDir(root,
-		func(file string) bool { return !utilsW.IsDir(file) },
+	return utilw.LsDir(root,
+		func(file string) bool { return !utilw.IsDir(file) },
 		func(filename string) string {
 			return filepath.Join(root, filename)
 		})
 }
 
 func getDirAndFiles(root string) []string {
-	return utilsW.LsDir(root,
+	return utilw.LsDir(root,
 		func(filename string) bool { return !excludes.Contains(filename) },
 		func(filename string) string { return filepath.Join(root, filename) })
 }
@@ -185,16 +185,16 @@ func checkOneFile(f string) {
 }
 
 func check(f string) {
-	if utilsW.IsDir(f) {
+	if utilw.IsDir(f) {
 		checkOneDirectory(f)
-	} else if utilsW.IsRegular(f) {
+	} else if utilw.IsRegular(f) {
 		checkOneFile(f)
 	} else {
 		log.Println(color.RedString("unknow file: %s", f))
 	}
 }
 
-func getFirstDir(parsed *terminalW.Parser) string {
+func getFirstDir(parsed *terminalw.Parser) string {
 	if parsed.Empty() {
 		return "."
 	}
@@ -205,17 +205,17 @@ func getFirstDir(parsed *terminalW.Parser) string {
 	return args[0]
 }
 
-func getExcludeFiles(parsed *terminalW.Parser) {
+func getExcludeFiles(parsed *terminalw.Parser) {
 	ex := parsed.GetFlagValueDefault("ex", "")
-	for _, file := range strW.SplitNoEmpty(ex, ",") {
+	for _, file := range strw.SplitNoEmpty(ex, ",") {
 		file = strings.Trim(file, " ")
 		excludes.Add(file)
 	}
 }
 
-func getTypes(parsed *terminalW.Parser) {
+func getTypes(parsed *terminalw.Parser) {
 	t := parsed.GetFlagValueDefault("t", "")
-	for _, file := range strW.SplitNoEmpty(t, ",") {
+	for _, file := range strw.SplitNoEmpty(t, ",") {
 		file = strings.Trim(file, " ")
 		if !strings.HasPrefix(file, ".") {
 			file = "." + file
@@ -233,7 +233,7 @@ func valid(file string) bool {
 }
 
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("v", false, "list directries seperately")
 	parser.Bool("d", false, "only list directries")
 	parser.Bool("f", false, "only list regular files")
@@ -279,9 +279,9 @@ func main() {
 		args = append(args, ".")
 	}
 	for _, file := range parser.Positional.ToStringSlice() {
-		if utilsW.IsDir(file) && !onlyFile && valid(file) {
+		if utilw.IsDir(file) && !onlyFile && valid(file) {
 			args = append(args, file)
-		} else if utilsW.IsRegular(file) && !onlyDir && valid(file) {
+		} else if utilw.IsRegular(file) && !onlyDir && valid(file) {
 			args = append(args, file)
 		} else {
 			args = append(args, file)

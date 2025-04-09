@@ -6,11 +6,11 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/go-redis/redis"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
-func choose(cmd *terminalW.Parser) interface{} {
+func choose(cmd *terminalw.Parser) interface{} {
 	if cmd == nil {
 		return nil
 	}
@@ -91,7 +91,7 @@ type hGetByKeyAction func(*redis.Client, string, ...string) []interface{}
 
 func main() {
 	var n = 10
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("h", false, "print help info")
 	parser.String("get", "", "get action")
 	parser.String("hget", "", "hget action")
@@ -110,7 +110,7 @@ func main() {
 	}()
 
 	// Create a Redis client
-	m := utilsW.GetAllConfig()
+	m := utilw.GetAllConfig()
 	if m == nil {
 		fmt.Println("set redis.host and redis.password in ~/.configW")
 		return

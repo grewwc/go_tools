@@ -6,9 +6,9 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/grewwc/go_tools/src/algoW"
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/typesW"
+	"github.com/grewwc/go_tools/src/algow"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/typew"
 	"golang.org/x/exp/constraints"
 )
 
@@ -35,7 +35,7 @@ func InsertionSort[T constraints.Ordered](arr []T) {
 	}
 }
 
-func InsertionSortComparator[T any](arr []T, comparator typesW.CompareFunc[T]) {
+func InsertionSortComparator[T any](arr []T, comparator typew.CompareFunc[T]) {
 	l := len(arr)
 	if l <= 1 {
 		return
@@ -89,12 +89,12 @@ func QuickSort[T constraints.Ordered](arr []T) {
 	quickSort(arr, true, nil)
 }
 
-func Sort[T any](arr []T, cmp typesW.CompareFunc[T]) {
+func Sort[T any](arr []T, cmp typew.CompareFunc[T]) {
 	if cmp == nil {
-		cmp = typesW.CreateDefaultCmp[T]()
+		cmp = typew.CreateDefaultCmp[T]()
 	}
 	if cmp == nil {
-		cmp = typesW.CreateDefaultCmp[T]()
+		cmp = typew.CreateDefaultCmp[T]()
 	}
 	quickSortComparator(arr, cmp, true, nil)
 }
@@ -125,14 +125,14 @@ func ShellSort[T constraints.Ordered](arr []T) {
 }
 
 func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
-	var h containerW.IHeap[T]
-	cmp := typesW.CreateDefaultCmp[T]()
+	var h conw.IHeap[T]
+	cmp := typew.CreateDefaultCmp[T]()
 	if reverse {
 		cmp = func(i, j T) int {
 			return -cmp(i, j)
 		}
 	}
-	h = containerW.NewHeap(cmp)
+	h = conw.NewHeap(cmp)
 	for _, val := range arr {
 		h.Insert(val)
 	}
@@ -173,14 +173,14 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 	if k < 1 {
 		return nil
 	}
-	var h containerW.IHeap[T]
-	cmp := typesW.CreateDefaultCmp[T]()
+	var h conw.IHeap[T]
+	cmp := typew.CreateDefaultCmp[T]()
 	if minK {
 		cmp = func(i, j T) int {
 			return -cmp(i, j)
 		}
 	}
-	h = containerW.NewHeap[T](cmp)
+	h = conw.NewHeap[T](cmp)
 	for i, val := range arr {
 		if i < k {
 			h.Insert(val)
@@ -231,7 +231,7 @@ func calcSortedRatio[T constraints.Ordered](arr []T) float32 {
 	return float32(cnt) / float32(len(arr))
 }
 
-func calcSortedRatioComparator[T any](arr []T, comparator typesW.CompareFunc[T]) float32 {
+func calcSortedRatioComparator[T any](arr []T, comparator typew.CompareFunc[T]) float32 {
 	if len(arr) <= 1 {
 		return 1
 	}
@@ -257,7 +257,7 @@ func quickSort[T constraints.Ordered](arr []T, calclRatio bool, wg *sync.WaitGro
 		return
 	}
 
-	lt, gt := algoW.ThreeWayPartitionCmp(arr, func(i, j T) int {
+	lt, gt := algow.ThreeWayPartitionCmp(arr, func(i, j T) int {
 		if i < j {
 			return -1
 		}
@@ -280,7 +280,7 @@ func quickSort[T constraints.Ordered](arr []T, calclRatio bool, wg *sync.WaitGro
 	wg1.Wait()
 }
 
-func quickSortComparator[T any](arr []T, comparator typesW.CompareFunc[T], calcRatio bool, wg *sync.WaitGroup) {
+func quickSortComparator[T any](arr []T, comparator typew.CompareFunc[T], calcRatio bool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
@@ -293,7 +293,7 @@ func quickSortComparator[T any](arr []T, comparator typesW.CompareFunc[T], calcR
 		return
 	}
 
-	lt, gt := algoW.ThreeWayPartitionCmp(arr, comparator)
+	lt, gt := algow.ThreeWayPartitionCmp(arr, comparator)
 	left, right := arr[:lt], arr[gt+1:]
 	n := 4096
 	if len(left) < n || len(right) < n {

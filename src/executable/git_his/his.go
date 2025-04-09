@@ -8,16 +8,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 const (
 	defaultN = 5
 )
 
-func getN(parser *terminalW.Parser) int {
+func getN(parser *terminalw.Parser) int {
 	if parser.Empty() {
 		return -1
 	}
@@ -39,7 +39,7 @@ func getN(parser *terminalW.Parser) int {
 }
 
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Int("n", defaultN, "num of histories to print")
 	parser.Bool("a", false, "print all histories")
 	parser.Bool("h", false, "print help info")
@@ -54,14 +54,14 @@ func main() {
 	}
 	cmd := `git log --oneline --format="%h %an %ad %s" --date=short`
 	pattern := `\w+\s.*\s\d{4}-\d{2}-\d{2}\sMerge.*`
-	res, err := utilsW.RunCmd(cmd, nil)
+	res, err := utilw.RunCmd(cmd, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		return
 	}
 	p := regexp.MustCompile(pattern)
 	cnt := 0
-	for history := range strW.SplitByToken(strings.NewReader(res), "\n", false) {
+	for history := range strw.SplitByToken(strings.NewReader(res), "\n", false) {
 		if cnt >= n {
 			break
 		}

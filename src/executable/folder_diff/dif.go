@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 func calcMd5(filename string) string {
@@ -17,9 +17,9 @@ func calcMd5(filename string) string {
 	return fmt.Sprintf("%x", md5.Sum(b))
 }
 
-func newFileSet(rootDir string, parser *terminalW.Parser) *containerW.OrderedSet {
-	s := containerW.NewOrderedSet()
-	files := utilsW.LsDir(rootDir, nil, nil)
+func newFileSet(rootDir string, parser *terminalw.Parser) *conw.OrderedSet {
+	s := conw.NewOrderedSet()
+	files := utilw.LsDir(rootDir, nil, nil)
 	chooseExt := parser.GetFlagValueDefault("ext", "") != ""
 	printMd5 := parser.ContainsFlagStrict("md5")
 	for _, f := range files {
@@ -39,7 +39,7 @@ func newFileSet(rootDir string, parser *terminalW.Parser) *containerW.OrderedSet
 
 func main() {
 
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("line", false, "if print by new line (default false)")
 	parser.Bool("md5", false, "if print file md5 value (default false)")
 	parser.String("ext", "", "file extension to compare (default all file types)")

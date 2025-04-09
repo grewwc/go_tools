@@ -5,11 +5,11 @@ import (
 	"net/url"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/terminalw"
 )
 
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("un", false, "unescape the url string")
 	parser.Bool("p", false, "PathEscape (default is QueryEscape)")
 	parser.ParseArgsCmd("un", "p")

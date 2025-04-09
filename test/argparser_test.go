@@ -3,17 +3,17 @@ package test
 import (
 	"testing"
 
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/terminalw"
 )
 
-func mustContain(t *testing.T, parsedArgs *terminalW.Parser, flag string) {
+func mustContain(t *testing.T, parsedArgs *terminalw.Parser, flag string) {
 	if !parsedArgs.ContainsFlag(flag) {
 		t.Fail()
 	}
 }
 func TestParser(t *testing.T) {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("v", false, "")
 	parser.String("f", "", "")
 	parser.Bool("a", false, "")
@@ -25,7 +25,7 @@ func TestParser(t *testing.T) {
 	mustContain(t, parser, "f")
 
 	// test positional args
-	aim := containerW.NewArrayList("program dir", "night")
+	aim := conw.NewArrayList("program dir", "night")
 	if !aim.Equals(parser.Positional) {
 		t.Log(parser.Positional.ToStringSlice(), parser.Positional.Len())
 		t.Log(aim.ToStringSlice(), aim.Size())

@@ -10,11 +10,11 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/conw"
 	_helpers "github.com/grewwc/go_tools/src/executable/sn/_helpers"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 const (
@@ -34,7 +34,7 @@ var (
 )
 
 func init() {
-	config := utilsW.GetAllConfig()
+	config := utilw.GetAllConfig()
 	endpoint = config.GetOrDefault("oss.endpoint", "oss-cn-hangzhou.aliyuncs.com").(string)
 	ak = config.GetOrDefault("oss.ak", "").(string)
 	sk = config.GetOrDefault("oss.sk", "").(string)
@@ -57,7 +57,7 @@ func uploadSingleFile(wg *sync.WaitGroup, filename, ossKey string, force bool) {
 	key := _helpers.GetOssKey(ossKey)
 	if key[len(key)-1] != '/' {
 		if !force {
-			if utilsW.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", key)) {
+			if utilw.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", key)) {
 				fmt.Println(color.RedString("the file: %s will be overwritten!!", key))
 			} else {
 				fmt.Println("quit")
@@ -80,7 +80,7 @@ func upload(wg *sync.WaitGroup, filename, ossKey string, recursive, force bool) 
 	if filename, err = filepath.Abs(filename); err != nil {
 		panic(err)
 	}
-	if !utilsW.IsDir(filename) {
+	if !utilw.IsDir(filename) {
 		wg.Add(1)
 		go uploadSingleFile(wg, filename, ossKey, force)
 		return
@@ -90,7 +90,7 @@ func upload(wg *sync.WaitGroup, filename, ossKey string, recursive, force bool) 
 		if path == filename {
 			return nil
 		}
-		subKey := strings.TrimSuffix(ossKey, "/") + "/" + strW.StripPrefix(strW.StripPrefix(path, filename), "/")
+		subKey := strings.TrimSuffix(ossKey, "/") + "/" + strw.StripPrefix(strw.StripPrefix(path, filename), "/")
 		upload(wg, path, subKey, recursive, force)
 		return nil
 	})
@@ -108,10 +108,10 @@ func download(filename, ossKey string, ch chan struct{}, retryCount int) {
 	}
 	key := _helpers.GetOssKey(ossKey)
 
-	if utilsW.IsDir(filename) {
+	if utilw.IsDir(filename) {
 		filename += "/" + filepath.Base(key)
-	} else if utilsW.IsExist(filename) { // 文件
-		if utilsW.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", filename)) {
+	} else if utilw.IsExist(filename) { // 文件
+		if utilw.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", filename)) {
 			fmt.Println(color.RedString("the file: %s will be overwritten!!", filename))
 		} else {
 			fmt.Println("quit")
@@ -149,7 +149,7 @@ func handleLs(args []string) {
 // 		panic(err)
 // 	}
 // 	if exist {
-// 		res := utilsW.PromptYesOrNo(fmt.Sprintf("Delete %s? (y/n)", objectKey))
+// 		res := utilw.PromptYesOrNo(fmt.Sprintf("Delete %s? (y/n)", objectKey))
 // 		if res {
 // 			if err = bucket.DeleteObject(objectKey); err != nil {
 // 				fmt.Println("Failed to delete", objectKey)
@@ -176,10 +176,10 @@ func ls(dir string, prefixSpace, retryCount int) {
 	if len(dir) > 0 && dir[len(dir)-1] != '/' {
 		dir += "/"
 	}
-	s := containerW.NewOrderedSet()
+	s := conw.NewOrderedSet()
 	for _, obj := range result.Objects {
 		if strings.HasPrefix(obj.Key, dir) {
-			name := strings.Repeat(" ", prefixSpace) + strW.StripPrefix(obj.Key, dir)
+			name := strings.Repeat(" ", prefixSpace) + strw.StripPrefix(obj.Key, dir)
 			if name == strings.Repeat(" ", prefixSpace) {
 				continue
 			}
@@ -247,7 +247,7 @@ func handleCp(args []string, recursive, force bool) {
 }
 
 func main() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("r", false, "recursive")
 	parser.Bool("f", false, "force")
 	parser.ParseArgsCmd("r", "f")

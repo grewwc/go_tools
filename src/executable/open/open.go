@@ -6,12 +6,12 @@ package main
 import (
 	"os/exec"
 
-	"github.com/grewwc/go_tools/src/terminalW"
+	"github.com/grewwc/go_tools/src/terminalw"
 )
 
 func main() {
 	commands := []string{"/C", "start", ""}
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.ParseArgsCmd()
 	if !parser.Empty() {
 		pos := parser.Positional.ToStringSlice()

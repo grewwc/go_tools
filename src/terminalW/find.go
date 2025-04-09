@@ -1,4 +1,4 @@
-package terminalW
+package terminalw
 
 import (
 	"fmt"
@@ -10,16 +10,16 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 var Once sync.Once
 
-var FileNamesToCheck = containerW.NewSet()
-var FileNamesNOTCheck = containerW.NewSet()
+var FileNamesToCheck = conw.NewSet()
+var FileNamesNOTCheck = conw.NewSet()
 
-var Extensions = containerW.NewSet()
+var Extensions = conw.NewSet()
 var CheckExtension bool
 var Exclude bool
 
@@ -78,7 +78,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 			continue
 		}
 
-		if !utilsW.IsTextFile(subName) {
+		if !utilw.IsTextFile(subName) {
 			continue
 		}
 

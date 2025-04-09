@@ -4,10 +4,10 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/grewwc/go_tools/src/containerW"
+	"github.com/grewwc/go_tools/src/conw"
 )
 
-var trie *containerW.Trie
+var trie *conw.Trie
 
 func generateRandomWord() []string {
 
@@ -34,7 +34,7 @@ func generateRandomWord() []string {
 
 func TestTrie(t *testing.T) {
 	for i := 0; i < 1000; i++ {
-		trie = containerW.NewTrie()
+		trie = conw.NewTrie()
 		words := generateRandomWord()
 		// add to trie
 		for _, word := range words {

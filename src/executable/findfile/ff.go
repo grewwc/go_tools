@@ -16,9 +16,9 @@ import (
 	"sync/atomic"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/strW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 // targets is the targets file name
@@ -42,7 +42,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	wd = utilsW.Abs(wd)
+	wd = utilw.Abs(wd)
 }
 
 func expandTilda() string {
@@ -81,9 +81,9 @@ func findFile(rootDir string, numPrint int, allIgnores []string) {
 		var m []string
 		var err error
 		if caseInsensitive {
-			m, err = terminalW.GlobCaseInsensitive(target, rootDir)
+			m, err = terminalw.GlobCaseInsensitive(target, rootDir)
 		} else {
-			m, err = terminalW.Glob(target, rootDir)
+			m, err = terminalw.Glob(target, rootDir)
 		}
 		if err != nil {
 			if verbose {
@@ -106,7 +106,7 @@ OUTER:
 			continue
 		}
 
-		if onlyDir && !utilsW.IsDir(abs) {
+		if onlyDir && !utilw.IsDir(abs) {
 			continue
 		}
 
@@ -119,16 +119,16 @@ OUTER:
 		}
 		matchBase := filepath.Base(match)
 		if int(atomicCount.Load()) < numPrint {
-			if utilsW.IsDir(abs) && !strings.HasSuffix(abs, "/") {
+			if utilw.IsDir(abs) && !strings.HasSuffix(abs, "/") {
 				abs += "/"
 			}
 			var toPrint string
 			if !relativePath {
 				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
 			} else {
-				absStripped := strW.StripPrefix(abs, wd)
+				absStripped := strw.StripPrefix(abs, wd)
 				if absStripped != abs {
-					absStripped = strW.StripPrefix(absStripped, "/")
+					absStripped = strw.StripPrefix(absStripped, "/")
 				}
 				abs = absStripped
 				toPrint = strings.ReplaceAll(strings.ReplaceAll(absStripped, "\\", "/"), matchBase, color.GreenString(matchBase))
@@ -181,7 +181,7 @@ OUTER:
 
 func main() {
 	var err error
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Int64("n", 10, "number of found results to print, -10 for short")
 	parser.Bool("v", false, "if print error")
 	parser.String("d", ".", "root directory for searching")
@@ -241,11 +241,11 @@ func main() {
 	}
 
 	if parser.ContainsFlagStrict("p") {
-		terminalW.ChangeThreads(parser.MustGetFlagValAsInt("p"))
+		terminalw.ChangeThreads(parser.MustGetFlagValAsInt("p"))
 	}
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
-	allIgnores := strW.SplitNoEmptyKeepQuote(ignores, ' ')
+	allIgnores := strw.SplitNoEmptyKeepQuote(ignores, ' ')
 	for i := range allIgnores {
 		temp := strings.ReplaceAll(allIgnores[i], `.`, `\.`)
 		temp = strings.ReplaceAll(temp, `?`, `.`)

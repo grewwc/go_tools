@@ -14,9 +14,9 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
@@ -77,11 +77,11 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) bool {
 	absName := filepath.Join(homeDir, urlFileName)
 	absNameCommon := filepath.Join(homeDir, commonFileName)
 	var originalData, originalCommonData string
-	if utilsW.IsExist(absName) {
-		originalData = utilsW.ReadString(absName)
+	if utilw.IsExist(absName) {
+		originalData = utilw.ReadString(absName)
 	}
-	if utilsW.IsExist(absNameCommon) {
-		originalCommonData = utilsW.ReadString(absNameCommon)
+	if utilw.IsExist(absNameCommon) {
+		originalCommonData = utilw.ReadString(absNameCommon)
 	}
 	f, err := os.OpenFile(absName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0666)
 	if err != nil {
@@ -176,7 +176,7 @@ func ReadInfo(isURL bool) string {
 	}
 	if len(urls) == 1 {
 		if isURL {
-			utilsW.OpenUrlInBrowswer(urls[0])
+			utilw.OpenUrlInBrowswer(urls[0])
 			return ""
 		}
 		return urls[0]
@@ -189,7 +189,7 @@ func ReadInfo(isURL bool) string {
 		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.HiWhiteString(urls[i]), color.HiBlueString(hint))
 	}
 	_print(urlsWithNo, hints)
-	text := utilsW.UserInput("input the number: ", false)
+	text := utilw.UserInput("input the number: ", false)
 	for {
 		if val, err := strconv.Atoi(text); err != nil {
 			fmt.Printf("%s is not a valid choice\n", text)
@@ -201,7 +201,7 @@ func ReadInfo(isURL bool) string {
 			fmt.Print("\ninput the number: ")
 		} else {
 			if isURL {
-				utilsW.OpenUrlInBrowswer(urls[val-1])
+				utilw.OpenUrlInBrowswer(urls[val-1])
 				return ""
 			} else {
 				return urls[val-1]
@@ -211,7 +211,7 @@ func ReadInfo(isURL bool) string {
 	return ""
 }
 
-func OrderByTime(parsed *terminalW.Parser) bool {
+func OrderByTime(parsed *terminalw.Parser) bool {
 	if parsed.Empty() {
 		return false
 	}
@@ -235,7 +235,7 @@ func IsObjectID(id string) bool {
 	return true
 }
 
-func BuildMongoRegularExpExclude(specialPattern *containerW.Set) string {
+func BuildMongoRegularExpExclude(specialPattern *conw.Set) string {
 	if specialPattern.Size() == 1 {
 		return fmt.Sprintf("^(?!%s).*", specialPattern.ToSlice()[0].(string))
 	}
@@ -249,7 +249,7 @@ func BuildMongoRegularExpExclude(specialPattern *containerW.Set) string {
 	return res.String()
 }
 
-func SearchTrie(trie *containerW.Trie, specialPattern *containerW.Set) bool {
+func SearchTrie(trie *conw.Trie, specialPattern *conw.Set) bool {
 	for val := range specialPattern.Iterate() {
 		if trie.HasPrefix(val.(string)) {
 			return true

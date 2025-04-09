@@ -1,12 +1,12 @@
-package terminalW
+package terminalw
 
 import (
 	"bytes"
 	"fmt"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/containerW"
-	"github.com/grewwc/go_tools/src/strW"
+	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/strw"
 )
 
 func AddQuote(slice []string) []string {
@@ -30,11 +30,11 @@ func MapToString(m map[string]string) string {
 }
 
 // support "," and " " split
-func FormatFileExtensions(extensions string) *containerW.Set {
+func FormatFileExtensions(extensions string) *conw.Set {
 	extensions = strings.ReplaceAll(extensions, ",", " ")
-	bySpace := strW.SplitNoEmpty(extensions, " ")
+	bySpace := strw.SplitNoEmpty(extensions, " ")
 
-	var res = containerW.NewSet()
+	var res = conw.NewSet()
 	for _, ext := range bySpace {
 		if !strings.HasPrefix(ext, ".") {
 			res.Add("." + ext)

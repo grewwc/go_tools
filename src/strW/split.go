@@ -1,4 +1,4 @@
-package strW
+package strw
 
 import (
 	"bufio"
@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/typesW"
+	"github.com/grewwc/go_tools/src/typew"
 )
 
 // SplitNoEmpty remove empty strings
@@ -106,7 +106,7 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 		log.Fatalln("token should not be empty")
 	}
 	ch := make(chan string)
-	tokenBytes := typesW.StrToBytes(token)
+	tokenBytes := typew.StrToBytes(token)
 	go func() {
 		defer close(ch)
 		if reader == nil {

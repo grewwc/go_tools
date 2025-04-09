@@ -6,12 +6,12 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/grewwc/go_tools/src/terminalW"
-	"github.com/grewwc/go_tools/src/utilsW"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilw"
 )
 
 func install() {
-	parser := terminalW.NewParser()
+	parser := terminalw.NewParser()
 	parser.Bool("h", false, "print help information")
 	parser.Bool("f", false, "force rebuild (shortcut form)")
 	parser.Bool("a", false, "force rebuild all")
@@ -21,7 +21,7 @@ func install() {
 		parser.PrintDefaults()
 		return
 	}
-	filename := filepath.Join(utilsW.GetDirOfTheFile(), "src", "executable", "build.go")
+	filename := filepath.Join(utilw.GetDirOfTheFile(), "src", "executable", "build.go")
 	var args = []string{"run", filename}
 	for _, additional := range os.Args[1:] {
 		args = append(args, additional)
