@@ -48,7 +48,7 @@ func (r *Parser) GetFlagVal(flagName string) (string, error) {
 	if val, exists := r.Optional[flagName]; exists {
 		return val, nil
 	}
-	return "", errors.New("not exist")
+	return "", fmt.Errorf("GetFlagVal: flagName (%s) not exist", flagName)
 }
 
 func (r *Parser) GetCmd() string {

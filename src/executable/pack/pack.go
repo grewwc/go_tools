@@ -155,6 +155,7 @@ func main() {
 	excludeSlice := make([]string, 0)
 	if err != nil || exclude == "" {
 		exclude, _ = parser.GetFlagVal("exclude")
+		err = nil
 	}
 	if exclude != "" {
 		for _, ex := range strW.SplitNoEmptyKeepQuote(exclude, ',') {
