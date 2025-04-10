@@ -16,7 +16,7 @@ func install() {
 	parser.Bool("f", false, "force rebuild (shortcut form)")
 	parser.Bool("a", false, "force rebuild all")
 	parser.Bool("force", false, "force rebuilds")
-	parser.ParseArgsCmd("h", "-f", "force", "a")
+	parser.ParseArgsCmd("h", "f", "force", "a")
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
 		return
