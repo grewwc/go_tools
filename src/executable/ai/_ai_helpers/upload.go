@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/grewwc/go_tools/src/cw"
-	"github.com/grewwc/go_tools/src/sortW"
+	"github.com/grewwc/go_tools/src/sortw"
 	"github.com/grewwc/go_tools/src/utilw"
 )
 
@@ -74,7 +74,7 @@ func UploadQwenLongFiles(apiKey string, files []string) []string {
 	for i := 0; i < len(files); i++ {
 		resultTuple = append(resultTuple, <-ch)
 	}
-	sortW.Sort(resultTuple, func(a, b *cw.Tuple) int {
+	sortw.Sort(resultTuple, func(a, b *cw.Tuple) int {
 		return a.Get(0).(int) - b.Get(0).(int)
 	})
 
