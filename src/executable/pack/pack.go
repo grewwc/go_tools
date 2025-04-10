@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilw"
@@ -22,8 +22,8 @@ var (
 )
 
 var (
-	excludeFileExtension = conw.NewTrie()
-	fileExtension        = conw.NewTrie()
+	excludeFileExtension = cw.NewTrie()
+	fileExtension        = cw.NewTrie()
 )
 
 // 控制打开文件数量
@@ -175,7 +175,7 @@ func main() {
 
 	verbose := parser.ContainsFlagStrict("v")
 	showProgress := parser.MustGetFlagVal("prog")
-	excludeSet := conw.NewSet()
+	excludeSet := cw.NewSet()
 
 	for _, ex := range excludes {
 		filepath.Walk(ex, func(path string, info os.FileInfo, err error) error {

@@ -16,7 +16,7 @@ import (
 	"unsafe"
 
 	"github.com/atotto/clipboard"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/peterh/liner"
 	"github.com/petermattis/goid"
@@ -36,7 +36,7 @@ func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
 	copyV := reflect.New(v.Type()).Elem()
 	copyV.Set(v)
 	structName := fmt.Sprintf("%v {", t)
-	s := conw.NewSet()
+	s := cw.NewSet()
 	for _, ignore := range ignoresFieldName {
 		s.Add(ignore)
 	}

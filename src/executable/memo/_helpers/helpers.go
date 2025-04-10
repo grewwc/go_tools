@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -235,7 +235,7 @@ func IsObjectID(id string) bool {
 	return true
 }
 
-func BuildMongoRegularExpExclude(specialPattern *conw.Set) string {
+func BuildMongoRegularExpExclude(specialPattern *cw.Set) string {
 	if specialPattern.Size() == 1 {
 		return fmt.Sprintf("^(?!%s).*", specialPattern.ToSlice()[0].(string))
 	}
@@ -249,7 +249,7 @@ func BuildMongoRegularExpExclude(specialPattern *conw.Set) string {
 	return res.String()
 }
 
-func SearchTrie(trie *conw.Trie, specialPattern *conw.Set) bool {
+func SearchTrie(trie *cw.Trie, specialPattern *cw.Set) bool {
 	for val := range specialPattern.Iterate() {
 		if trie.HasPrefix(val.(string)) {
 			return true

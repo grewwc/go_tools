@@ -1,4 +1,4 @@
-package sortW
+package sortw
 
 import (
 	"math"
@@ -7,7 +7,7 @@ import (
 	"unsafe"
 
 	"github.com/grewwc/go_tools/src/algow"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/typew"
 	"golang.org/x/exp/constraints"
 )
@@ -125,14 +125,14 @@ func ShellSort[T constraints.Ordered](arr []T) {
 }
 
 func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
-	var h conw.IHeap[T]
+	var h cw.IHeap[T]
 	cmp := typew.CreateDefaultCmp[T]()
 	if reverse {
 		cmp = func(i, j T) int {
 			return -cmp(i, j)
 		}
 	}
-	h = conw.NewHeap(cmp)
+	h = cw.NewHeap(cmp)
 	for _, val := range arr {
 		h.Insert(val)
 	}
@@ -173,14 +173,14 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 	if k < 1 {
 		return nil
 	}
-	var h conw.IHeap[T]
+	var h cw.IHeap[T]
 	cmp := typew.CreateDefaultCmp[T]()
 	if minK {
 		cmp = func(i, j T) int {
 			return -cmp(i, j)
 		}
 	}
-	h = conw.NewHeap[T](cmp)
+	h = cw.NewHeap[T](cmp)
 	for i, val := range arr {
 		if i < k {
 			h.Insert(val)

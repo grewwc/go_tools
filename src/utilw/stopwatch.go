@@ -6,19 +6,19 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 )
 
 // StopWatch is "auto-reset" stopwatch
 type StopWatch struct {
 	mu      *sync.RWMutex
 	start   int64
-	records *conw.OrderedMap
+	records *cw.OrderedMap
 }
 
 func NewStopWatch() *StopWatch {
 	return &StopWatch{
-		records: conw.NewOrderedMap(),
+		records: cw.NewOrderedMap(),
 		start:   time.Now().UnixNano(),
 		mu:      &sync.RWMutex{},
 	}

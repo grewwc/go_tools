@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 )
 
@@ -24,13 +24,13 @@ func init() {
 	fname = filepath.Join(fname, ".configW")
 }
 
-func GetAllConfig() (m *conw.OrderedMap) {
+func GetAllConfig() (m *cw.OrderedMap) {
 	f, err := os.Open(fname)
 	if err != nil {
 		fmt.Printf("%s not found, ignored...", color.RedString(fname))
 	}
 	defer f.Close()
-	m = conw.NewOrderedMap()
+	m = cw.NewOrderedMap()
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()

@@ -1,4 +1,4 @@
-package conw
+package cw
 
 import (
 	"container/list"

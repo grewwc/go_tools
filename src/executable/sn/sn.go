@@ -10,7 +10,7 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	_helpers "github.com/grewwc/go_tools/src/executable/sn/_helpers"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
@@ -176,7 +176,7 @@ func ls(dir string, prefixSpace, retryCount int) {
 	if len(dir) > 0 && dir[len(dir)-1] != '/' {
 		dir += "/"
 	}
-	s := conw.NewOrderedSet()
+	s := cw.NewOrderedSet()
 	for _, obj := range result.Objects {
 		if strings.HasPrefix(obj.Key, dir) {
 			name := strings.Repeat(" ", prefixSpace) + strw.StripPrefix(obj.Key, dir)

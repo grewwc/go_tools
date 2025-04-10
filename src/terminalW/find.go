@@ -10,16 +10,16 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/utilw"
 )
 
 var Once sync.Once
 
-var FileNamesToCheck = conw.NewSet()
-var FileNamesNOTCheck = conw.NewSet()
+var FileNamesToCheck = cw.NewSet()
+var FileNamesNOTCheck = cw.NewSet()
 
-var Extensions = conw.NewSet()
+var Extensions = cw.NewSet()
 var CheckExtension bool
 var Exclude bool
 

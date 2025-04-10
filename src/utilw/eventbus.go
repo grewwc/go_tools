@@ -6,21 +6,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/typew"
 	"github.com/grewwc/go_tools/src/utilw/_utils_helpers"
 )
 
 type EventBus struct {
-	m       typew.IConcurrentMap[any, *conw.ConcurrentHashSet[string]]
+	m       typew.IConcurrentMap[any, *cw.ConcurrentHashSet[string]]
 	nameMap typew.IConcurrentMap[string, *reflect.Method]
 	wg      *sync.WaitGroup
 
-	functions       *conw.ConcurrentHashSet[string]
+	functions       *cw.ConcurrentHashSet[string]
 	functionNameMap map[string]interface{}
 	funcMu          *sync.RWMutex
 
-	topics *conw.ConcurrentHashSet[string]
+	topics *cw.ConcurrentHashSet[string]
 
 	parallel chan struct{}
 }
@@ -30,15 +30,15 @@ func NewEventBus(n_parallel int) *EventBus {
 		panic("n_parallel must greater than 0")
 	}
 	result := &EventBus{
-		m:       conw.NewMutexMap[any, *conw.ConcurrentHashSet[string]](),
-		nameMap: conw.NewConcurrentHashMap[string, *reflect.Method](nil, nil),
+		m:       cw.NewMutexMap[any, *cw.ConcurrentHashSet[string]](),
+		nameMap: cw.NewConcurrentHashMap[string, *reflect.Method](nil, nil),
 		wg:      &sync.WaitGroup{},
 
-		functions:       conw.NewConcurrentHashSet[string](nil, nil),
+		functions:       cw.NewConcurrentHashSet[string](nil, nil),
 		functionNameMap: make(map[string]interface{}),
 		funcMu:          &sync.RWMutex{},
 
-		topics: conw.NewConcurrentHashSet[string](nil, nil),
+		topics: cw.NewConcurrentHashSet[string](nil, nil),
 
 		parallel: make(chan struct{}, n_parallel),
 	}
@@ -73,7 +73,7 @@ func (b *EventBus) Register(topic string, listener interface{}) {
 	methodNames := _utils_helpers.MethodArrToString(topic, methods)
 	b.topics.Add(topic)
 	if !b.m.Contains(listener) {
-		s := conw.NewConcurrentHashSet[string](nil, nil)
+		s := cw.NewConcurrentHashSet[string](nil, nil)
 		s.AddAll(methodNames...)
 		b.m.Put(listener, s)
 	} else {

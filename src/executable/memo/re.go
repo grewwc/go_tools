@@ -17,8 +17,8 @@ import (
 	"unicode"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/conw"
-	"github.com/grewwc/go_tools/src/sortW"
+	"github.com/grewwc/go_tools/src/cw"
+	"github.com/grewwc/go_tools/src/sortw"
 
 	"github.com/grewwc/go_tools/src/executable/memo/_helpers"
 	"github.com/grewwc/go_tools/src/strw"
@@ -56,7 +56,7 @@ const (
 
 var (
 	txtOutputName      = "output.txt"
-	specialTagPatterns = conw.NewSet("learn")
+	specialTagPatterns = cw.NewSet("learn")
 )
 
 var (
@@ -244,7 +244,7 @@ func (r *record) do(action string, options ...string) {
 		}
 		noUpdateModifiedDate := false
 		if len(options) > 0 {
-			s := conw.NewSet()
+			s := cw.NewSet()
 			for _, option := range options {
 				s.Add(option)
 			}
@@ -402,7 +402,7 @@ func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, t
 	if !listSpecial {
 		resCopy := make([]*record, 0, len(res))
 		for _, r := range res {
-			trie := conw.NewTrie()
+			trie := cw.NewTrie()
 			tags := r.Tags
 			for _, t := range tags {
 				trie.Insert(t)
@@ -737,7 +737,7 @@ func addTag(add bool, id string, prev bool) {
 	}(c)
 	<-c
 	go func(c chan interface{}) {
-		s := conw.NewSet()
+		s := cw.NewSet()
 		for _, tag := range r.Tags {
 			s.Add(tag)
 		}
@@ -747,11 +747,11 @@ func addTag(add bool, id string, prev bool) {
 	scanner.Scan()
 	newTags := strw.SplitNoEmpty(strings.ReplaceAll(strings.TrimSpace(scanner.Text()), ",", " "), " ")
 
-	s := (<-c).(*conw.Set)
+	s := (<-c).(*cw.Set)
 	if s.Size() == 1 && !add {
 		panic("can't delete the tag, because it's the only tag")
 	}
-	newTagSet := conw.NewSet()
+	newTagSet := cw.NewSet()
 	for _, newTag := range newTags {
 		if strings.TrimSpace(newTag) == "" {
 			continue
@@ -798,8 +798,8 @@ func coloringRecord(r *record, p *regexp.Regexp) {
 	if p != nil {
 		all := bytes.NewBufferString("")
 		indices := p.FindAllStringIndex(r.Title, -1)
-		beg := conw.NewQueue()
-		end := conw.NewQueue()
+		beg := cw.NewQueue()
+		end := cw.NewQueue()
 		bt := []byte(r.Title)
 		for _, idx := range indices {
 			i, j := idx[0], idx[1]
@@ -1286,7 +1286,7 @@ func main() {
 
 			// modified date map
 			mtMap := getAllTagsModifiedDate(allRecords)
-			testTags := conw.NewOrderedMap()
+			testTags := cw.NewOrderedMap()
 			for _, r := range allRecords {
 				for _, t := range r.Tags {
 					testTags.Put(t, testTags.GetOrDefault(t, 0).(int)+1)
@@ -1300,7 +1300,7 @@ func main() {
 			}
 			if listTagsAndOrderByTime {
 				// sort.Sort(tagSlice(tags))
-				sortW.Sort(tags, func(t1, t2 tag) int {
+				sortw.Sort(tags, func(t1, t2 tag) int {
 					if t1.modifiedDate.Before(t2.modifiedDate) {
 						return -1
 					}
@@ -1523,7 +1523,7 @@ func main() {
 		if len(rs) == 0 {
 			newRecord(logMsg, tag).save(false)
 		} else {
-			s := conw.NewOrderedSet()
+			s := cw.NewOrderedSet()
 			for _, title := range strings.Split(rs[0].Title, "\n") {
 				s.Add(title)
 			}

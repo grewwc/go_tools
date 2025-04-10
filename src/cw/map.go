@@ -1,4 +1,4 @@
-package conw
+package cw
 
 type Map[K, V any] struct {
 	data map[any]any

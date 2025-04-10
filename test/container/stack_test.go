@@ -3,11 +3,11 @@ package test
 import (
 	"testing"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 )
 
 var (
-	st = conw.NewStack(10)
+	st = cw.NewStack(10)
 )
 
 func BenchmarkStackAdd(b *testing.B) {

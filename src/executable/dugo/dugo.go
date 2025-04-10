@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilw"
@@ -27,9 +27,9 @@ var lowerSizeBound float64 = -1
 
 var threadControl = make(chan struct{}, 50)
 
-var excludes *conw.MutexSet[string] = conw.NewMutexSet[string]()
+var excludes *cw.MutexSet[string] = cw.NewMutexSet[string]()
 
-var types *conw.MutexSet[string] = conw.NewMutexSet[string]()
+var types *cw.MutexSet[string] = cw.NewMutexSet[string]()
 
 func listFile(path string) ([]os.DirEntry, error) {
 	threadControl <- struct{}{}

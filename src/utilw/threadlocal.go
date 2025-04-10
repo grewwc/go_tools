@@ -1,7 +1,7 @@
 package utilw
 
 import (
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/typew"
 )
 
@@ -11,7 +11,7 @@ type ThreadLocal[T any] struct {
 
 func NewThreadLocal[T any](val T) *ThreadLocal[T] {
 	result := &ThreadLocal[T]{
-		m: conw.NewConcurrentHashMap[int, T](nil, func(i, j int) int {
+		m: cw.NewConcurrentHashMap[int, T](nil, func(i, j int) int {
 			return i - j
 		}),
 	}

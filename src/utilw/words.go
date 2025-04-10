@@ -8,13 +8,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
-var trie *conw.Trie
+var trie *cw.Trie
 
 var once sync.Once
 
@@ -24,7 +24,7 @@ const (
 
 func initDict() {
 	wordFile := filepath.Join(GetDirOfTheFile(), filename)
-	trie = conw.NewTrie()
+	trie = cw.NewTrie()
 	f, err := os.Open(wordFile)
 	if err != nil {
 		log.Fatalln(err)

@@ -4,14 +4,14 @@ import (
 	"log"
 	"testing"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 )
 
-var s *conw.Set
+var s *cw.Set
 var inputs []string
 
 func init() {
-	s = conw.NewSet()
+	s = cw.NewSet()
 	inputs = []string{
 		"good",
 		"something",

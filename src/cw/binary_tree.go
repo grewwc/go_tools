@@ -1,4 +1,4 @@
-package conw
+package cw
 
 import (
 	"github.com/grewwc/go_tools/src/typew"

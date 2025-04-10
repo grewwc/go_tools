@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/terminalw"
 )
 
@@ -25,7 +25,7 @@ func TestParser(t *testing.T) {
 	mustContain(t, parser, "f")
 
 	// test positional args
-	aim := conw.NewArrayList("program dir", "night")
+	aim := cw.NewArrayList("program dir", "night")
 	if !aim.Equals(parser.Positional) {
 		t.Log(parser.Positional.ToStringSlice(), parser.Positional.Len())
 		t.Log(aim.ToStringSlice(), aim.Size())

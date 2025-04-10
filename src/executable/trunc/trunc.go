@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/typew"
@@ -24,8 +24,8 @@ var (
 )
 
 var (
-	e  *conw.Set
-	ne *conw.Set
+	e  *cw.Set
+	ne *cw.Set
 )
 
 type iTask func(name string) error
@@ -139,13 +139,13 @@ func main() {
 	excludeExt := parser.GetFlagValueDefault("exclude", "")
 	newline = parser.ContainsFlagStrict("newline")
 	if includeExt != "" {
-		e = conw.NewSet()
+		e = cw.NewSet()
 		for _, ext := range getStringSlice(includeExt) {
 			e.Add(strings.TrimLeft(ext, "."))
 		}
 	}
 	if excludeExt != "" {
-		ne = conw.NewSet()
+		ne = cw.NewSet()
 		for _, ext := range getStringSlice(excludeExt) {
 			ne.Add(strings.TrimLeft(ext, "."))
 		}

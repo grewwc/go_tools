@@ -1,4 +1,4 @@
-package conw
+package cw
 
 /*Stack is not thread safe*/
 type Stack struct {

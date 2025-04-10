@@ -3,7 +3,7 @@ package utilw
 import (
 	"bytes"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 )
 
 func ReverseBytes(arr []byte) {
@@ -55,7 +55,7 @@ func ReverseFloat32(arr []float64) {
 }
 
 func ReverseString(s string) string {
-	stack := conw.NewStack(len(s))
+	stack := cw.NewStack(len(s))
 	for _, r := range s {
 		stack.Push(r)
 	}

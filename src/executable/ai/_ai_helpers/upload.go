@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/sortW"
 	"github.com/grewwc/go_tools/src/utilw"
 )
@@ -63,18 +63,18 @@ func uploadSingleQwenlongFile(apiKey, filename string) (string, error) {
 }
 
 func UploadQwenLongFiles(apiKey string, files []string) []string {
-	ch := make(chan *conw.Tuple, len(files))
+	ch := make(chan *cw.Tuple, len(files))
 	defer close(ch)
 	for i, file := range files {
 		file = strings.TrimSpace(file)
 		file = utilw.ExpandUser(file)
 		go upload(ch, apiKey, file, i)
 	}
-	resultTuple := make([]*conw.Tuple, 0, len(files))
+	resultTuple := make([]*cw.Tuple, 0, len(files))
 	for i := 0; i < len(files); i++ {
 		resultTuple = append(resultTuple, <-ch)
 	}
-	sortW.Sort(resultTuple, func(a, b *conw.Tuple) int {
+	sortW.Sort(resultTuple, func(a, b *cw.Tuple) int {
 		return a.Get(0).(int) - b.Get(0).(int)
 	})
 
@@ -86,9 +86,9 @@ func UploadQwenLongFiles(apiKey string, files []string) []string {
 
 }
 
-func upload(result chan<- *conw.Tuple, apiKey, filename string, order int) {
+func upload(result chan<- *cw.Tuple, apiKey, filename string, order int) {
 	fileid := uploadSingleQwenLongFileWithRetry(apiKey, filename, 5)
-	result <- conw.NewTuple(order, fileid)
+	result <- cw.NewTuple(order, fileid)
 }
 
 func uploadSingleQwenLongFileWithRetry(apiKey, filename string, retry int) string {

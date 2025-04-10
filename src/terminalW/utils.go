@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 )
 
@@ -30,11 +30,11 @@ func MapToString(m map[string]string) string {
 }
 
 // support "," and " " split
-func FormatFileExtensions(extensions string) *conw.Set {
+func FormatFileExtensions(extensions string) *cw.Set {
 	extensions = strings.ReplaceAll(extensions, ",", " ")
 	bySpace := strw.SplitNoEmpty(extensions, " ")
 
-	var res = conw.NewSet()
+	var res = cw.NewSet()
 	for _, ext := range bySpace {
 		if !strings.HasPrefix(ext, ".") {
 			res.Add("." + ext)

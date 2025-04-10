@@ -1,4 +1,4 @@
-package sortW
+package sortw
 
 import "math"
 

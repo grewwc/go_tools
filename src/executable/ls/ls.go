@@ -11,7 +11,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	_lsW "github.com/grewwc/go_tools/src/executable/ls/utils"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
@@ -23,10 +23,10 @@ var all bool
 var onlyDir, onlyFile bool
 var pattern *regexp.Regexp
 
-var ignores = conw.NewSet()
-var wanted = conw.NewSet()
+var ignores = cw.NewSet()
+var wanted = cw.NewSet()
 
-var errMsgs = conw.NewQueue()
+var errMsgs = cw.NewQueue()
 var fileCnt int64
 
 func init() {
@@ -95,7 +95,7 @@ func printErrors() {
 }
 
 func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, sortType int,
-	dirStrings *conw.OrderedMap) string {
+	dirStrings *cw.OrderedMap) string {
 	fileCnt = 0
 
 	// if sortType != _lsW.Unsort
@@ -226,7 +226,7 @@ func main() {
 	parser.String("re", "", "use regular expression to parse files to be listed")
 	parser.ParseArgsCmd("l", "a", "t", "r", "du", "c", "N", "d", "f", "h", "G")
 
-	coloredStrings := conw.NewOrderedMap()
+	coloredStrings := cw.NewOrderedMap()
 	indent := 4
 	delimiter := "  "
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 4, '\t', tabwriter.AlignRight)

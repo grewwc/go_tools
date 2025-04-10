@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/typew"
 )
@@ -23,7 +23,7 @@ const (
 type Parser struct {
 	Optional      map[string]string // key is prefix with '-'
 	Positional    typew.IList
-	defaultValMap *conw.TreeMap[string, string] // key is prefix with '-'
+	defaultValMap *cw.TreeMap[string, string] // key is prefix with '-'
 
 	cmd string
 	*flag.FlagSet
@@ -32,8 +32,8 @@ type Parser struct {
 func NewParser() *Parser {
 	return &Parser{
 		Optional:      make(map[string]string),
-		Positional:    conw.NewArrayList(),
-		defaultValMap: conw.NewTreeMap[string, string](nil),
+		Positional:    cw.NewArrayList(),
+		defaultValMap: cw.NewTreeMap[string, string](nil),
 		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
 	}
 }
@@ -147,16 +147,16 @@ func (r *Parser) MustGetFlagVal(flagName string) string {
 	return res
 }
 
-func (r *Parser) GetFlags() *conw.OrderedSet {
-	res := conw.NewOrderedSet()
+func (r *Parser) GetFlags() *cw.OrderedSet {
+	res := cw.NewOrderedSet()
 	for k := range r.Optional {
 		res.Add(k)
 	}
 	return res
 }
 
-func (r *Parser) GetBooleanArgs() *conw.OrderedSet {
-	res := conw.NewOrderedSet()
+func (r *Parser) GetBooleanArgs() *cw.OrderedSet {
+	res := cw.NewOrderedSet()
 	for k, v := range r.Optional {
 		if v == "" {
 			if k[0] == '-' {
@@ -282,7 +282,7 @@ func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
 	return false
 }
 
-func classifyArguments(cmd string, boolOptionals ...string) (*conw.ArrayList, []string, []string, []string) {
+func classifyArguments(cmd string, boolOptionals ...string) (*cw.ArrayList, []string, []string, []string) {
 	// fmt.Println("here", strings.ReplaceAll(cmd, "sep", "|"))
 	const (
 		positionalMode = iota
@@ -296,7 +296,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*conw.ArrayList, []
 	prev := startMode
 
 	mode := spaceMode
-	var positionals = conw.NewArrayList()
+	var positionals = cw.NewArrayList()
 	var keys []string
 	var boolKeys []string
 	var vals []string

@@ -4,13 +4,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/typew"
 )
 
 func TestConcurrentMap(t *testing.T) {
 	// 创建一个大小为 10 的 ConcurrentHashMap
-	m := conw.NewConcurrentHashMap[int, int](typew.CreateDefaultHash[int](), nil)
+	m := cw.NewConcurrentHashMap[int, int](typew.CreateDefaultHash[int](), nil)
 	N := 100000
 	// 启动多个 goroutine 模拟并发操作
 	var wg sync.WaitGroup
@@ -56,10 +56,10 @@ func TestConcurrentMap(t *testing.T) {
 func BenchmarkConcurrentMap(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var wg sync.WaitGroup
-		m := conw.NewConcurrentHashMap[int, int](nil, func(i, j int) int {
+		m := cw.NewConcurrentHashMap[int, int](nil, func(i, j int) int {
 			return i - j
 		})
-		// m := conw.NewMutexMap[int, int]()
+		// m := cw.NewMutexMap[int, int]()
 		N := 100000
 		for i := 0; i < N; i++ {
 			wg.Add(1)

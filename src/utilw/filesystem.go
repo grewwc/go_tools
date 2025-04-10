@@ -11,10 +11,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 )
 
-var DefaultExtensions = conw.NewSet()
+var DefaultExtensions = cw.NewSet()
 
 func init() {
 	DefaultExtensions.AddAll(".py", ".cpp", ".js", ".txt", ".h", ".hpp", ".c",

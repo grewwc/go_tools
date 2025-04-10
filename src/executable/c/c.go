@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/typew"
@@ -85,8 +85,8 @@ func calcWithOp(first, second string, op byte) string {
 
 func calc(expr []byte) string {
 	state := INIT
-	opSt := conw.NewStack(4)
-	numSt := conw.NewStack(8)
+	opSt := cw.NewStack(4)
+	numSt := cw.NewStack(8)
 	var buf bytes.Buffer
 	for i := 0; i < len(expr); {
 		ch := expr[i]

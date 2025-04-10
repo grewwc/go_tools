@@ -13,7 +13,7 @@ import (
 	"strconv"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilw"
 	"github.com/grewwc/go_tools/src/windowsW"
@@ -43,7 +43,7 @@ func processSingle(filename string, numOfLines int) {
 	var byteBuf = make([]byte, 1, 1)
 	var buf = make([]byte, 0)
 	var resBuf = bytes.NewBuffer(buf)
-	lines := conw.NewStack(numOfLines)
+	lines := cw.NewStack(numOfLines)
 	for count < numOfLines {
 		n, err := f.Read(byteBuf)
 		cursor += int64(n)

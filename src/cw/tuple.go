@@ -1,4 +1,4 @@
-package conw
+package cw
 
 type Tuple struct {
 	data []interface{}

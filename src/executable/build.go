@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/conw"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilw"
 )
 
-var ignoreName = conw.NewSet()
-var forceRebuildName = conw.NewSet()
+var ignoreName = cw.NewSet()
+var forceRebuildName = cw.NewSet()
 
 func init() {
 	if utilw.GetPlatform() != utilw.WINDOWS {
