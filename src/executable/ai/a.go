@@ -234,7 +234,7 @@ func getWriteResultFile(parsed *terminalw.Parser) *os.File {
 	if parsed.ContainsFlagStrict("out") {
 		filename := parsed.GetFlagValueDefault("out", "")
 		if filename == "" {
-			filename = "output.txt"
+			filename = "output.md"
 		}
 		f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
@@ -376,5 +376,6 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		if shouldQuit {
 			return
 		}
+		f.WriteString("\n---\n")
 	}
 }
