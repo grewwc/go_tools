@@ -52,7 +52,7 @@ func init() {
 	}
 }
 
-func uploadSingleFile(wg *sync.WaitGroup, filename, ossKey string, force bool) {
+func uploadSingleFile(wg *sync.WaitGroup, filename, ossKey string, force bool, retryCount int) {
 	defer wg.Done()
 	key := _helpers.GetOssKey(ossKey)
 	if key[len(key)-1] != '/' {
@@ -71,7 +71,13 @@ func uploadSingleFile(wg *sync.WaitGroup, filename, ossKey string, force bool) {
 	key = strings.TrimSuffix(key, "/")
 	fmt.Printf(">>> uploading %s to %s\n", color.GreenString(filepath.Base(filename)), color.GreenString(key))
 	if err = bucket.PutObjectFromFile(key, filename); err != nil {
-		panic(err)
+		if retryCount <= 0 {
+			panic(err)
+		}
+		retryCount--
+		fmt.Println("retry...")
+		wg.Add(1)
+		uploadSingleFile(wg, filename, ossKey, force, retryCount)
 	}
 	fmt.Printf("<<< done uploading %s\n", color.GreenString(filepath.Base(filename)))
 }
@@ -82,7 +88,7 @@ func upload(wg *sync.WaitGroup, filename, ossKey string, recursive, force bool) 
 	}
 	if !utilw.IsDir(filename) {
 		wg.Add(1)
-		go uploadSingleFile(wg, filename, ossKey, force)
+		go uploadSingleFile(wg, filename, ossKey, force, 3)
 		return
 	}
 
