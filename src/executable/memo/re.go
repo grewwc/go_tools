@@ -75,6 +75,7 @@ var (
 var (
 	listSpecial = false
 	useVsCode   = false
+	onlyTags    = false
 )
 
 type record struct {
@@ -399,6 +400,7 @@ func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, t
 		panic(err)
 	}
 	// filter by special tags
+	// fmt.Println("here", listSpecial, tags)
 	if !listSpecial {
 		resCopy := make([]*record, 0, len(res))
 		for _, r := range res {
@@ -981,10 +983,11 @@ func main() {
 	parser.Bool("onlyhold", false, "list only the hold rerods")
 	parser.String("ex", "", "exclude some tag prefix when list tags")
 	parser.Bool("code", false, "if use vscode as input editor (default false)")
+	parser.Bool("s", false, "short format, only print titles")
 
 	parser.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"sp", "include-held", "onlyhold", "p", "code", "pre", "force")
+		"sp", "include-held", "onlyhold", "p", "code", "pre", "force", "s")
 	// fmt.Println(parser.Optional)
 	// default behavior
 	// re
@@ -998,6 +1001,8 @@ func main() {
 		}
 		return
 	}
+
+	onlyTags = parser.ContainsFlagStrict("s")
 
 	positional := parser.Positional
 	prefix := parser.ContainsAnyFlagStrict("prefix", "pre")
@@ -1144,14 +1149,27 @@ func main() {
 			}
 			// to stdout
 			if !parser.ContainsFlagStrict("out") && !toBinary {
-				for _, record := range records {
-					printSeperator()
-					coloringRecord(record, nil)
-					if !utilw.IsText([]byte(record.Title)) {
-						record.Title = color.HiYellowString("<binary>")
+				if onlyTags {
+					s := cw.NewTreeSet[string](nil)
+					for _, r := range records {
+						for _, t := range r.Tags {
+							s.Add(t)
+						}
 					}
-					fmt.Println(utilw.ToString(record, ignoreFields...))
-					fmt.Println(color.HiRedString(record.ID.String()))
+					for t := range s.Iterate() {
+						fmt.Printf("%q  ", t)
+					}
+					fmt.Println()
+				} else {
+					for _, record := range records {
+						printSeperator()
+						coloringRecord(record, nil)
+						if !utilw.IsText([]byte(record.Title)) {
+							record.Title = color.HiYellowString("<binary>")
+						}
+						fmt.Println(utilw.ToString(record, ignoreFields...))
+						fmt.Println(color.HiRedString(record.ID.String()))
+					}
 				}
 			} else if toBinary {
 				for i := range records {
