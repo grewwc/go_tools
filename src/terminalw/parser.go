@@ -17,7 +17,7 @@ import (
 
 const (
 	sep  = '\x00'
-	dash = '\x10'
+	dash = '-'
 )
 
 type Parser struct {

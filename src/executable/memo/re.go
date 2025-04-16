@@ -1227,7 +1227,6 @@ func main() {
 		update(parser, parser.ContainsFlagStrict("file"), parser.ContainsFlagStrict("e"), id == "")
 		return
 	}
-
 	if parser.ContainsFlagStrict("i") || parser.CoExists("i", "e") {
 		insert(parser.CoExists("i", "e"), parser.GetFlagValueDefault("file", ""), "")
 		return
