@@ -35,8 +35,8 @@ func GetAllConfig() (m *cw.OrderedMap) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		trimed := strings.TrimSpace(line)
-		line = strw.TrimAfter(line, "#")
-		line = strw.TrimAfter(line, "//")
+		// line = strw.TrimAfter(line, "#")
+		// line = strw.TrimAfter(line, "//")
 		// comment
 		if strw.AnyHasPrefix(trimed, "#", "//") {
 			continue
@@ -44,7 +44,6 @@ func GetAllConfig() (m *cw.OrderedMap) {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-
 		res := strw.SplitNoEmptyKeepQuote(line, '=')
 		var key, val string
 		// fmt.Println(res)

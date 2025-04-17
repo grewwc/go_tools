@@ -237,8 +237,7 @@ func (r *Parser) GetNumArgs() int {
 	res := -1
 	p := regexp.MustCompile(`-(\d+)`)
 
-	for ik := range r.Positional.Iterate() {
-		k := ik.(string)
+	for k := range r.Optional {
 		if !p.MatchString(k) {
 			continue
 		}

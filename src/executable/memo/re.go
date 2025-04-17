@@ -119,6 +119,7 @@ func init() {
 	uriFromConfig := m.GetOrDefault(localMongoConfigName, "")
 	if uriFromConfig != "" {
 		uri = uriFromConfig.(string)
+		clientOptions.ApplyURI(uri)
 	}
 
 	// init client
@@ -132,6 +133,7 @@ func init() {
 
 	// read the special tag patters from .configW
 	for _, val := range strw.SplitNoEmpty(m.GetOrDefault(specialTagConfigname, "").(string), ",") {
+		val = strings.TrimSpace(val)
 		specialTagPatterns.Add(val)
 	}
 
@@ -143,7 +145,7 @@ func initAtlas() {
 		mu.Unlock()
 		return
 	}
-	fmt.Println("connecting to Mongo Atlas...")
+	fmt.Println("connecting to Remote...")
 	m := utilw.GetAllConfig()
 	var err error
 	// mongo atlas init
@@ -945,8 +947,8 @@ func main() {
 	parser.String("d", "", "delete a record")
 	parser.Int("n", 100, "# of records to list")
 	parser.Bool("h", false, "print help information")
-	parser.String("push", "objectID to push", "push to remote db (may take a while)")
-	parser.String("pull", "objectID to pull", "pull from remote db (may take a while)")
+	parser.String("push", "", "push to remote db (may take a while)")
+	parser.String("pull", "", "pull from remote db (may take a while)")
 	parser.Bool("r", false, "reverse sort")
 	parser.Bool("all", false, "including all record")
 	parser.Bool("a", false, "shortcut for -all")
@@ -987,7 +989,7 @@ func main() {
 
 	parser.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"sp", "include-held", "onlyhold", "p", "code", "pre", "force", "s")
+		"sp", "include-held", "onlyhold", "p", "code", "pre", "force", "s", "push", "pull")
 	// fmt.Println(parser.Optional)
 	// default behavior
 	// re
@@ -1273,8 +1275,9 @@ func main() {
 		return
 	}
 
-	if parser.ContainsFlagStrict("push") {
+	if parser.ContainsFlagStrict("push") && parser.GetFlagValueDefault("push", "") != "" {
 		fmt.Println("pushing...")
+		fmt.Println(parser.GetFlagValueDefault("push", ""))
 		syncByID(parser.GetFlagValueDefault("push", ""), true, true)
 		return
 	}
