@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"os"
@@ -38,6 +39,15 @@ func NewJsonFromByte(data []byte) *Json {
 	var res Json
 	if err := json.Unmarshal(data, &res.data); err != nil {
 		panic(strw.SubStringQuiet(typew.BytesToStr(data), 0, 128))
+	}
+	return &res
+}
+
+func NewJsonFromReader(r io.Reader) *Json {
+	d := json.NewDecoder(r)
+	var res Json
+	if err := d.Decode(&res.data); err != nil {
+		panic(err)
 	}
 	return &res
 }
