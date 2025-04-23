@@ -2,36 +2,41 @@ package cw
 
 import "github.com/grewwc/go_tools/src/typew"
 
-type UF[T comparable] struct {
-	id          typew.IMap[T, T]
-	sz          typew.IMap[T, int]
-	group_count int
+type UF[T any] struct {
+	id   typew.IMap[T, T]
+	root typew.IMap[T, *TreeSet[T]]
+	cmp  typew.CompareFunc[T]
 }
 
-func NewUF[T comparable](nodes ...T) *UF[T] {
+func NewUF[T any](cmp typew.CompareFunc[T], nodes ...T) *UF[T] {
 	id := NewMap[T, T]()
-	sz := NewMap[T, int]()
-	ret := &UF[T]{id, sz, 0}
+	root := NewMap[T, *TreeSet[T]]()
+	if cmp == nil {
+		cmp = typew.CreateDefaultCmp[T]()
+	}
+	ret := &UF[T]{id, root, cmp}
 	ret.AddNodes(nodes...)
 	return ret
 }
 
-func (uf *UF[T]) Union(i, j T) {
+func (uf *UF[T]) Union(i, j T) bool {
 	uf.AddNode(i)
 	uf.AddNode(j)
-	if !uf.IsConnected(i, j) {
-		pid, qid := uf.root(i), uf.root(j)
-		id, sz := uf.id, uf.sz
-		sz1, sz2 := sz.Get(pid), sz.Get(qid)
-		if sz1 < sz2 {
-			id.Put(pid, qid)
-			sz.Put(qid, sz1+sz2)
-		} else {
-			id.Put(qid, pid)
-			sz.Put(pid, sz1+sz2)
-		}
-		uf.group_count--
+	if uf.IsConnected(i, j) {
+		return false
 	}
+	pid, qid := uf.find(i), uf.find(j)
+	sz1, sz2 := uf.root.Get(pid).Size(), uf.root.Get(qid).Size()
+	if sz1 < sz2 {
+		uf.id.Put(pid, qid)
+		uf.root.Get(qid).Union(uf.root.Get(pid))
+		uf.root.Delete(pid)
+	} else {
+		uf.id.Put(qid, pid)
+		uf.root.Get(pid).Union(uf.root.Get(qid))
+		uf.root.Delete(qid)
+	}
+	return true
 }
 
 func (uf *UF[T]) AddNode(node T) bool {
@@ -39,7 +44,9 @@ func (uf *UF[T]) AddNode(node T) bool {
 		return false
 	}
 	uf.id.Put(node, node)
-	uf.group_count++
+	set := NewTreeSet(uf.cmp)
+	set.Add(node)
+	uf.root.Put(node, set)
 	return true
 }
 
@@ -50,14 +57,20 @@ func (uf *UF[T]) AddNodes(nodes ...T) {
 }
 
 func (uf *UF[T]) IsConnected(i, j T) bool {
-	return uf.root(i) == uf.root(j)
+	return uf.cmp(uf.find(i), uf.find(j)) == 0
 }
 
-func (uf *UF[T]) root(i T) T {
+func (uf *UF[T]) find(i T) T {
 	id := uf.id
-	for id.GetOrDefault(i, i) != i {
-		id.Put(i, id.GetOrDefault(id.GetOrDefault(i, i), i))
-		i = id.GetOrDefault(i, i)
+	root := i
+	for uf.cmp(id.GetOrDefault(root, root), root) != 0 {
+		root = id.GetOrDefault(root, root)
+	}
+	// path compression
+	for uf.cmp(i, root) != 0 {
+		parent := id.GetOrDefault(i, i)
+		id.Put(i, root)
+		i = parent
 	}
 	return i
 }
@@ -67,7 +80,7 @@ func (uf *UF[T]) NumNodes() int {
 }
 
 func (uf *UF[T]) NumGroups() int {
-	return uf.group_count
+	return uf.root.Size()
 }
 
 func (uf *UF[T]) Contains(node T) bool {
