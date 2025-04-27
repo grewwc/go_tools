@@ -14,7 +14,7 @@ import (
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 const (
@@ -124,21 +124,21 @@ func checkOneDirectory(root string) {
 }
 
 func getOnlyDirectories(root string) []string {
-	return utilw.LsDir(root,
-		func(filename string) bool { return utilw.IsDir(filename) },
+	return utilsw.LsDir(root,
+		func(filename string) bool { return utilsw.IsDir(filename) },
 		func(filename string) string { return filepath.Join(root, filename) })
 }
 
 func getOnlyFiles(root string) []string {
-	return utilw.LsDir(root,
-		func(file string) bool { return !utilw.IsDir(file) },
+	return utilsw.LsDir(root,
+		func(file string) bool { return !utilsw.IsDir(file) },
 		func(filename string) string {
 			return filepath.Join(root, filename)
 		})
 }
 
 func getDirAndFiles(root string) []string {
-	return utilw.LsDir(root,
+	return utilsw.LsDir(root,
 		func(filename string) bool { return !excludes.Contains(filename) },
 		func(filename string) string { return filepath.Join(root, filename) })
 }
@@ -185,9 +185,9 @@ func checkOneFile(f string) {
 }
 
 func check(f string) {
-	if utilw.IsDir(f) {
+	if utilsw.IsDir(f) {
 		checkOneDirectory(f)
-	} else if utilw.IsRegular(f) {
+	} else if utilsw.IsRegular(f) {
 		checkOneFile(f)
 	} else {
 		log.Println(color.RedString("unknow file: %s", f))
@@ -279,9 +279,9 @@ func main() {
 		args = append(args, ".")
 	}
 	for _, file := range parser.Positional.ToStringSlice() {
-		if utilw.IsDir(file) && !onlyFile && valid(file) {
+		if utilsw.IsDir(file) && !onlyFile && valid(file) {
 			args = append(args, file)
-		} else if utilw.IsRegular(file) && !onlyDir && valid(file) {
+		} else if utilsw.IsRegular(file) && !onlyDir && valid(file) {
 			args = append(args, file)
 		} else {
 			args = append(args, file)

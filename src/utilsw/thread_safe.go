@@ -1,4 +1,4 @@
-package utilw
+package utilsw
 
 import (
 	"sync"

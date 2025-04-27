@@ -10,7 +10,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 const (
@@ -54,7 +54,7 @@ func main() {
 	}
 	cmd := `git log --oneline --format="%h %an %ad %s" --date=short`
 	pattern := `\w+\s.*\s\d{4}-\d{2}-\d{2}\sMerge.*`
-	res, err := utilw.RunCmd(cmd, nil)
+	res, err := utilsw.RunCmd(cmd, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		return

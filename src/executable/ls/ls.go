@@ -15,7 +15,7 @@ import (
 	_lsW "github.com/grewwc/go_tools/src/executable/ls/utils"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 var w int
@@ -37,7 +37,7 @@ func init() {
 	// windows.GetConsoleScreenBufferInfo(stdout, &info)
 	// w = int(info.Size.X)
 	var err error
-	_, w, err = utilw.GetTerminalSize()
+	_, w, err = utilsw.GetTerminalSize()
 	if err != nil {
 		panic(err)
 	}
@@ -53,13 +53,13 @@ func formatFileStat(filename string, realSize bool) string {
 	modTime := stat.ModTime()
 	modTimeStr := fmt.Sprintf("   %04d/%02d/%02d  %02d:%02d", modTime.Year(), int(modTime.Month()), modTime.Day(), modTime.Hour(), modTime.Minute())
 	var sizeStr string
-	if !utilw.IsDir(filename) {
+	if !utilsw.IsDir(filename) {
 		sizeStr = strw.FormatInt64(stat.Size())
 	} else {
 		var dirSize int64
 		var err error
 		if realSize {
-			dirSize, err = utilw.GetDirSize(filename)
+			dirSize, err = utilsw.GetDirSize(filename)
 		} else {
 			dirSize = stat.Size()
 		}
@@ -71,10 +71,10 @@ func formatFileStat(filename string, realSize bool) string {
 		}
 		sizeStr = strw.FormatInt64(dirSize)
 	}
-	if utilw.IsDir(filename) {
+	if utilsw.IsDir(filename) {
 		filename = color.HiCyanString(filename + "/")
 	}
-	if utilw.IsExecutableOwner(filename) {
+	if utilsw.IsExecutableOwner(filename) {
 		filename = color.HiGreenString(filename)
 	}
 
@@ -127,11 +127,11 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 		if !all && filepath.Base(file)[0] == '.' {
 			continue
 		}
-		if onlyDir && !utilw.IsDir(file) {
+		if onlyDir && !utilsw.IsDir(file) {
 			continue
 		}
 
-		if onlyFile && !utilw.IsRegular(file) {
+		if onlyFile && !utilsw.IsRegular(file) {
 			continue
 		}
 
@@ -152,14 +152,14 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			fileCnt++
 			continue
 		}
-		if utilw.IsDir(file) {
+		if utilsw.IsDir(file) {
 			file += "/"
 			if rootDir[len(rootDir)-1] != '/' {
 				rootDir += "/"
 			}
 			dirStrings.Put(strw.StripPrefix(file, rootDir), "d")
 		}
-		if utilw.IsExecutableOwner(file) {
+		if utilsw.IsExecutableOwner(file) {
 			dirStrings.Put(filepath.Base(file), "e")
 		}
 		if strings.Contains(file, " ") {
@@ -168,10 +168,10 @@ func processSingleDir(rootDir string, fileSlice []string, long bool, du bool, so
 			}
 			file = strw.StripPrefix(file, rootDir)
 			fileWithQuote := fmt.Sprintf("\"%s\"", file)
-			if utilw.IsDir(file) {
+			if utilsw.IsDir(file) {
 				dirStrings.Put(fileWithQuote, "d")
 			}
-			if utilw.IsExecutableOwner(file) {
+			if utilsw.IsExecutableOwner(file) {
 				dirStrings.Put(filepath.Base(fileWithQuote), "e")
 			}
 
@@ -326,7 +326,7 @@ skipTo:
 		if len(args) > 1 {
 			fmt.Printf("%s:\n", color.HiCyanString(rootDir))
 		}
-		fileMap := utilw.LsDirGlob(rootDir)
+		fileMap := utilsw.LsDirGlob(rootDir)
 		// fmt.Println("filemap: ", fileMap)
 		for d, fileSlice := range fileMap {
 			files = ""
@@ -367,7 +367,7 @@ skipTo:
 					buf := bytes.NewBufferString("")
 					for _, word := range strw.SplitNoEmpty(line, delimiter) {
 						word = strings.ReplaceAll(word, "\x00", " ")
-						if coloredStrings.Contains(word) && utilw.GetPlatform() != utilw.WINDOWS {
+						if coloredStrings.Contains(word) && utilsw.GetPlatform() != utilsw.WINDOWS {
 							if coloredStrings.Get(word).(string) == "d" {
 								boldCyan.Fprintf(buf, `%s%s`, word, delimiter)
 							} else if coloredStrings.Get(word).(string) == "e" {

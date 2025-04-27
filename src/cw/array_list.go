@@ -1,6 +1,6 @@
 package cw
 
-import "github.com/grewwc/go_tools/src/typew"
+import "github.com/grewwc/go_tools/src/typesw"
 
 type ArrayList struct {
 	data []interface{}
@@ -56,7 +56,7 @@ func (q *ArrayList) ToStringSlice() []string {
 	return res
 }
 
-func (q *ArrayList) ShallowCopy() typew.IList {
+func (q *ArrayList) ShallowCopy() typesw.IList {
 	res := NewArrayList()
 	for item := range q.Iterate() {
 		res.Add(item)
@@ -84,7 +84,7 @@ func (q *ArrayList) Contains(target interface{}) bool {
 	return false
 }
 
-func (q *ArrayList) Equals(other typew.IList) bool {
+func (q *ArrayList) Equals(other typesw.IList) bool {
 	if other == nil {
 		return false
 	}

@@ -6,7 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/grewwc/go_tools/src/algow"
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 const (
@@ -24,19 +24,19 @@ type buck[K, V any] struct {
 type ConcurrentHashMap[K, V any] struct {
 	buckets []*buck[K, V] // 桶数组，每个桶是一个独立的哈希表
 	mutex   *sync.RWMutex
-	hasher  typew.HashFunc[K]
+	hasher  typesw.HashFunc[K]
 	cnt     int64
 
-	cmp typew.CompareFunc[K]
+	cmp typesw.CompareFunc[K]
 }
 
-func NewConcurrentHashMap[K, V any](hasher typew.HashFunc[K], cmp typew.CompareFunc[K]) *ConcurrentHashMap[K, V] {
+func NewConcurrentHashMap[K, V any](hasher typesw.HashFunc[K], cmp typesw.CompareFunc[K]) *ConcurrentHashMap[K, V] {
 	buckets := make([]*buck[K, V], initCap)
 	if hasher == nil {
-		hasher = typew.CreateDefaultHash[K]()
+		hasher = typesw.CreateDefaultHash[K]()
 	}
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[K]()
+		cmp = typesw.CreateDefaultCmp[K]()
 	}
 	return &ConcurrentHashMap[K, V]{
 		buckets: buckets,

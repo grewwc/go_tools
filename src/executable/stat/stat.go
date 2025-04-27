@@ -12,7 +12,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/strw"
-	"github.com/grewwc/go_tools/src/utilw"
 	"github.com/grewwc/go_tools/src/windowsW"
 )
 
@@ -59,7 +58,7 @@ func processSingle(filename string) {
 		log.Fatalln(err)
 	}
 	mTime := f.ModTime()
-	size, err := utilw.GetDirSize(filename)
+	size, err := utilsw.GetDirSize(filename)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -75,7 +74,7 @@ func processSingle(filename string) {
 func main() {
 	args := os.Args[1:]
 	for _, filename := range args {
-		files := utilw.LsDirGlob(filename)
+		files := utilsw.LsDirGlob(filename)
 		for d, fnames := range files {
 			if d == "./" {
 				for _, fname := range fnames {

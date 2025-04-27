@@ -1,6 +1,6 @@
 package cw
 
-import "github.com/grewwc/go_tools/src/typew"
+import "github.com/grewwc/go_tools/src/typesw"
 
 var empty = struct{}{}
 
@@ -8,7 +8,7 @@ type ConcurrentHashSet[T any] struct {
 	data *ConcurrentHashMap[T, struct{}]
 }
 
-func NewConcurrentHashSet[T any](hasher typew.HashFunc[T], cmp typew.CompareFunc[T]) *ConcurrentHashSet[T] {
+func NewConcurrentHashSet[T any](hasher typesw.HashFunc[T], cmp typesw.CompareFunc[T]) *ConcurrentHashSet[T] {
 	return &ConcurrentHashSet[T]{
 		data: NewConcurrentHashMap[T, struct{}](hasher, cmp),
 	}

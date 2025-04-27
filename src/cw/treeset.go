@@ -1,15 +1,13 @@
 package cw
 
-import (
-	"github.com/grewwc/go_tools/src/typew"
-)
+import "github.com/grewwc/go_tools/src/typesw"
 
 type TreeSet[T any] struct {
 	data *TreeMap[T, struct{}]
-	cmp  typew.CompareFunc[T]
+	cmp  typesw.CompareFunc[T]
 }
 
-func NewTreeSet[T any](cmp typew.CompareFunc[T]) *TreeSet[T] {
+func NewTreeSet[T any](cmp typesw.CompareFunc[T]) *TreeSet[T] {
 	return &TreeSet[T]{
 		data: NewTreeMap[T, struct{}](cmp),
 	}

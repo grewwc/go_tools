@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/grewwc/go_tools/src/strw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 type FileParser struct {
@@ -18,8 +18,8 @@ func NewParser(content string) *FileParser {
 	ret := FileParser{}
 	for _, file := range files {
 		file = strings.TrimSpace(file)
-		file = utilw.ExpandUser(file)
-		// if utilw.IsTextFile(file) {
+		file = utilsw.ExpandUser(file)
+		// if utilsw.IsTextFile(file) {
 		// ret.textFiles = append(ret.textFiles, file)
 		// } else {
 		ret.nonTextfiles = append(ret.nonTextfiles, file)
@@ -39,7 +39,7 @@ func (c *FileParser) NonTextFiles() []string {
 func (c *FileParser) TextFileContents() string {
 	var ret bytes.Buffer
 	for _, file := range c.textFiles {
-		ret.WriteString(utilw.ReadString(file))
+		ret.WriteString(utilsw.ReadString(file))
 		ret.WriteRune('\n')
 	}
 	return ret.String()

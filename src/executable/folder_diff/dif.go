@@ -9,7 +9,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 func calcMd5(filename string) string {
@@ -19,7 +19,7 @@ func calcMd5(filename string) string {
 
 func newFileSet(rootDir string, parser *terminalw.Parser) *cw.OrderedSet {
 	s := cw.NewOrderedSet()
-	files := utilw.LsDir(rootDir, nil, nil)
+	files := utilsw.LsDir(rootDir, nil, nil)
 	chooseExt := parser.GetFlagValueDefault("ext", "") != ""
 	printMd5 := parser.ContainsFlagStrict("md5")
 	for _, f := range files {

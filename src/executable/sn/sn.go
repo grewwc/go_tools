@@ -14,7 +14,7 @@ import (
 	_helpers "github.com/grewwc/go_tools/src/executable/sn/_helpers"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 const (
@@ -34,7 +34,7 @@ var (
 )
 
 func init() {
-	config := utilw.GetAllConfig()
+	config := utilsw.GetAllConfig()
 	endpoint = config.GetOrDefault("oss.endpoint", "oss-cn-hangzhou.aliyuncs.com").(string)
 	ak = config.GetOrDefault("oss.ak", "").(string)
 	sk = config.GetOrDefault("oss.sk", "").(string)
@@ -57,7 +57,7 @@ func uploadSingleFile(wg *sync.WaitGroup, filename, ossKey string, force bool, r
 	key := _helpers.GetOssKey(ossKey)
 	if key[len(key)-1] != '/' {
 		if !force {
-			if utilw.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", key)) {
+			if utilsw.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", key)) {
 				fmt.Println(color.RedString("the file: %s will be overwritten!!", key))
 			} else {
 				fmt.Println("quit")
@@ -86,7 +86,7 @@ func upload(wg *sync.WaitGroup, filename, ossKey string, recursive, force bool) 
 	if filename, err = filepath.Abs(filename); err != nil {
 		panic(err)
 	}
-	if !utilw.IsDir(filename) {
+	if !utilsw.IsDir(filename) {
 		wg.Add(1)
 		go uploadSingleFile(wg, filename, ossKey, force, 3)
 		return
@@ -114,10 +114,10 @@ func download(filename, ossKey string, ch chan struct{}, retryCount int) {
 	}
 	key := _helpers.GetOssKey(ossKey)
 
-	if utilw.IsDir(filename) {
+	if utilsw.IsDir(filename) {
 		filename += "/" + filepath.Base(key)
-	} else if utilw.IsExist(filename) { // 文件
-		if utilw.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", filename)) {
+	} else if utilsw.IsExist(filename) { // 文件
+		if utilsw.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", filename)) {
 			fmt.Println(color.RedString("the file: %s will be overwritten!!", filename))
 		} else {
 			fmt.Println("quit")
@@ -155,7 +155,7 @@ func handleLs(args []string) {
 // 		panic(err)
 // 	}
 // 	if exist {
-// 		res := utilw.PromptYesOrNo(fmt.Sprintf("Delete %s? (y/n)", objectKey))
+// 		res := utilsw.PromptYesOrNo(fmt.Sprintf("Delete %s? (y/n)", objectKey))
 // 		if res {
 // 			if err = bucket.DeleteObject(objectKey); err != nil {
 // 				fmt.Println("Failed to delete", objectKey)

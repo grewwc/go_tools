@@ -14,7 +14,7 @@ import (
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 var (
@@ -101,7 +101,7 @@ func processTarGzFile(fname string, prefix string) {
 
 func clean(fname string) {
 	fmt.Printf("cleaning %s\n", fname)
-	if utilw.IsExist(fname) {
+	if utilsw.IsExist(fname) {
 		msg := fmt.Sprintf("error occurred, clean %q\n", fname)
 		log.Fatalln(color.RedString(msg))
 		os.Remove(fname)
@@ -110,7 +110,7 @@ func clean(fname string) {
 
 func printHelp(parser *terminalw.Parser) {
 	parser.PrintDefaults()
-	fmt.Printf("%s dest.tar.gz source_dir\n", utilw.BaseNoExt(utilw.GetCurrentFileName()))
+	fmt.Printf("%s dest.tar.gz source_dir\n", utilsw.BaseNoExt(utilsw.GetCurrentFileName()))
 }
 
 func main() {
@@ -160,7 +160,7 @@ func main() {
 	if exclude != "" {
 		for _, ex := range strw.SplitNoEmptyKeepQuote(exclude, ',') {
 			ex = strings.TrimSpace(ex)
-			excludeSlice = append(excludeSlice, utilw.Abs(ex))
+			excludeSlice = append(excludeSlice, utilsw.Abs(ex))
 		}
 	}
 
@@ -182,7 +182,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			excludeSet.Add(utilw.Abs(path))
+			excludeSet.Add(utilsw.Abs(path))
 			return nil
 		})
 	}
@@ -226,8 +226,8 @@ func main() {
 		os.Exit(0)
 	}
 	// to tar files
-	if utilw.IsExist(outName) {
-		ans := utilw.PromptYesOrNo(fmt.Sprintf("%s exists, overwrite? (y/n) ", color.HiRedString(outName)))
+	if utilsw.IsExist(outName) {
+		ans := utilsw.PromptYesOrNo(fmt.Sprintf("%s exists, overwrite? (y/n) ", color.HiRedString(outName)))
 		if ans {
 			fmt.Printf("overrite %s!\n", color.RedString(outName))
 		} else {
@@ -262,7 +262,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			absPath := utilw.Abs(path)
+			absPath := utilsw.Abs(path)
 			ext := filepath.Ext(path)
 			if t != "" {
 				// 没有文件后缀的也忽略
@@ -285,7 +285,7 @@ func main() {
 		}
 		return
 	}
-	if err = utilw.TarGz(outName, allFiles, verbose, showProgress == "true"); err != nil {
+	if err = utilsw.TarGz(outName, allFiles, verbose, showProgress == "true"); err != nil {
 		if parser.ContainsFlagStrict("clean") {
 			clean(outName)
 		}

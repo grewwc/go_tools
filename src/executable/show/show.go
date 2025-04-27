@@ -7,7 +7,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 func main() {
@@ -18,11 +18,11 @@ func main() {
 		return
 	}
 
-	dir := utilw.GetDirOfTheFile()
+	dir := utilsw.GetDirOfTheFile()
 	dir = filepath.Join(dir, "..", "..", "..", "bin")
 	var allExecutables []string
-	allExecutables = append(allExecutables, utilw.LsDir(dir, nil, nil)...)
-	_, w, err := utilw.GetTerminalSize()
+	allExecutables = append(allExecutables, utilsw.LsDir(dir, nil, nil)...)
+	_, w, err := utilsw.GetTerminalSize()
 	if err != nil {
 		panic(err)
 	}

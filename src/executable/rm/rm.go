@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
 )
 
 func removeSingle(filename string, parser terminalw.Parser) {
@@ -34,7 +33,7 @@ func main() {
 	}
 	args := parser.Positional.ToStringSlice()
 	for _, filename := range args {
-		for d, filenames := range utilw.LsDirGlob(filename) {
+		for d, filenames := range utilsw.LsDirGlob(filename) {
 			if d == "./" {
 				for _, fname := range filenames {
 					removeSingle(fname, *parser)

@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 func GetMethods(obj interface{}) []*reflect.Method {
@@ -21,7 +21,7 @@ func GetMethods(obj interface{}) []*reflect.Method {
 		if m.Type.NumIn() < 2 {
 			continue
 		}
-		if m.Type.In(1).String() == "*utilw.EventBus" {
+		if m.Type.In(1).String() == "*utilsw.EventBus" {
 			result = append(result, &m)
 		}
 	}
@@ -40,8 +40,8 @@ func RemoveTopicFromMethodName(topic, methodName string) string {
 	if !strings.HasPrefix(methodName, key) {
 		return methodName
 	}
-	b := typew.StrToBytes(methodName)
-	return typew.BytesToStr(bytes.TrimPrefix(b, typew.StrToBytes(key)))
+	b := typesw.StrToBytes(methodName)
+	return typesw.BytesToStr(bytes.TrimPrefix(b, typesw.StrToBytes(key)))
 }
 
 func InterfaceToValue(args ...interface{}) []reflect.Value {

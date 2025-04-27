@@ -1,18 +1,18 @@
 package cw
 
-import "github.com/grewwc/go_tools/src/typew"
+import "github.com/grewwc/go_tools/src/typesw"
 
 type UF[T any] struct {
-	id   typew.IMap[T, T]
-	root typew.IMap[T, *TreeSet[T]]
-	cmp  typew.CompareFunc[T]
+	id   typesw.IMap[T, T]
+	root typesw.IMap[T, *TreeSet[T]]
+	cmp  typesw.CompareFunc[T]
 }
 
-func NewUF[T any](cmp typew.CompareFunc[T], nodes ...T) *UF[T] {
+func NewUF[T any](cmp typesw.CompareFunc[T], nodes ...T) *UF[T] {
 	id := NewMap[T, T]()
 	root := NewMap[T, *TreeSet[T]]()
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[T]()
+		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	ret := &UF[T]{id, root, cmp}
 	ret.AddNodes(nodes...)

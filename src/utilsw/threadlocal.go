@@ -1,12 +1,12 @@
-package utilw
+package utilsw
 
 import (
 	"github.com/grewwc/go_tools/src/cw"
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 type ThreadLocal[T any] struct {
-	m typew.IConcurrentMap[int, T]
+	m typesw.IConcurrentMap[int, T]
 }
 
 func NewThreadLocal[T any](val T) *ThreadLocal[T] {

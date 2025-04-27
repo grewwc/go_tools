@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/grewwc/go_tools/src/cw"
-	"github.com/grewwc/go_tools/src/utilw"
+	utilsw "github.com/grewwc/go_tools/src/utilsw"
 )
 
 var Once sync.Once
@@ -78,7 +78,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 			continue
 		}
 
-		if !utilw.IsTextFile(subName) {
+		if utilsw.IsTextFile(subName) {
 			continue
 		}
 

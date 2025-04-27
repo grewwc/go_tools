@@ -13,7 +13,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
 	"github.com/grewwc/go_tools/src/windowsW"
 )
 
@@ -55,7 +54,7 @@ func main() {
 			continue
 		}
 		for _, filename := range filenames {
-			if utilw.IsDir(filename) {
+			if utilsw.IsDir(filename) {
 				continue
 			}
 			f, err := os.Open(filename)

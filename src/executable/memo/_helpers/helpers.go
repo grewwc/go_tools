@@ -16,7 +16,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gopkg.in/mgo.v2/bson"
@@ -77,11 +77,11 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) bool {
 	absName := filepath.Join(homeDir, urlFileName)
 	absNameCommon := filepath.Join(homeDir, commonFileName)
 	var originalData, originalCommonData string
-	if utilw.IsExist(absName) {
-		originalData = utilw.ReadString(absName)
+	if utilsw.IsExist(absName) {
+		originalData = utilsw.ReadString(absName)
 	}
-	if utilw.IsExist(absNameCommon) {
-		originalCommonData = utilw.ReadString(absNameCommon)
+	if utilsw.IsExist(absNameCommon) {
+		originalCommonData = utilsw.ReadString(absNameCommon)
 	}
 	f, err := os.OpenFile(absName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0666)
 	if err != nil {
@@ -176,7 +176,7 @@ func ReadInfo(isURL bool) string {
 	}
 	if len(urls) == 1 {
 		if isURL {
-			utilw.OpenUrlInBrowswer(urls[0])
+			utilsw.OpenUrlInBrowswer(urls[0])
 			return ""
 		}
 		return urls[0]
@@ -189,7 +189,7 @@ func ReadInfo(isURL bool) string {
 		urlsWithNo[i] = fmt.Sprintf("%d: %s (%s)", i+1, color.HiWhiteString(urls[i]), color.HiBlueString(hint))
 	}
 	_print(urlsWithNo, hints)
-	text := utilw.UserInput("input the number: ", false)
+	text := utilsw.UserInput("input the number: ", false)
 	for {
 		if val, err := strconv.Atoi(text); err != nil {
 			fmt.Printf("%s is not a valid choice\n", text)
@@ -201,7 +201,7 @@ func ReadInfo(isURL bool) string {
 			fmt.Print("\ninput the number: ")
 		} else {
 			if isURL {
-				utilw.OpenUrlInBrowswer(urls[val-1])
+				utilsw.OpenUrlInBrowswer(urls[val-1])
 				return ""
 			} else {
 				return urls[val-1]

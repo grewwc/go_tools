@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 func install() {
@@ -21,7 +21,7 @@ func install() {
 		parser.PrintDefaults()
 		return
 	}
-	filename := filepath.Join(utilw.GetDirOfTheFile(), "src", "executable", "build.go")
+	filename := filepath.Join(utilsw.GetDirOfTheFile(), "src", "executable", "build.go")
 	var args = []string{"run", filename}
 	for _, additional := range os.Args[1:] {
 		args = append(args, additional)

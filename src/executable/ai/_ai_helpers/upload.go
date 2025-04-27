@@ -13,7 +13,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/sortw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 func uploadSingleQwenlongFile(apiKey, filename string) (string, error) {
@@ -56,7 +56,7 @@ func uploadSingleQwenlongFile(apiKey, filename string) (string, error) {
 		log.Println(err)
 		return "", err
 	}
-	j := utilw.NewJsonFromByte(b)
+	j := utilsw.NewJsonFromByte(b)
 	fileid := j.GetString("id")
 	fmt.Println("Finished upload. Fileid: ", fileid)
 	return fileid, nil
@@ -67,7 +67,7 @@ func UploadQwenLongFiles(apiKey string, files []string) []string {
 	defer close(ch)
 	for i, file := range files {
 		file = strings.TrimSpace(file)
-		file = utilw.ExpandUser(file)
+		file = utilsw.ExpandUser(file)
 		go upload(ch, apiKey, file, i)
 	}
 	resultTuple := make([]*cw.Tuple, 0, len(files))

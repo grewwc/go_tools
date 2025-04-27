@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 	"github.com/shirou/gopsutil/net"
 )
 
@@ -31,7 +31,7 @@ func changeFormat(speed float64) string {
 }
 
 func detectInterface() string {
-	if utilw.GetPlatform() == utilw.LINUX {
+	if utilsw.GetPlatform() == utilsw.LINUX {
 		return "eth0"
 	}
 	return "en0"

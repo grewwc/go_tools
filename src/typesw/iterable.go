@@ -1,4 +1,4 @@
-package typew
+package typesw
 
 type Iterable interface {
 	Iterate() <-chan interface{}

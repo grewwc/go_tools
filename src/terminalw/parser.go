@@ -12,7 +12,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 
 type Parser struct {
 	Optional      map[string]string // key is prefix with '-'
-	Positional    typew.IList
+	Positional    typesw.IList
 	defaultValMap *cw.TreeMap[string, string] // key is prefix with '-'
 
 	cmd string

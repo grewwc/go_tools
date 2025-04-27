@@ -17,8 +17,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 var target string
@@ -313,7 +312,7 @@ func main() {
 		terminalw.Extensions = terminalw.FormatFileExtensions(ext)
 		terminalw.CheckExtension = true
 	} else {
-		terminalw.Extensions = utilw.DefaultExtensions.ShallowCopy()
+		terminalw.Extensions = utilsw.DefaultExtensions.ShallowCopy()
 		terminalw.CheckExtension = false
 	}
 	if extExclude != "" {

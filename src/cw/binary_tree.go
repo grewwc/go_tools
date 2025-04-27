@@ -1,8 +1,6 @@
 package cw
 
-import (
-	"github.com/grewwc/go_tools/src/typew"
-)
+import "github.com/grewwc/go_tools/src/typesw"
 
 const (
 	black = iota
@@ -18,7 +16,7 @@ type treeNode[T any] struct {
 
 type RbTree[T any] struct {
 	root *treeNode[T]
-	cmp  typew.CompareFunc[T]
+	cmp  typesw.CompareFunc[T]
 	size int
 }
 
@@ -32,9 +30,9 @@ func newTreeNode[T any](val T) *treeNode[T] {
 	}
 }
 
-func NewRbTree[T any](cmp typew.CompareFunc[T]) *RbTree[T] {
+func NewRbTree[T any](cmp typesw.CompareFunc[T]) *RbTree[T] {
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[T]()
+		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	return &RbTree[T]{
 		root: nil,

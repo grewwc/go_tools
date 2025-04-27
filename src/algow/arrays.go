@@ -1,8 +1,6 @@
 package algow
 
-import (
-	"github.com/grewwc/go_tools/src/typew"
-)
+import "github.com/grewwc/go_tools/src/typesw"
 
 func Fill[T any](arr []T, value T) {
 	for i := 0; i < len(arr); i++ {
@@ -16,12 +14,12 @@ func Reverse[T any](arr []T) {
 	}
 }
 
-func BisectLeft[T any](arr []T, target T, cmp typew.CompareFunc[T]) int {
+func BisectLeft[T any](arr []T, target T, cmp typesw.CompareFunc[T]) int {
 	if len(arr) == 0 {
 		return -1
 	}
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[T]()
+		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	lo, hi := 0, len(arr)
 	for lo < hi {
@@ -36,12 +34,12 @@ func BisectLeft[T any](arr []T, target T, cmp typew.CompareFunc[T]) int {
 
 }
 
-func BisectRight[T any](arr []T, target T, cmp typew.CompareFunc[T]) int {
+func BisectRight[T any](arr []T, target T, cmp typesw.CompareFunc[T]) int {
 	if len(arr) == 0 {
 		return -1
 	}
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[T]()
+		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	lo, hi := 0, len(arr)
 	for lo < hi {
@@ -55,12 +53,12 @@ func BisectRight[T any](arr []T, target T, cmp typew.CompareFunc[T]) int {
 	return lo
 }
 
-func LongestIncreasingSubsequence[T any](arr []T, cmp typew.CompareFunc[T]) []T {
+func LongestIncreasingSubsequence[T any](arr []T, cmp typesw.CompareFunc[T]) []T {
 	if len(arr) == 0 {
 		return []T{}
 	}
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[T]()
+		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	sub := make([]T, 0)
 	for _, num := range arr {
@@ -76,9 +74,9 @@ func LongestIncreasingSubsequence[T any](arr []T, cmp typew.CompareFunc[T]) []T 
 	return sub
 }
 
-func EditDistance[T any](a1, a2 []T, cmp typew.CompareFunc[T]) int {
+func EditDistance[T any](a1, a2 []T, cmp typesw.CompareFunc[T]) int {
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[T]()
+		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	m, n := len(a1), len(a2)
 	if m < n {

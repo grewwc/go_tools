@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 func create(fname string) error {
-	if !utilw.IsExist(filepath.Dir(fname)) {
+	if !utilsw.IsExist(filepath.Dir(fname)) {
 		os.MkdirAll(filepath.Dir(fname), os.ModeDir)
 	}
 	_, err := os.Create(fname)
@@ -19,7 +19,7 @@ func create(fname string) error {
 func main() {
 	filenames := os.Args[1:]
 	for _, filename := range filenames {
-		if utilw.IsExist(filename) {
+		if utilsw.IsExist(filename) {
 			log.Printf("file: %s existed\n", filename)
 			continue
 		}

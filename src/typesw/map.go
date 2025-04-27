@@ -1,4 +1,4 @@
-package typew
+package typesw
 
 type IMap[K, V any] interface {
 	Get(key K) V

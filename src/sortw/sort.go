@@ -8,7 +8,7 @@ import (
 
 	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/cw"
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 	"golang.org/x/exp/constraints"
 )
 
@@ -35,7 +35,7 @@ func InsertionSort[T constraints.Ordered](arr []T) {
 	}
 }
 
-func InsertionSortComparator[T any](arr []T, comparator typew.CompareFunc[T]) {
+func InsertionSortComparator[T any](arr []T, comparator typesw.CompareFunc[T]) {
 	l := len(arr)
 	if l <= 1 {
 		return
@@ -89,12 +89,12 @@ func QuickSort[T constraints.Ordered](arr []T) {
 	quickSort(arr, true, nil)
 }
 
-func Sort[T any](arr []T, cmp typew.CompareFunc[T]) {
+func Sort[T any](arr []T, cmp typesw.CompareFunc[T]) {
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[T]()
+		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[T]()
+		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	quickSortComparator(arr, cmp, true, nil)
 }
@@ -126,7 +126,7 @@ func ShellSort[T constraints.Ordered](arr []T) {
 
 func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
 	var h cw.IHeap[T]
-	cmp := typew.CreateDefaultCmp[T]()
+	cmp := typesw.CreateDefaultCmp[T]()
 	if reverse {
 		cmp = func(i, j T) int {
 			return -cmp(i, j)
@@ -174,7 +174,7 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 		return nil
 	}
 	var h cw.IHeap[T]
-	cmp := typew.CreateDefaultCmp[T]()
+	cmp := typesw.CreateDefaultCmp[T]()
 	if minK {
 		cmp = func(i, j T) int {
 			return -cmp(i, j)
@@ -231,7 +231,7 @@ func calcSortedRatio[T constraints.Ordered](arr []T) float32 {
 	return float32(cnt) / float32(len(arr))
 }
 
-func calcSortedRatioComparator[T any](arr []T, comparator typew.CompareFunc[T]) float32 {
+func calcSortedRatioComparator[T any](arr []T, comparator typesw.CompareFunc[T]) float32 {
 	if len(arr) <= 1 {
 		return 1
 	}
@@ -280,7 +280,7 @@ func quickSort[T constraints.Ordered](arr []T, calclRatio bool, wg *sync.WaitGro
 	wg1.Wait()
 }
 
-func quickSortComparator[T any](arr []T, comparator typew.CompareFunc[T], calcRatio bool, wg *sync.WaitGroup) {
+func quickSortComparator[T any](arr []T, comparator typesw.CompareFunc[T], calcRatio bool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/go-redis/redis"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 func choose(cmd *terminalw.Parser) interface{} {
@@ -110,7 +110,7 @@ func main() {
 	}()
 
 	// Create a Redis client
-	m := utilw.GetAllConfig()
+	m := utilsw.GetAllConfig()
 	if m == nil {
 		fmt.Println("set redis.host and redis.password in ~/.configW")
 		return

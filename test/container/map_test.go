@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/grewwc/go_tools/src/cw"
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 func TestConcurrentMap(t *testing.T) {
 	// 创建一个大小为 10 的 ConcurrentHashMap
-	m := cw.NewConcurrentHashMap[int, int](typew.CreateDefaultHash[int](), nil)
+	m := cw.NewConcurrentHashMap[int, int](typesw.CreateDefaultHash[int](), nil)
 	N := 100000
 	// 启动多个 goroutine 模拟并发操作
 	var wg sync.WaitGroup

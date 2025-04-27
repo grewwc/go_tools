@@ -1,6 +1,6 @@
 package cw
 
-import "github.com/grewwc/go_tools/src/typew"
+import "github.com/grewwc/go_tools/src/typesw"
 
 type sortedMapEntry[K any, V any] struct {
 	k K
@@ -11,9 +11,9 @@ type TreeMap[K any, V any] struct {
 	rbTree *RbTree[*sortedMapEntry[K, V]]
 }
 
-func NewTreeMap[K, V any](cmp typew.CompareFunc[K]) *TreeMap[K, V] {
+func NewTreeMap[K, V any](cmp typesw.CompareFunc[K]) *TreeMap[K, V] {
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[K]()
+		cmp = typesw.CreateDefaultCmp[K]()
 	}
 	cmpWrapper := func(a, b *sortedMapEntry[K, V]) int {
 		return cmp(a.k, b.k)

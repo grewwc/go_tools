@@ -3,7 +3,7 @@ package algow
 import (
 	"math/rand"
 
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 	"golang.org/x/exp/constraints"
 )
 
@@ -32,7 +32,7 @@ func ThreeWayPartitionInts[T constraints.Ordered](nums []T) (int, int) {
 	return lt, gt
 }
 
-func ThreeWayPartitionCmp[T any](nums []T, comparator typew.CompareFunc[T]) (int, int) {
+func ThreeWayPartitionCmp[T any](nums []T, comparator typesw.CompareFunc[T]) (int, int) {
 	r := rand.Int31n(int32(len(nums)))
 	nums[0], nums[r] = nums[r], nums[0]
 	pivot := nums[0]

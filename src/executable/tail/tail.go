@@ -15,7 +15,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
 	"github.com/grewwc/go_tools/src/windowsW"
 )
 
@@ -24,7 +23,7 @@ func init() {
 }
 
 func processSingle(filename string, numOfLines int) {
-	if utilw.IsDir(filename) {
+	if utilsw.IsDir(filename) {
 		return
 	}
 	f, err := os.Open(filename)
@@ -72,7 +71,7 @@ func processSingle(filename string, numOfLines int) {
 END:
 	f.Close()
 	for !lines.Empty() {
-		fmt.Print(utilw.ReverseString(lines.Pop().(string)))
+		fmt.Print(utilsw.ReverseString(lines.Pop().(string)))
 	}
 	fmt.Printf("\n\n")
 }
@@ -105,7 +104,7 @@ func main() {
 	}
 
 	for _, filename := range filenames {
-		fnameMap := utilw.LsDirGlob(filename)
+		fnameMap := utilsw.LsDirGlob(filename)
 		for d, fnames := range fnameMap {
 			for _, fname := range fnames {
 				fname = filepath.Join(d, fname)

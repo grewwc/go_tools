@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 func main() {
-	conf := utilw.GetAllConfig()
+	conf := utilsw.GetAllConfig()
 	if conf == nil {
 		log.Fatalln(conf)
 		return
@@ -22,7 +22,7 @@ func main() {
 	}
 	cmdStr := cmd.(string)
 	cmdStr += " " + strings.Join(os.Args[1:], " ")
-	_, err := utilw.RunCmdWithTimeout(cmdStr, time.Second*60)
+	_, err := utilsw.RunCmdWithTimeout(cmdStr, time.Second*60)
 	if err != nil {
 		log.Fatalln(err)
 		return

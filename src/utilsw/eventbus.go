@@ -1,4 +1,4 @@
-package utilw
+package utilsw
 
 import (
 	"reflect"
@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/grewwc/go_tools/src/cw"
-	"github.com/grewwc/go_tools/src/typew"
-	"github.com/grewwc/go_tools/src/utilw/_utils_helpers"
+	"github.com/grewwc/go_tools/src/typesw"
+	"github.com/grewwc/go_tools/src/utilsw/_utils_helpers"
 )
 
 type EventBus struct {
-	m       typew.IConcurrentMap[any, *cw.ConcurrentHashSet[string]]
-	nameMap typew.IConcurrentMap[string, *reflect.Method]
+	m       typesw.IConcurrentMap[any, *cw.ConcurrentHashSet[string]]
+	nameMap typesw.IConcurrentMap[string, *reflect.Method]
 	wg      *sync.WaitGroup
 
 	functions       *cw.ConcurrentHashSet[string]

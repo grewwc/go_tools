@@ -17,8 +17,8 @@ import (
 	"github.com/grewwc/go_tools/src/executable/ai/_ai_helpers"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/typew"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/typesw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 const (
@@ -59,7 +59,7 @@ var (
 	endThinkingTag = color.YellowString("<end thinking>")
 )
 
-func getText(j *utilw.Json) string {
+func getText(j *utilsw.Json) string {
 	choices := j.GetJson("choices")
 	if choices.Len() == 0 {
 		return ""
@@ -85,7 +85,7 @@ func getText(j *utilw.Json) string {
 
 func handleResponse(resp io.Reader) <-chan string {
 	keyword := "data: {"
-	doneKeyword := typew.StrToBytes("data: [DONE]")
+	doneKeyword := typesw.StrToBytes("data: [DONE]")
 	ch := make(chan string)
 	go func() {
 		defer func() {
@@ -96,17 +96,17 @@ func handleResponse(resp io.Reader) <-chan string {
 			if content == keyword || content == "" {
 				continue
 			}
-			b := typew.StrToBytes(content)
+			b := typesw.StrToBytes(content)
 			b = bytes.TrimSpace(b)
 			b = bytes.TrimSuffix(b, doneKeyword)
-			b = bytes.TrimSuffix(b, typew.StrToBytes(keyword))
+			b = bytes.TrimSuffix(b, typesw.StrToBytes(keyword))
 			b = bytes.TrimSpace(b)
 			b = append([]byte{'{'}, b...)
 			// fmt.Println("==>")
 			// fmt.Println(string(b))
 			// fmt.Println("===")
 			// os.Exit(0)
-			j := utilw.NewJsonFromByte(b)
+			j := utilsw.NewJsonFromByte(b)
 			ch <- getText(j)
 		}
 	}()
@@ -114,7 +114,7 @@ func handleResponse(resp io.Reader) <-chan string {
 }
 
 func init() {
-	config := utilw.GetAllConfig()
+	config := utilsw.GetAllConfig()
 	apiKey = config.GetOrDefault("api_key", "").(string)
 	if apiKey == "" {
 		fmt.Println("set api_key in ~/.configW")
@@ -123,15 +123,15 @@ func init() {
 
 	historyFile = config.GetOrDefault("history_file", "").(string)
 	if historyFile == "" {
-		historyFile = utilw.ExpandUser("~/.history_file.txt")
+		historyFile = utilsw.ExpandUser("~/.history_file.txt")
 	}
 }
 
 func buildMessageArr(n int) []Message {
-	if !utilw.IsTextFile(historyFile) {
+	if !utilsw.IsTextFile(historyFile) {
 		return []Message{}
 	}
-	history := utilw.ReadString(historyFile)
+	history := utilsw.ReadString(historyFile)
 	result := make([]Message, 0)
 	lines := strw.SplitNoEmptyKeepQuote(history, '\x01')
 	for _, line := range lines {
@@ -149,7 +149,7 @@ func buildMessageArr(n int) []Message {
 		n = len(lines)
 	}
 	if len(lines) > maxHistoryLines {
-		utilw.WriteToFile(historyFile, typew.StrToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
+		utilsw.WriteToFile(historyFile, typesw.StrToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
 	}
 	return result[len(lines)-n:]
 }
@@ -177,7 +177,7 @@ func getQuestion(parsed *terminalw.Parser, userInput bool) (question string) {
 	var fileContent string
 	if userInput {
 		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
-		question = utilw.UserInput("> ", multiLine)
+		question = utilsw.UserInput("> ", multiLine)
 		tempParser := terminalw.NewParser()
 		tempParser.Bool("x", false, "")
 		tempParser.Bool("c", false, "")
@@ -211,7 +211,7 @@ func getQuestion(parsed *terminalw.Parser, userInput bool) (question string) {
 		parsed.RemoveFlagValue("f")
 	}
 	if parsed.ContainsFlagStrict("c") {
-		fileContent += utilw.ReadClipboardText()
+		fileContent += utilsw.ReadClipboardText()
 		parsed.RemoveFlagValue("c")
 	}
 	// short output

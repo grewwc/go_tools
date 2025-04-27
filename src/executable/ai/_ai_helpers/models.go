@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 const (
@@ -25,12 +25,12 @@ const (
 )
 
 func getDefaultModel() string {
-	config := utilw.GetAllConfig()
+	config := utilsw.GetAllConfig()
 	return config.GetOrDefault("ai.model.default", QWEN_TURBO_LATEST).(string)
 }
 
 func GetEndpoint() string {
-	config := utilw.GetAllConfig()
+	config := utilsw.GetAllConfig()
 	return config.GetOrDefault("ai.model.endpoint", QWEN_ENDPOINT).(string)
 }
 
@@ -76,7 +76,7 @@ func GetModel(parsed *terminalw.Parser) string {
 	}
 }
 
-var NonTextFile = utilw.NewThreadSafeVal([]string{})
+var NonTextFile = utilsw.NewThreadSafeVal([]string{})
 
 func GetModelByInput(prevModel string, input *string) string {
 	if len(NonTextFile.Get().([]string)) > 0 {

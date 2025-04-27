@@ -11,7 +11,7 @@ import (
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 const (
@@ -39,7 +39,7 @@ func isDigit(ch byte) bool {
 }
 
 func reportErr(msg []byte) {
-	panic(fmt.Sprintf("invalid expression: %s", typew.BytesToStr(msg)))
+	panic(fmt.Sprintf("invalid expression: %s", typesw.BytesToStr(msg)))
 }
 
 func pow(a, b string) string {
@@ -112,7 +112,7 @@ func calc(expr []byte) string {
 				return ""
 			}
 			idx += i + 1
-			nestedResult := calc(typew.StrToBytes(processInputStr(typew.BytesToStr(expr[i+1 : idx]))))
+			nestedResult := calc(typesw.StrToBytes(processInputStr(typesw.BytesToStr(expr[i+1 : idx]))))
 			if nestedResult == "" {
 				return ""
 			}
@@ -231,7 +231,7 @@ func test() {
 	x = "2*2"
 	x = `(4527.9869-4661)/4661*100`
 	prec = 16
-	res := calc(typew.StrToBytes(processInputStr(x)))
+	res := calc(typesw.StrToBytes(processInputStr(x)))
 	fmt.Println(res)
 }
 
@@ -258,7 +258,7 @@ func main() {
 		prec = parser.GetNumArgs()
 	}
 
-	res := calc(typew.StrToBytes(processInputStr(expr)))
+	res := calc(typesw.StrToBytes(processInputStr(expr)))
 	fmt.Println(res)
 	// test()
 

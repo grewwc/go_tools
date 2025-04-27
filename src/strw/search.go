@@ -3,7 +3,7 @@ package strw
 import (
 	"strings"
 
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 // if target is in slice, return true
@@ -70,7 +70,7 @@ func KmpSearchBytes(text, pattern []byte, n int) []int {
 		return []int{0}
 	}
 	matches := make([]int, 0)
-	next := kmpNext(typew.BytesToStr(pattern))
+	next := kmpNext(typesw.BytesToStr(pattern))
 	j := 0
 	for i := 0; i < len(text); {
 		if text[i] == pattern[j] {
@@ -137,18 +137,18 @@ func AnyHasPrefix(str string, sub ...string) bool {
 }
 
 func TrimAfter(str, pattern string) string {
-	bStr := typew.StrToBytes(str)
-	bPattern := typew.StrToBytes(pattern)
+	bStr := typesw.StrToBytes(str)
+	bPattern := typesw.StrToBytes(pattern)
 	indices := KmpSearchBytes(bStr, bPattern, 1)
 	if len(indices) == 0 {
 		return str
 	}
-	return typew.BytesToStr(bStr[:indices[0]])
+	return typesw.BytesToStr(bStr[:indices[0]])
 }
 
 func TrimBefore(str, pattern string) string {
-	bStr := typew.StrToBytes(str)
-	bPattern := typew.StrToBytes(pattern)
+	bStr := typesw.StrToBytes(str)
+	bPattern := typesw.StrToBytes(pattern)
 	indices := KmpSearchBytes(bStr, bPattern, 1)
 	if len(indices) == 0 {
 		return str

@@ -5,18 +5,18 @@ import (
 	"sync/atomic"
 
 	"github.com/grewwc/go_tools/src/algow"
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 type BloomFilter[T any] struct {
 	data      []uint64
-	hasher    typew.HashFunc[string]
+	hasher    typesw.HashFunc[string]
 	capacity  int
 	hashTimes int
 }
 
 func NewBloomFilter[T any](capacity int) *BloomFilter[T] {
-	hasher := typew.CreateDefaultHash[string]()
+	hasher := typesw.CreateDefaultHash[string]()
 	data := make([]uint64, capacity)
 	return &BloomFilter[T]{
 		hasher:    hasher,

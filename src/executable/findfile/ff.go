@@ -18,7 +18,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 // targets is the targets file name
@@ -42,7 +42,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	wd = utilw.Abs(wd)
+	wd = utilsw.Abs(wd)
 }
 
 func expandTilda() string {
@@ -106,7 +106,7 @@ OUTER:
 			continue
 		}
 
-		if onlyDir && !utilw.IsDir(abs) {
+		if onlyDir && !utilsw.IsDir(abs) {
 			continue
 		}
 
@@ -119,7 +119,7 @@ OUTER:
 		}
 		matchBase := filepath.Base(match)
 		if int(atomicCount.Load()) < numPrint {
-			if utilw.IsDir(abs) && !strings.HasSuffix(abs, "/") {
+			if utilsw.IsDir(abs) && !strings.HasSuffix(abs, "/") {
 				abs += "/"
 			}
 			var toPrint string

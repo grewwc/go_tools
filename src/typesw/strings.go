@@ -1,4 +1,4 @@
-package typew
+package typesw
 
 import (
 	"reflect"

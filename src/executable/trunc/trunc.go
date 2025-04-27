@@ -13,8 +13,8 @@ import (
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/typew"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/typesw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 var (
@@ -48,8 +48,8 @@ func removeNewLine(name string) error {
 			return err
 		}
 		if len(b) > 0 {
-			line := typew.BytesToStr(bytes.Trim(b, "\n"))
-			if typew.BytesToStr(bytes.TrimSpace(b)) != "" {
+			line := typesw.BytesToStr(bytes.Trim(b, "\n"))
+			if typesw.BytesToStr(bytes.TrimSpace(b)) != "" {
 				lines = append(lines, line)
 			}
 		}
@@ -57,7 +57,7 @@ func removeNewLine(name string) error {
 			break
 		}
 	}
-	utilw.WriteToFile(name, typew.StrToBytes(strings.Join(lines, "\n")))
+	utilsw.WriteToFile(name, typesw.StrToBytes(strings.Join(lines, "\n")))
 	return nil
 }
 
@@ -72,11 +72,11 @@ func needTruncate(ext string) bool {
 }
 
 func truncateDirOrFile(name string, task iTask) error {
-	if !force && !newline && !utilw.PromptYesOrNo(color.RedString("Are you sure to truncate all files in %q (y/n) ", name)) {
+	if !force && !newline && !utilsw.PromptYesOrNo(color.RedString("Are you sure to truncate all files in %q (y/n) ", name)) {
 		fmt.Println("Aborting...")
 		return nil
 	}
-	if utilw.IsDir(name) {
+	if utilsw.IsDir(name) {
 		if err := filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				return nil

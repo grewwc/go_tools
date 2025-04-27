@@ -1,13 +1,13 @@
 package cw
 
 import (
-	"github.com/grewwc/go_tools/src/typew"
+	"github.com/grewwc/go_tools/src/typesw"
 	"golang.org/x/exp/constraints"
 )
 
 type Heap[T any] struct {
 	data []T
-	cmp  typew.CompareFunc[T]
+	cmp  typesw.CompareFunc[T]
 }
 
 type IHeap[T any] interface {
@@ -19,7 +19,7 @@ type IHeap[T any] interface {
 	Next() T
 }
 
-func newHeapCap[T any](cap int, cmp typew.CompareFunc[T]) *Heap[T] {
+func newHeapCap[T any](cap int, cmp typesw.CompareFunc[T]) *Heap[T] {
 	return &Heap[T]{
 		data: make([]T, 1, cap+1),
 		cmp:  cmp,
@@ -64,7 +64,7 @@ func (h *Heap[T]) IsEmpty() bool {
 	return len(h.data) == 1
 }
 
-func swim[T any](arr []T, idx int, cmp typew.CompareFunc[T]) {
+func swim[T any](arr []T, idx int, cmp typesw.CompareFunc[T]) {
 	if idx <= 1 {
 		return
 	}
@@ -76,7 +76,7 @@ func swim[T any](arr []T, idx int, cmp typew.CompareFunc[T]) {
 	}
 }
 
-func sink[T any](arr []T, idx int, cmp typew.CompareFunc[T]) {
+func sink[T any](arr []T, idx int, cmp typesw.CompareFunc[T]) {
 	childIdx := idx * 2
 	if childIdx >= len(arr) {
 		return
@@ -90,9 +90,9 @@ func sink[T any](arr []T, idx int, cmp typew.CompareFunc[T]) {
 	}
 }
 
-func NewHeap[T constraints.Ordered](cmp typew.CompareFunc[T]) IHeap[T] {
+func NewHeap[T constraints.Ordered](cmp typesw.CompareFunc[T]) IHeap[T] {
 	if cmp == nil {
-		cmp = typew.CreateDefaultCmp[T]()
+		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	return newHeapCap[T](8, cmp)
 }

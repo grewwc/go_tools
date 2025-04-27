@@ -7,7 +7,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 const (
@@ -33,7 +33,7 @@ func main() {
 	}
 	unixTime, err := strconv.Atoi(posArr[0])
 	if err != nil {
-		fmt.Println(utilw.ToUnix(posArr[0]), "s")
+		fmt.Println(utilsw.ToUnix(posArr[0]), "s")
 		return
 	}
 	res := time.Unix(int64(unixTime), 0)
