@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"unsafe"
 
 	"github.com/grewwc/go_tools/src/strw"
@@ -262,6 +263,37 @@ func (j *Json) GetJson(key string) *Json {
 	return &res
 }
 
+// Extract get nested keys
+func (json *Json) Extract(key string) *Json {
+	keys := strings.Split(key, ".")
+	if len(keys) == 1 {
+		if json.IsArray() {
+			if json.Len() == 1 {
+				return json.GetIndex(0).Extract(key)
+			}
+			result := NewJson(nil)
+			for i := 0; i < json.Len(); i++ {
+				result.Add(json.GetIndex(i).Extract(key))
+			}
+			return result
+		} else {
+			data := json.data.(map[string]interface{})[key]
+			return NewJson(data)
+		}
+	}
+
+	// result := NewJson(nil)
+	currJ := json
+	for _, currKey := range keys {
+		currJ = currJ.Extract(currKey)
+	}
+	return currJ
+}
+
+func (j *Json) IsArray() bool {
+	return reflect.TypeOf(j.data).Kind() == reflect.Slice
+}
+
 func (j *Json) Len() int {
 	if j == nil || j.data == nil {
 		return 0
@@ -303,11 +335,11 @@ func (j *Json) ContainsKey(key string) bool {
 	return false
 }
 
-func (j Json) String() string {
+func (j *Json) String() string {
 	return j.StringWithIndent("", "")
 }
 
-func (j Json) StringWithIndent(prefix, indent string) string {
+func (j *Json) StringWithIndent(prefix, indent string) string {
 	var buf bytes.Buffer
 	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)
@@ -317,4 +349,8 @@ func (j Json) StringWithIndent(prefix, indent string) string {
 		return fmt.Sprintf("%v", j.data)
 	}
 	return buf.String()
+}
+
+func (j *Json) ToFile(fname string) {
+	WriteToFile(fname, typesw.StrToBytes(j.String()))
 }

@@ -93,6 +93,7 @@ func ReadString(fname string) string {
 
 // WriteToFile will clean the original content!!
 func WriteToFile(filename string, buf []byte) error {
+	filename = ExpandUser(filename)
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0664)
 	if err != nil {
 		panic(err)
