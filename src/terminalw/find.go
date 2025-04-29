@@ -78,7 +78,7 @@ func Find(rootDir string, task func(string), wg *sync.WaitGroup, level int32) {
 			continue
 		}
 
-		if utilsw.IsTextFile(subName) {
+		if !utilsw.IsTextFile(subName) {
 			continue
 		}
 
