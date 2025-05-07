@@ -206,7 +206,7 @@ func getT[T type_, U keytype](j *Json, key U) T {
 		val := int(data.Get(strKey).(float64))
 		return *(*T)(unsafe.Pointer(&val))
 	} else {
-		fmt.Printf("ERROR: key (\"%s\", type: \"%s\") is not type (\"%s\")\n", strKey, reflect.TypeOf(data.Get(strKey)), reflect.TypeOf(*new(T)))
+		// fmt.Printf("ERROR: key (\"%s\", type: \"%s\") is not type (\"%s\")\n", strKey, reflect.TypeOf(data.Get(strKey)), reflect.TypeOf(*new(T)))
 		return *new(T)
 	}
 }
@@ -276,6 +276,17 @@ func (j *Json) GetJson(key string) *Json {
 		return nil
 	}
 	return &res
+}
+
+func (j *Json) Get(key string) interface{} {
+	if j.IsArray() {
+		if keyInt, err := strconv.Atoi(key); err != nil {
+			return nil
+		} else {
+			return j.GetIndex(keyInt)
+		}
+	}
+	return getT[interface{}](j, key)
 }
 
 // Extract get nested keys
@@ -370,4 +381,39 @@ func (j *Json) StringWithIndent(prefix, indent string) string {
 
 func (j *Json) ToFile(fname string) {
 	WriteToFile(fname, typesw.StrToBytes(j.String()))
+}
+
+func (j *Json) AbsKey(key string) []string {
+	return j.absKeySearch(key, "root")
+}
+
+func (j *Json) absKeySearch(key string, currPath string) []string {
+	sep := "->"
+	res := cw.NewSet()
+	if j.IsArray() {
+		for i := 0; i < j.Len(); i++ {
+			sub := j.GetIndex(i)
+			paths := sub.absKeySearch(key, fmt.Sprintf("%s%s%d", currPath, sep, i))
+			for _, path := range paths {
+				res.Add(path)
+			}
+		}
+	} else {
+		if j.ContainsKey(key) {
+			res.Add(currPath + sep + key)
+		} else {
+			for _, subKey := range j.Keys() {
+				// fmt.Println("here", key, subKey)
+				val := j.GetJson(subKey)
+				if val == nil {
+					continue
+				}
+				paths := val.absKeySearch(key, currPath+sep+subKey)
+				for _, path := range paths {
+					res.Add(path)
+				}
+			}
+		}
+	}
+	return res.ToStringSlice()
 }
