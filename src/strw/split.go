@@ -50,6 +50,40 @@ func SplitNoEmptyKeepQuote(str string, sep rune) []string {
 	return res
 }
 
+// SplitByStrKeepQuote keep content in quote intact
+func SplitByStrKeepQuote(str string, sep string) []string {
+	var res []string
+	sepBytes := typesw.StrToBytes(sep)
+	// var buf bytes.Buffer
+	inquote := false
+	var buf bytes.Buffer
+	// var curr bytes.Buffer
+	for _, r := range str {
+		if r == '"' {
+			inquote = !inquote
+			buf.WriteRune(r)
+		} else {
+			if buf.Len() > len(sep) && bytes.Equal(buf.Bytes()[buf.Len()-len(sep):], sepBytes) {
+				if inquote {
+					buf.WriteRune(r)
+				} else {
+					content := buf.String()[:buf.Len()-len(sep)]
+					if content != "" {
+						res = append(res, content)
+					}
+					buf.Reset()
+				}
+			} else {
+				buf.WriteRune(r)
+			}
+		}
+	}
+	if buf.Len() > 0 {
+		res = append(res, buf.String())
+	}
+	return res
+}
+
 func ReplaceAllInQuoteUnchange(s string, old, new rune) string {
 	inQuote := false
 	var res bytes.Buffer
@@ -121,7 +155,9 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 				if !keepToken {
 					str = str[:len(str)-len(tokenBytes)]
 				}
-				ch <- str
+				if len(str) > 0 {
+					ch <- str
+				}
 				buf.Reset()
 			}
 			d, err := r.ReadBytes(token[0])

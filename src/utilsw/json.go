@@ -38,9 +38,11 @@ func NewJsonFromByte(data []byte) *Json {
 }
 
 func NewJsonFromReader(r io.Reader) *Json {
+	f := &commentsFilter{}
+	rr := FilterReader(r, f)
 	b := make([]byte, 1)
 	for {
-		_, err := r.Read(b)
+		_, err := rr.Read(b)
 		if err != nil && err != io.EOF {
 			panic(err)
 		}
@@ -52,12 +54,12 @@ func NewJsonFromReader(r io.Reader) *Json {
 	if b[0] == '[' {
 		var buf bytes.Buffer
 		buf.WriteString(fmt.Sprintf(`{"_arr": %c`, b[0]))
-		newReader := io.MultiReader(bytes.NewReader(buf.Bytes()), r, bytes.NewReader([]byte{'}'}))
+		newReader := io.MultiReader(bytes.NewReader(buf.Bytes()), rr, bytes.NewReader([]byte{'}'}))
 		j := NewJsonFromReader(newReader)
 		return j.GetJson("_arr")
 	} else if b[0] == '{' {
 		m := cw.NewOrderedMap()
-		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), r))
+		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), rr))
 		err := decoder.Decode(&m)
 		if err != nil {
 			panic(err)
@@ -280,7 +282,8 @@ func (j *Json) GetJson(key string) *Json {
 	}
 	res := getT[Json](j, key)
 	if res.data == nil {
-		return nil
+		data := getT[*cw.OrderedMap](j, key)
+		res.data = data
 	}
 	return &res
 }
