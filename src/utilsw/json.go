@@ -271,6 +271,13 @@ func (j *Json) GetBool(key string) bool {
 }
 
 func (j *Json) GetJson(key string) *Json {
+	if j.IsArray() {
+		if keyInt, err := strconv.Atoi(key); err != nil {
+			return nil
+		} else {
+			return j.GetIndex(keyInt)
+		}
+	}
 	res := getT[Json](j, key)
 	if res.data == nil {
 		return nil
