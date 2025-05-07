@@ -49,12 +49,12 @@ func NewJsonFromReader(r io.Reader) *Json {
 		}
 		break
 	}
-	var data interface{}
 	if b[0] == '[' {
-		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), r))
-		if err := decoder.Decode(&data); err != nil {
-			panic(err)
-		}
+		var buf bytes.Buffer
+		buf.WriteString(fmt.Sprintf(`{"_arr": %c`, b[0]))
+		newReader := io.MultiReader(bytes.NewReader(buf.Bytes()), r, bytes.NewReader([]byte{'}'}))
+		j := NewJsonFromReader(newReader)
+		return j.GetJson("_arr")
 	} else if b[0] == '{' {
 		m := cw.NewOrderedMap()
 		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), r))
@@ -62,14 +62,12 @@ func NewJsonFromReader(r io.Reader) *Json {
 		if err != nil {
 			panic(err)
 		}
-		data = m
+		res := NewJson(nil)
+		res.data = m
+		return res
 	} else {
 		panic(b)
 	}
-
-	res := NewJson(nil)
-	res.data = data
-	return res
 }
 
 func NewJsonFromString(content string) *Json {
