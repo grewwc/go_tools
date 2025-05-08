@@ -4,6 +4,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 var mu = typesw.NewReentrantMutex()

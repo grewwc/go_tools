@@ -58,6 +58,16 @@ func TestQuickSort(t *testing.T) {
 	}
 }
 
+func TestStableSort(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		arr := algow.RandInt(0, 500, 1000)
+		sortw.StableSort(arr, func(a, b int) int { return a - b })
+		if !sort.IntsAreSorted(arr) {
+			t.Errorf("arr is not sorted, %v", arr)
+		}
+	}
+}
+
 func TestRadixSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		arr := algow.RandInt(0, 500, 1000)
@@ -123,6 +133,18 @@ func BenchmarkSort(b *testing.B) {
 		})
 		b.StartTimer()
 		sort.Ints(arr)
+	}
+}
+
+func BenchmarkStableSort(b *testing.B) {
+	arr := algow.RandInt(0, 10000, N)
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		rand.Shuffle(len(arr), func(i, j int) {
+			arr[i], arr[j] = arr[j], arr[i]
+		})
+		b.StartTimer()
+		sortw.StableSort(arr, func(a, b int) int { return a - b })
 	}
 }
 

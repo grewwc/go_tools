@@ -2,6 +2,8 @@ package test
 
 import (
 	"testing"
+
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 func TestGetCurrentFileName(t *testing.T) {

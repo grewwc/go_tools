@@ -83,10 +83,66 @@ func QuickSort[T constraints.Ordered](arr []T) {
 		name == "uint" || name == "uint8" || name == "uint16" || name == "uint32" || name == "uint64"
 	thresh := int(1e5) + 1
 	if isint && maxValInt < thresh {
-		countSortWithThreash(mustToIntegerSlice[T, int](arr), minValInt, maxValInt)
+		countSortWithThresh(mustToIntegerSlice[T, int](arr), minValInt, maxValInt)
 		return
 	}
 	quickSort(arr, true, nil)
+}
+
+func merge[T any](arr []T, lo, mid, hi int, cmp typesw.CompareFunc[T]) {
+	if hi-lo < 32 {
+		InsertionSortComparator(arr[lo:hi], cmp)
+		return
+	}
+	res := make([]T, hi-lo)
+	k := 0
+	i, j := lo, mid
+	for k < len(res) {
+		if i >= mid {
+			copy(res[k:], arr[j:])
+			break
+		} else if j >= hi {
+			copy(res[k:], arr[i:])
+			break
+		} else {
+			_cmp := cmp(arr[i], arr[j])
+			if _cmp <= 0 {
+				res[k] = arr[i]
+				i++
+			} else {
+				res[k] = arr[j]
+				j++
+			}
+		}
+		k++
+	}
+	// copy back to arr
+	copy(arr[lo:hi], res)
+}
+
+func mergesort[T any](arr []T, cmp typesw.CompareFunc[T], wg *sync.WaitGroup) {
+	for w := 1; w < len(arr); w *= 2 {
+		for i := 0; i < len(arr); {
+			mid := i + w
+			hi := mid + w
+			merge(arr, i, mid, algow.Min(hi, len(arr)), cmp)
+			i = hi
+		}
+	}
+	wg.Done()
+}
+
+func StableSort[T any](arr []T, cmp typesw.CompareFunc[T]) {
+	if cmp == nil {
+		cmp = typesw.CreateDefaultCmp[T]()
+	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	mid := len(arr) / 2
+	go mergesort(arr[:mid], cmp, &wg)
+	go mergesort(arr[mid:], cmp, &wg)
+	wg.Wait()
+	merge(arr, 0, mid, len(arr), cmp)
 }
 
 func Sort[T any](arr []T, cmp typesw.CompareFunc[T]) {
@@ -144,7 +200,7 @@ func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
 	}
 }
 
-func countSortWithThreash[T constraints.Integer](arr []T, min, max T) {
+func countSortWithThresh[T constraints.Integer](arr []T, min, max T) {
 	if len(arr) <= 1 {
 		return
 	}
@@ -166,7 +222,7 @@ func CountSort[T constraints.Integer](arr []T) {
 		return
 	}
 	minVal, maxVal := minMax(arr)
-	countSortWithThreash(arr, minVal, maxVal)
+	countSortWithThresh(arr, minVal, maxVal)
 }
 
 func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
