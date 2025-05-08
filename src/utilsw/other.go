@@ -254,10 +254,6 @@ func WriteClipboardText(content string) {
 	}
 }
 
-type ByteFilter interface {
-	Accept(buf []byte) ([]byte, bool)
-}
-
 type commentsFilter struct {
 }
 
@@ -277,52 +273,4 @@ func (f *commentsFilter) Accept(b []byte) ([]byte, bool) {
 		}
 	}
 	return buf.Bytes(), needHold
-}
-
-func FilterReaderV2(src io.Reader, filter ByteFilter) io.Reader {
-	return src
-}
-
-func FilterReader(src io.Reader, filter ByteFilter) io.Reader {
-	pr, pw := io.Pipe()
-
-	go func() {
-		defer pw.Close()
-		b := make([]byte, 1024)
-		var buf bytes.Buffer
-		for {
-			n, err := src.Read(b)
-			if n > 0 {
-				curr := b[:n]
-				if buf.Len() > 0 {
-					curr = append(buf.Bytes(), curr...)
-				}
-				accept, needHold := filter.Accept(curr)
-				if needHold {
-					buf.Write(curr)
-					continue
-				} else {
-					if buf.Len() > 0 {
-						buf.Reset()
-					}
-					// fmt.Println("accept", string(accept))
-					pw.Write(accept)
-				}
-			}
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				pw.CloseWithError(err)
-				break
-			}
-		}
-		if buf.Len() > 0 {
-			accept, _ := filter.Accept(buf.Bytes())
-			// fmt.Println("final", buf.String())
-			pw.Write(accept)
-		}
-	}()
-
-	return pr
 }

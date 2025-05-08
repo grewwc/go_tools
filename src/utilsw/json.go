@@ -299,6 +299,18 @@ func (j *Json) Get(key string) interface{} {
 	return getT[interface{}](j, key)
 }
 
+func (json *Json) flatten() []*Json {
+	if !json.IsArray() {
+		return []*Json{json}
+	}
+	var result []*Json
+	for i := 0; i < json.Len(); i++ {
+		sub := json.GetIndex(i)
+		result = append(result, sub.flatten()...)
+	}
+	return result
+}
+
 // Extract get nested keys
 func (json *Json) Extract(key string) *Json {
 	keys := strings.Split(key, ".")
@@ -309,7 +321,15 @@ func (json *Json) Extract(key string) *Json {
 			}
 			result := NewJson(nil)
 			for i := 0; i < json.Len(); i++ {
-				result.Add(json.GetIndex(i).Extract(key))
+				sub := json.GetIndex(i).Extract(key)
+				if sub.IsArray() {
+					flatten := sub.flatten()
+					for _, subJson := range flatten {
+						result.Add(subJson)
+					}
+				} else if sub != nil && sub.Len() > 0 {
+					result.Add(sub)
+				}
 			}
 			return result
 		} else if data, ok := json.data.(*cw.OrderedMap); ok {
