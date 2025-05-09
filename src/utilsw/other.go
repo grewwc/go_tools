@@ -266,11 +266,15 @@ func (f *commentsFilter) Accept(b []byte) ([]byte, bool) {
 		if len(parts) == 0 {
 			continue
 		}
+		if len(parts) == 1 && strw.SubStringQuiet(parts[0], 0, 2) == "//" {
+			continue
+		}
 		if len(parts) > 1 || !strings.Contains(parts[0], "//") {
-			buf.WriteString(parts[0])
+			needHold = false
 		} else {
 			needHold = true
 		}
+		buf.WriteString(parts[0])
 	}
 	return buf.Bytes(), needHold
 }
