@@ -53,12 +53,13 @@ func FilterReader(src io.Reader, filter BytesFilter) io.Reader {
 				curr := b[:n]
 
 				// 如果缓冲区中有数据，将当前读取的数据追加到缓冲区中。
+				total := curr
 				if buf.Len() > 0 {
-					curr = append(buf.Bytes(), curr...)
+					total = append(buf.Bytes(), curr...)
 				}
 
 				// 使用 ByteFilter 对当前数据进行过滤。
-				accept, needHold := filter.Accept(curr)
+				accept, needHold := filter.Accept(total)
 
 				if needHold {
 					// 如果需要延迟处理，将数据存入缓冲区，并继续下一次循环。

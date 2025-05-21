@@ -40,6 +40,7 @@ func NewJsonFromByte(data []byte) *Json {
 func NewJsonFromReader(r io.Reader) *Json {
 	f := &commentsFilter{}
 	rr := FilterReader(r, f)
+	// rr := r
 	b := make([]byte, 1)
 	for {
 		_, err := rr.Read(b)

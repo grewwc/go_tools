@@ -18,6 +18,7 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/typesw"
 	"github.com/peterh/liner"
 	"github.com/petermattis/goid"
 )
@@ -262,12 +263,18 @@ func (f *commentsFilter) Accept(b []byte) ([]byte, bool) {
 	var needHold bool
 	for line := range strw.SplitByToken(bytes.NewReader(b), "\n", false) {
 		needHold = false
+		if (strings.Count(line, `"`)-strings.Count(line, `\"`))%2 == 1 {
+			return b, true
+		}
 		parts := strw.SplitByStrKeepQuote(line, "//")
 		if len(parts) == 0 {
 			continue
 		}
-		if len(parts) == 1 && strw.SubStringQuiet(parts[0], 0, 2) == "//" {
-			continue
+		if len(parts) == 1 {
+			trimed := bytes.TrimSpace(typesw.StrToBytes(parts[0]))
+			if len(trimed) >= 2 && bytes.Equal(trimed[:2], []byte{'/', '/'}) {
+				continue
+			}
 		}
 		if len(parts) > 1 || !strings.Contains(parts[0], "//") {
 			needHold = false
