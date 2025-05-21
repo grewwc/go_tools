@@ -327,7 +327,7 @@ func (json *Json) Extract(key string) *Json {
 					for _, subJson := range flatten {
 						result.Add(subJson)
 					}
-				} else if sub != nil && sub.Len() > 0 {
+				} else if sub != nil && sub.data != nil {
 					result.Add(sub)
 				}
 			}
