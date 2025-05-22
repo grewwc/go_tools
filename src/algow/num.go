@@ -80,3 +80,27 @@ func Range[T number](start, end, step T) []T {
 	}
 	return res
 }
+
+func Combinations[T any](arr []T, k int) [][]T {
+	var result [][]T
+	if k == 0 {
+		return result
+	}
+	var curr []T
+	combinations(arr, curr, k, 0, &result)
+	return result
+}
+
+func combinations[T any](arr, curr []T, k, start int, result *[][]T) {
+	if k == len(curr) {
+		currCopy := make([]T, len(curr))
+		copy(currCopy, curr)
+		*result = append(*result, currCopy)
+		return
+	}
+	for i := start; i < len(arr); i++ {
+		curr = append(curr, arr[i])
+		combinations(arr, curr, k, i+1, result)
+		curr = curr[:len(curr)-1]
+	}
+}
