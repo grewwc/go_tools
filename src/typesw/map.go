@@ -11,6 +11,8 @@ type IMap[K, V any] interface {
 	DeleteAll(keys ...K)
 	Iterate() <-chan (K)
 	Clear()
+	Keys() []K
+	Values() []V
 }
 
 type ISortedMap[K, V any] interface {

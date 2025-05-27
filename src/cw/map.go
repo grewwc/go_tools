@@ -29,6 +29,26 @@ func (m *Map[K, V]) Contains(key K) bool {
 	return ok
 }
 
+func (m *Map[K, V]) Keys() []K {
+	res := make([]K, 0, len(m.data))
+	for k := range m.data {
+		res = append(res, k.(K))
+	}
+	return res
+}
+
+func (m *Map[K, V]) Values() []V {
+	s := NewSet()
+	for _, v := range m.data {
+		s.Add(v)
+	}
+	res := make([]V, 0, s.Size())
+	for val := range s.Iterate() {
+		res = append(res, val.(V))
+	}
+	return res
+}
+
 func (m *Map[K, V]) Put(key K, value V) bool {
 	_, ok := m.data[key]
 	m.data[key] = value

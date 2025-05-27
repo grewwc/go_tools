@@ -43,6 +43,26 @@ func (m *TreeMap[K, V]) Contains(key K) bool {
 	return m.rbTree.Contains(&sortedMapEntry[K, V]{k: key})
 }
 
+func (m *TreeMap[K, V]) Keys() []K {
+	res := make([]K, 0, m.Size())
+	for k := range m.Iterate() {
+		res = append(res, k)
+	}
+	return res
+}
+
+func (m *TreeMap[K, V]) Values() []V {
+	s := NewSet()
+	for entry := range m.IterateEntry() {
+		s.Add(entry.v)
+	}
+	res := make([]V, 0, s.Size())
+	for val := range s.Iterate() {
+		res = append(res, val.(V))
+	}
+	return res
+}
+
 func (m *TreeMap[K, V]) Put(key K, value V) bool {
 	node := sortedMapEntry[K, V]{k: key, v: value}
 	n := m.rbTree.Search(&node)

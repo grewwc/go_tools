@@ -167,6 +167,36 @@ func (cm *ConcurrentHashMap[K, V]) Get(key K) V {
 	return bucketPtr.data.Get(key)
 }
 
+func (cm *ConcurrentHashMap[K, V]) Keys() []K {
+	var res []K
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+	for _, buck := range cm.buckets {
+		buck.mu.Lock()
+		res = append(res, buck.data.Keys()...)
+		buck.mu.Unlock()
+	}
+	return res
+}
+
+func (cm *ConcurrentHashMap[K, V]) Values() []V {
+	s := NewSet()
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+	for _, buck := range cm.buckets {
+		buck.mu.Lock()
+		for _, val := range buck.data.Values() {
+			s.Add(val)
+		}
+		buck.mu.Unlock()
+	}
+	res := make([]V, 0, s.Size())
+	for val := range s.Iterate() {
+		res = append(res, val.(V))
+	}
+	return res
+}
+
 func (cm *ConcurrentHashMap[K, V]) GetOrDefault(key K, defaultVal V) V {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()

@@ -41,6 +41,30 @@ func (m *MutexMap[K, V]) Contains(key K) bool {
 	return ok
 }
 
+func (m *MutexMap[K, V]) Keys() []K {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	res := make([]K, 0, len(m.data))
+	for k := range m.data {
+		res = append(res, k.(K))
+	}
+	return res
+}
+
+func (m *MutexMap[K, V]) Values() []V {
+	m.mu.RLock()
+	defer m.mu.Unlock()
+	s := NewSet()
+	for _, v := range m.data {
+		s.Add(v)
+	}
+	res := make([]V, 0, s.Size())
+	for val := range s.Iterate() {
+		res = append(res, val.(V))
+	}
+	return res
+}
+
 func (m *MutexMap[K, V]) Put(key K, value V) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()

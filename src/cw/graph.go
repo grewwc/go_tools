@@ -56,9 +56,13 @@ func (g *UndirectedGraph[T]) Adj(u T) *Set {
 	return g.v.GetOrDefault(u, NewSet())
 }
 
+func (g *UndirectedGraph[T]) Nodes() []T {
+	return g.v.Keys()
+}
+
 func (g *UndirectedGraph[T]) Connected(u, v T) bool {
 	marked := g.markdedMap.GetOrDefault(u, nil)
-	return marked != nil && marked.Contains(u)
+	return marked != nil && marked.Contains(v)
 }
 
 func (g *UndirectedGraph[T]) Mark() {
@@ -78,7 +82,22 @@ func (g *UndirectedGraph[T]) NumGroups() int {
 // Group returns the group id.
 // returns -1 if u not existed in the graph.
 func (g *UndirectedGraph[T]) Group(u T) int {
-	return g.groupId.GetOrDefault(u, -1)
+	return g.groupId.GetOrDefault(u, 0) - 1
+}
+
+func (g *UndirectedGraph[T]) Groups() [][]T {
+	m := NewMap[int, []T]()
+	for node := range g.groupId.data {
+		id := g.Group(node.(T))
+		arr := m.GetOrDefault(id, make([]T, 0))
+		arr = append(arr, node.(T))
+		m.Put(id, arr)
+	}
+	res := make([][]T, m.Size())
+	for i := 0; i < m.Size(); i++ {
+		res[i] = append(res[i], m.Get(i)...)
+	}
+	return res
 }
 
 func (g *UndirectedGraph[T]) Path(from, to T) []T {
