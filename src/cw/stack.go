@@ -38,3 +38,14 @@ func (s *Stack) Size() int {
 func (s *Stack) Resize() {
 	s.data = s.data[:0]
 }
+
+func (s *Stack) Iterate() <-chan interface{} {
+	res := make(chan interface{})
+	go func() {
+		for i := len(s.data) - 1; i >= 0; i-- {
+			res <- s.data[i]
+		}
+		close(res)
+	}()
+	return res
+}

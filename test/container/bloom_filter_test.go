@@ -18,6 +18,7 @@ func TestBloomFilter(t *testing.T) {
 			f.Add(i)
 		}(i)
 	}
+	wg.Wait()
 
 	for i := 0; i < N/2; i++ {
 		wg.Add(1)
@@ -26,6 +27,7 @@ func TestBloomFilter(t *testing.T) {
 			f.Delete(i)
 		}(i)
 	}
+	wg.Wait()
 
 	for i := N / 2; i < N; i++ {
 		if !f.MayExist(i) {

@@ -82,10 +82,6 @@ func (m *Map[K, V]) DeleteAll(keys ...K) {
 }
 
 func (m *Map[K, V]) Iterate() <-chan K {
-	sz := m.Size()
-	if sz > 32 {
-		sz = 32
-	}
 	ch := make(chan K)
 	go func() {
 		defer close(ch)
@@ -94,6 +90,25 @@ func (m *Map[K, V]) Iterate() <-chan K {
 		}
 	}()
 	return ch
+}
+
+func (m *Map[K, V]) IterateEntry() <-chan *Tuple {
+	ch := make(chan *Tuple)
+	go func() {
+		for k, v := range m.data {
+			ch <- NewTuple(k, v)
+		}
+		close(ch)
+	}()
+	return ch
+}
+
+func (m *Map[K, V]) ReverseKV() *Map[V, K] {
+	res := NewMap[V, K]()
+	for t := range m.IterateEntry() {
+		res.Put(t.Get(1).(V), t.Get(0).(K))
+	}
+	return res
 }
 
 func (m *Map[K, V]) Clear() {
