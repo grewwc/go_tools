@@ -63,6 +63,10 @@ func (g *UndirectedGraph[T]) Nodes() []T {
 	return g.v.Keys()
 }
 
+func (g *UndirectedGraph[T]) Degree(u T) int {
+	return g.v.Get(u).Size()
+}
+
 func (g *UndirectedGraph[T]) Connected(u, v T) bool {
 	g.checkState()
 	return g.groupId.Get(u) == g.groupId.Get(v)

@@ -19,9 +19,9 @@ type DirectedGraph[T any] struct {
 	onStack *Set
 	cycle   []T
 
-	groupId *Map[T, int]
-
-	reversePost *Stack
+	groupId      *Map[T, int]
+	reversePost  *Stack
+	reverseGraph *DirectedGraph[T]
 
 	cmp        typesw.CompareFunc[T]
 	needRemark bool
@@ -82,7 +82,16 @@ func (g *DirectedGraph[T]) Mark() {
 	g.needRemark = false
 }
 
-func (g *DirectedGraph[T]) Connected(u, v T) bool {
+func (g *DirectedGraph[T]) Degree(u T, in bool) int {
+	if in {
+		g.checkState()
+		return g.reverseGraph.Degree(u, false)
+	} else {
+		return g.v.GetOrDefault(u, NewSet()).Size()
+	}
+}
+
+func (g *DirectedGraph[T]) Reachable(u, v T) bool {
 	g.checkState()
 	marked := g.markdedMap.GetOrDefault(u, NewSet())
 	return marked.Contains(v)
@@ -111,6 +120,20 @@ func (g *DirectedGraph[T]) Nodes() []T {
 func (g *DirectedGraph[T]) Reverse() *DirectedGraph[T] {
 	res := g.reverse()
 	res.Mark()
+	return res
+}
+
+func (g *DirectedGraph[T]) NumStronglyConnectedGroups() int {
+	return g.cnt
+}
+
+func (g *DirectedGraph[T]) StronglyGroups() [][]T {
+	res := make([][]T, g.NumStronglyConnectedGroups())
+	for t := range g.groupId.IterateEntry() {
+		id := t.Get(1).(int)
+		v := t.Get(0).(T)
+		res[id] = append(res[id], v)
+	}
 	return res
 }
 
@@ -174,7 +197,7 @@ func (g *DirectedGraph[T]) bfsMark(u T) {
 
 func (g *DirectedGraph[T]) Path(from, to T) []T {
 	g.checkState()
-	if !g.Connected(from, to) {
+	if !g.Reachable(from, to) {
 		return nil
 	}
 	res := make([]T, 0)
@@ -225,16 +248,17 @@ func (g *DirectedGraph[T]) mark(needPath bool, needReverseMark bool) {
 		}
 	}
 	if needReverseMark {
-		rg := g.reverse()
-		rg.mark(true, false)
-		cp := rg.reverse()
-		for v := range rg.reversePost.Iterate() {
+		g.reverseGraph = g.reverse()
+		g.reverseGraph.mark(true, false)
+		cp := g.reverseGraph.reverse()
+		for v := range g.reverseGraph.reversePost.Iterate() {
 			if !cp.marked.Contains(v) {
-				cp.cnt++
 				cp.dfsMark(v.(T), v.(T), true)
+				cp.cnt++
 			}
 		}
 		g.groupId = cp.groupId
 		g.cycle = cp.cycle
+		g.cnt = cp.cnt
 	}
 }
