@@ -193,7 +193,7 @@ func main() {
 	parser.Bool("h", false, "print this help")
 	parser.Bool("md5", false, "print md5 value")
 	parser.Bool("abs", false, "print absolute path")
-	parser.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs")
+	parser.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs", "i")
 
 	if parser.Empty() {
 		parser.PrintDefaults()

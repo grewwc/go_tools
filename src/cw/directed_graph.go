@@ -123,12 +123,12 @@ func (g *DirectedGraph[T]) Reverse() *DirectedGraph[T] {
 	return res
 }
 
-func (g *DirectedGraph[T]) NumStronglyConnectedGroups() int {
+func (g *DirectedGraph[T]) NumStrongComponents() int {
 	return g.cnt
 }
 
-func (g *DirectedGraph[T]) StronglyGroups() [][]T {
-	res := make([][]T, g.NumStronglyConnectedGroups())
+func (g *DirectedGraph[T]) StrongComponents() [][]T {
+	res := make([][]T, g.NumStrongComponents())
 	for t := range g.groupId.IterateEntry() {
 		id := t.Get(1).(int)
 		v := t.Get(0).(T)
