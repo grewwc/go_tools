@@ -2,21 +2,11 @@ package cw
 
 import (
 	"github.com/grewwc/go_tools/src/typesw"
-	"golang.org/x/exp/constraints"
 )
 
 type Heap[T any] struct {
 	data []T
 	cmp  typesw.CompareFunc[T]
-}
-
-type IHeap[T any] interface {
-	Insert(T)
-	Pop() T
-	Size() int
-	IsEmpty() bool
-	ToList() []T
-	Next() T
 }
 
 func newHeapCap[T any](cap int, cmp typesw.CompareFunc[T]) *Heap[T] {
@@ -40,6 +30,10 @@ func (h *Heap[T]) Next() T {
 		return *new(T)
 	}
 	return h.data[1]
+}
+
+func (h *Heap[T]) Top() T {
+	return h.Next()
 }
 
 func (h *Heap[T]) ToList() []T {
@@ -90,9 +84,9 @@ func sink[T any](arr []T, idx int, cmp typesw.CompareFunc[T]) {
 	}
 }
 
-func NewHeap[T constraints.Ordered](cmp typesw.CompareFunc[T]) IHeap[T] {
+func NewHeap[T any](cmp typesw.CompareFunc[T]) typesw.IHeap[T] {
 	if cmp == nil {
 		cmp = typesw.CreateDefaultCmp[T]()
 	}
-	return newHeapCap[T](8, cmp)
+	return newHeapCap(8, cmp)
 }

@@ -39,3 +39,13 @@ type IList interface {
 	Remove(int) interface{}
 	ToStringSlice() []string
 }
+
+type IHeap[T any] interface {
+	Insert(T)
+	Pop() T
+	Size() int
+	IsEmpty() bool
+	ToList() []T
+	Next() T
+	Top() T
+}

@@ -181,7 +181,7 @@ func ShellSort[T constraints.Ordered](arr []T) {
 }
 
 func HeapSort[T constraints.Ordered](arr []T, reverse bool) {
-	var h cw.IHeap[T]
+	var h typesw.IHeap[T]
 	cmp := typesw.CreateDefaultCmp[T]()
 	if reverse {
 		cmp = func(i, j T) int {
@@ -229,7 +229,7 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 	if k < 1 {
 		return nil
 	}
-	var h cw.IHeap[T]
+	var h typesw.IHeap[T]
 	cmp := typesw.CreateDefaultCmp[T]()
 	if minK {
 		cmp = func(i, j T) int {

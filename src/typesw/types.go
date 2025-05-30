@@ -23,6 +23,10 @@ func CreateDefaultCmp[T any]() CompareFunc[T] {
 		cmp = func(a, b T) int {
 			return int(reflect.ValueOf(a).Uint()) - int(reflect.ValueOf(b).Uint())
 		}
+	case reflect.Float32, reflect.Float64:
+		cmp = func(a, b T) int {
+			return int(reflect.ValueOf(a).Float() - reflect.ValueOf(b).Float())
+		}
 	case reflect.String:
 		cmp = func(a, b T) int {
 			return strings.Compare(reflect.ValueOf(a).String(), reflect.ValueOf(b).String())
