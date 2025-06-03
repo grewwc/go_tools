@@ -147,6 +147,10 @@ func (g *DirectedGraph[T]) NumStrongComponents() int {
 	return g.componentCnt
 }
 
+func (g *DirectedGraph[T]) NumNodes() int {
+	return g.nodes.Size()
+}
+
 func (g *DirectedGraph[T]) NumEdges() int {
 	return g.edgeCnt
 }

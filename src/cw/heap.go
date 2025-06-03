@@ -1,6 +1,7 @@
 package cw
 
 import (
+	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/typesw"
 )
 
@@ -58,6 +59,11 @@ func (h *Heap[T]) IsEmpty() bool {
 	return len(h.data) == 1
 }
 
+func (h *Heap[T]) Contains(val T) bool {
+	idx := algow.BisectLeft(h.data[1:], val, h.cmp) + 1
+	return h.cmp(h.data[idx], val) == 0
+}
+
 func swim[T any](arr []T, idx int, cmp typesw.CompareFunc[T]) {
 	if idx <= 1 {
 		return
@@ -87,6 +93,9 @@ func sink[T any](arr []T, idx int, cmp typesw.CompareFunc[T]) {
 func NewHeap[T any](cmp typesw.CompareFunc[T]) typesw.IHeap[T] {
 	if cmp == nil {
 		cmp = typesw.CreateDefaultCmp[T]()
+	}
+	if cmp == nil {
+		panic("compare function is nil")
 	}
 	return newHeapCap(8, cmp)
 }

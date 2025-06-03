@@ -6,7 +6,7 @@ import (
 )
 
 type UndirectedGraph[T any] struct {
-	v       *Map[T, *Set]
+	nodes   *Map[T, *Set]
 	marked  *Set
 	groupId *Map[T, int]
 
@@ -26,7 +26,7 @@ func NewUndirectedGraph[T any](cmp typesw.CompareFunc[T]) *UndirectedGraph[T] {
 		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	return &UndirectedGraph[T]{
-		v:      NewMap[T, *Set](),
+		nodes:  NewMap[T, *Set](),
 		marked: NewSet(),
 
 		edgeTo:  NewMap[T, T](),
@@ -38,7 +38,7 @@ func NewUndirectedGraph[T any](cmp typesw.CompareFunc[T]) *UndirectedGraph[T] {
 }
 
 func (g *UndirectedGraph[T]) AddNode(v T) bool {
-	res := g.v.PutIfAbsent(v, NewSet())
+	res := g.nodes.PutIfAbsent(v, NewSet())
 	if res {
 		g.needRemark = true
 	}
@@ -48,57 +48,66 @@ func (g *UndirectedGraph[T]) AddNode(v T) bool {
 func (g *UndirectedGraph[T]) AddEdge(u, v T) bool {
 	g.AddNode(u)
 	g.AddNode(v)
-	if g.v.Get(u) != nil && g.v.Get(u).Contains(u) {
+	if g.nodes.Get(u) != nil && g.nodes.Get(u).Contains(u) {
 		return false
 	}
-	s := g.v.GetOrDefault(u, NewSet())
+	s := g.nodes.GetOrDefault(u, NewSet())
 	s.Add(v)
-	g.v.PutIfAbsent(u, s)
+	g.nodes.PutIfAbsent(u, s)
 
-	s = g.v.GetOrDefault(v, NewSet())
+	s = g.nodes.GetOrDefault(v, NewSet())
 	s.Add(u)
+	g.nodes.PutIfAbsent(v, s)
 	g.needRemark = true
 	g.edgeCnt++
 	return true
 }
 
 func (g *UndirectedGraph[T]) DeleteEdge(u, v T) bool {
-	if !g.v.Contains(u) || !g.v.Contains(v) {
+	if !g.nodes.Contains(u) || !g.nodes.Contains(v) {
 		return false
 	}
-	s := g.v.Get(u)
+	s := g.nodes.Get(u)
 	if !s.Contains(v) {
 		return false
 	}
 	g.needRemark = true
 	g.edgeCnt--
 	s.Delete(v)
-	g.v.Get(v).Delete(u)
+	g.nodes.Get(v).Delete(u)
 	return true
 }
 
 func (g *UndirectedGraph[T]) DeleteNode(u T) bool {
-	if !g.v.Contains(u) {
+	if !g.nodes.Contains(u) {
 		return false
 	}
 	g.needRemark = true
 	for adj := range g.Adj(u).Iterate() {
 		g.DeleteEdge(u, adj.(T))
 	}
-	g.v.Delete(u)
+	g.nodes.Delete(u)
 	return true
 }
 
 func (g *UndirectedGraph[T]) Adj(u T) *Set {
-	return g.v.GetOrDefault(u, NewSet())
+	return g.nodes.GetOrDefault(u, NewSet())
 }
 
 func (g *UndirectedGraph[T]) Nodes() []T {
-	return g.v.Keys()
+	return g.nodes.Keys()
+}
+
+func (g *UndirectedGraph[T]) NumNodes() int {
+	return g.nodes.Size()
+}
+
+func (g *UndirectedGraph[T]) NumEdges() int {
+	return g.edgeCnt
 }
 
 func (g *UndirectedGraph[T]) Degree(u T) int {
-	return g.v.Get(u).Size()
+	return g.nodes.Get(u).Size()
 }
 
 func (g *UndirectedGraph[T]) Connected(u, v T) bool {
@@ -110,7 +119,7 @@ func (g *UndirectedGraph[T]) Mark() {
 	if !g.needRemark {
 		return
 	}
-	for v := range g.v.Iterate() {
+	for v := range g.nodes.Iterate() {
 		if !g.marked.Contains(v) {
 			g.groupCnt++
 		}

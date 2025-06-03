@@ -48,4 +48,5 @@ type IHeap[T any] interface {
 	ToList() []T
 	Next() T
 	Top() T
+	Contains(T) bool
 }

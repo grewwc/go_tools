@@ -49,7 +49,7 @@ func (h *branchHandler) handleLine(line string) {
 		fmt.Println(line)
 		return
 	}
-	branchName := color.BlueString(parts[0])
+	branchName := color.CyanString(parts[0])
 	modifyTime := color.YellowString(parts[1])
 	subject := strings.Join(parts[2:], " ")
 	fmt.Printf("%s (%s) %s\n", branchName, modifyTime, subject)
