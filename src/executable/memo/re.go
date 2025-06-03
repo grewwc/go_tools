@@ -1007,7 +1007,7 @@ func main() {
 	onlyTags = parser.ContainsFlagStrict("s") || parser.CoExists("a", "s")
 
 	positional := parser.Positional
-	prefix := parser.ContainsAnyFlagStrict("prefix", "pre")
+	prefix := parser.ContainsAnyFlagStrict("prefix", "pre", "all", "a")
 	isWindows := utilsw.WINDOWS == utilsw.GetPlatform()
 	onlyHold := parser.ContainsFlagStrict("onlyhold") ||
 		(parser.ContainsFlagStrict("hold") && parser.GetFlagValueDefault("hold", "") == "")
