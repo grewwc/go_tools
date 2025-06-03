@@ -153,11 +153,3 @@ func NewSet(items ...interface{}) *Set {
 	s.AddAll(items...)
 	return &s
 }
-
-func FromString(str string) *Set {
-	res := NewSet()
-	for _, ch := range str {
-		res.Add(string(ch))
-	}
-	return res
-}

@@ -36,6 +36,16 @@ var wd string
 
 var numThreads = make(chan struct{}, 50)
 
+type conf struct {
+	defaultAbs bool
+}
+
+var globalConfig *conf
+
+const (
+	absName = "ff.abs"
+)
+
 func init() {
 	var err error
 	wd, err = os.Getwd()
@@ -43,6 +53,17 @@ func init() {
 		panic(err)
 	}
 	wd = utilsw.Abs(wd)
+
+	initConfig()
+}
+
+func initConfig() {
+	config := utilsw.GetAllConfig()
+	isAbs := config.GetOrDefault(absName, "")
+	globalConfig = &conf{}
+	if isAbs == "true" {
+		globalConfig.defaultAbs = true
+	}
 }
 
 func expandTilda() string {
@@ -192,8 +213,9 @@ func main() {
 	parser.Bool("dir", false, "only search directories")
 	parser.Bool("h", false, "print this help")
 	parser.Bool("md5", false, "print md5 value")
-	parser.Bool("abs", false, "print absolute path")
-	parser.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs", "i")
+	parser.Bool("abs", false, fmt.Sprintf("print absolute path. (%s in ~/.configW)", absName))
+	parser.Bool("rel", false, "print relative path.")
+	parser.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs", "i", "rel")
 
 	if parser.Empty() {
 		parser.PrintDefaults()
@@ -225,7 +247,8 @@ func main() {
 		onlyDir = true
 	}
 
-	relativePath = !parser.ContainsFlagStrict("abs")
+	relativePath = !parser.ContainsFlagStrict("abs") && !globalConfig.defaultAbs
+	relativePath = relativePath || parser.ContainsFlagStrict("rel")
 
 	numPrint := parser.GetNumArgs()
 	if numPrint == -1 {

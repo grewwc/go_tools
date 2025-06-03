@@ -81,6 +81,13 @@ func Range[T number](start, end, step T) []T {
 	return res
 }
 
+func Abs[T number](val T) T {
+	if val < 0 {
+		return -val
+	}
+	return val
+}
+
 func Combinations[T any](arr []T, k int) [][]T {
 	var result [][]T
 	if k == 0 {

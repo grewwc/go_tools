@@ -12,8 +12,11 @@ type UndirectedGraph[T any] struct {
 
 	edgeTo *Map[T, T]
 
-	cmp        typesw.CompareFunc[T]
-	cnt        int
+	cmp typesw.CompareFunc[T]
+
+	groupCnt int
+	edgeCnt  int
+
 	hasCycle   bool
 	needRemark bool
 }
@@ -45,6 +48,9 @@ func (g *UndirectedGraph[T]) AddNode(v T) bool {
 func (g *UndirectedGraph[T]) AddEdge(u, v T) bool {
 	g.AddNode(u)
 	g.AddNode(v)
+	if g.v.Get(u) != nil && g.v.Get(u).Contains(u) {
+		return false
+	}
 	s := g.v.GetOrDefault(u, NewSet())
 	s.Add(v)
 	g.v.PutIfAbsent(u, s)
@@ -52,6 +58,34 @@ func (g *UndirectedGraph[T]) AddEdge(u, v T) bool {
 	s = g.v.GetOrDefault(v, NewSet())
 	s.Add(u)
 	g.needRemark = true
+	g.edgeCnt++
+	return true
+}
+
+func (g *UndirectedGraph[T]) DeleteEdge(u, v T) bool {
+	if !g.v.Contains(u) || !g.v.Contains(v) {
+		return false
+	}
+	s := g.v.Get(u)
+	if !s.Contains(v) {
+		return false
+	}
+	g.needRemark = true
+	g.edgeCnt--
+	s.Delete(v)
+	g.v.Get(v).Delete(u)
+	return true
+}
+
+func (g *UndirectedGraph[T]) DeleteNode(u T) bool {
+	if !g.v.Contains(u) {
+		return false
+	}
+	g.needRemark = true
+	for adj := range g.Adj(u).Iterate() {
+		g.DeleteEdge(u, adj.(T))
+	}
+	g.v.Delete(u)
 	return true
 }
 
@@ -78,7 +112,7 @@ func (g *UndirectedGraph[T]) Mark() {
 	}
 	for v := range g.v.Iterate() {
 		if !g.marked.Contains(v) {
-			g.cnt++
+			g.groupCnt++
 		}
 		g.bfsMark(v)
 	}
@@ -87,7 +121,7 @@ func (g *UndirectedGraph[T]) Mark() {
 
 func (g *UndirectedGraph[T]) NumGroups() int {
 	g.checkState()
-	return g.cnt
+	return g.groupCnt
 }
 
 // Group returns the group id.
@@ -146,7 +180,7 @@ func (g *UndirectedGraph[T]) bfsMark(u T) {
 		curr := q.Dequeue().(T)
 		g.marked.Add(curr)
 		g.marked.Add(curr)
-		g.groupId.PutIfAbsent(curr, g.cnt)
+		g.groupId.PutIfAbsent(curr, g.groupCnt)
 		for adj := range g.Adj(curr).Iterate() {
 			if !g.marked.Contains(adj) {
 				q.Enqueue(adj)

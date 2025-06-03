@@ -10,7 +10,7 @@ const (
 )
 
 type DirectedGraph[T any] struct {
-	v          *Map[T, *Set]
+	nodes      *Map[T, *Set]
 	markdedMap *Map[T, *Set]
 	marked     *Set
 	edgeTo     *Map[T, T]
@@ -25,7 +25,9 @@ type DirectedGraph[T any] struct {
 
 	cmp        typesw.CompareFunc[T]
 	needRemark bool
-	cnt        int
+
+	componentCnt int
+	edgeCnt      int
 }
 
 func NewDirectedGraph[T any](cmp typesw.CompareFunc[T]) *DirectedGraph[T] {
@@ -33,7 +35,7 @@ func NewDirectedGraph[T any](cmp typesw.CompareFunc[T]) *DirectedGraph[T] {
 		cmp = typesw.CreateDefaultCmp[T]()
 	}
 	return &DirectedGraph[T]{
-		v:          NewMap[T, *Set](),
+		nodes:      NewMap[T, *Set](),
 		markdedMap: NewMap[T, *Set](),
 		marked:     NewSet(),
 		edgeTo:     NewMap[T, T](),
@@ -49,32 +51,50 @@ func NewDirectedGraph[T any](cmp typesw.CompareFunc[T]) *DirectedGraph[T] {
 }
 
 func (g *DirectedGraph[T]) AddNode(u T) bool {
-	res := g.v.PutIfAbsent(u, NewSet())
+	res := g.nodes.PutIfAbsent(u, NewSet())
 	if res {
 		g.needRemark = true
 	}
 	return res
 }
 
+func (g *DirectedGraph[T]) DeleteNode(u T) bool {
+	if !g.nodes.Contains(u) {
+		return false
+	}
+	g.needRemark = true
+	for adj := range g.Adj(u).Iterate() {
+		g.DeleteEdge(u, adj.(T))
+	}
+	g.nodes.Delete(u)
+	return true
+}
+
 func (g *DirectedGraph[T]) AddEdge(u, v T) bool {
 	g.AddNode(u)
 	g.AddNode(v)
-	adj := g.v.Get(u)
+	adj := g.nodes.Get(u)
 	if adj.Contains(v) {
 		return false
 	}
 	adj.Add(v)
 	g.needRemark = true
+	g.edgeCnt++
 	return true
 }
 
-func (g *DirectedGraph[T]) Adj(u T) []T {
-	adj := g.v.GetOrDefault(u, NewSet())
-	res := make([]T, 0, adj.Size())
-	for val := range adj.Iterate() {
-		res = append(res, val.(T))
+func (g *DirectedGraph[T]) DeleteEdge(u, v T) bool {
+	if !g.nodes.Contains(u) || !g.nodes.Contains(v) {
+		return false
 	}
-	return res
+	g.nodes.Get(u).Delete(v)
+	g.edgeCnt--
+	g.needRemark = true
+	return true
+}
+
+func (g *DirectedGraph[T]) Adj(u T) *Set {
+	return g.nodes.GetOrDefault(u, NewSet())
 }
 
 func (g *DirectedGraph[T]) Mark() {
@@ -87,7 +107,7 @@ func (g *DirectedGraph[T]) Degree(u T, in bool) int {
 		g.checkState()
 		return g.reverseGraph.Degree(u, false)
 	} else {
-		return g.v.GetOrDefault(u, NewSet()).Size()
+		return g.nodes.GetOrDefault(u, NewSet()).Size()
 	}
 }
 
@@ -114,7 +134,7 @@ func (g *DirectedGraph[T]) Sorted() []T {
 }
 
 func (g *DirectedGraph[T]) Nodes() []T {
-	return g.v.Keys()
+	return g.nodes.Keys()
 }
 
 func (g *DirectedGraph[T]) Reverse() *DirectedGraph[T] {
@@ -124,7 +144,11 @@ func (g *DirectedGraph[T]) Reverse() *DirectedGraph[T] {
 }
 
 func (g *DirectedGraph[T]) NumStrongComponents() int {
-	return g.cnt
+	return g.componentCnt
+}
+
+func (g *DirectedGraph[T]) NumEdges() int {
+	return g.edgeCnt
 }
 
 func (g *DirectedGraph[T]) StrongComponents() [][]T {
@@ -147,19 +171,20 @@ func (g *DirectedGraph[T]) dfsMark(root, u T, cycleDetection bool) {
 	g.onStack.Add(u)
 	marked.Add(u)
 	g.marked.Add(u)
-	g.groupId.Put(u, g.cnt)
-	for _, adj := range g.Adj(u) {
+	g.groupId.Put(u, g.componentCnt)
+	for adj := range g.Adj(u).Iterate() {
 		if cycleDetection && g.hasCycle {
 			return
 		}
+		w := adj.(T)
 		if !marked.Contains(adj) {
-			g.edgeTo.Put(adj, u)
-			g.dfsMark(root, adj, cycleDetection)
+			g.edgeTo.Put(w, u)
+			g.dfsMark(root, w, cycleDetection)
 		} else if g.onStack.Contains(u) {
 			g.hasCycle = true
 			if cycleDetection {
 				s := NewStack(g.onStack.Size())
-				for node := u; g.cmp(node, adj) != 0; node = g.edgeTo.Get(node) {
+				for node := u; g.cmp(node, w) != 0; node = g.edgeTo.Get(node) {
 					s.Push(node)
 				}
 				s.Push(adj)
@@ -186,10 +211,10 @@ func (g *DirectedGraph[T]) bfsMark(u T) {
 	for !q.Empty() {
 		curr := q.Dequeue().(T)
 		marked.Add(curr)
-		for _, adj := range g.Adj(curr) {
+		for adj := range g.Adj(curr).Iterate() {
 			if !marked.Contains(adj) {
 				q.Enqueue(adj)
-				g.edgeTo.Put(adj, curr)
+				g.edgeTo.Put(adj.(T), curr)
 			}
 		}
 	}
@@ -227,7 +252,7 @@ func (g *DirectedGraph[T]) checkState() {
 
 func (g *DirectedGraph[T]) reverse() *DirectedGraph[T] {
 	res := NewDirectedGraph(g.cmp)
-	for t := range g.v.IterateEntry() {
+	for t := range g.nodes.IterateEntry() {
 		k := t.Get(0).(T)
 		v := t.Get(1).(*Set)
 		for node := range v.Iterate() {
@@ -241,7 +266,7 @@ func (g *DirectedGraph[T]) mark(needPath bool, needReverseMark bool) {
 	if !g.needRemark {
 		return
 	}
-	for v := range g.v.Iterate() {
+	for v := range g.nodes.Iterate() {
 		g.dfsMark(v, v, false)
 		if needPath {
 			g.bfsMark(v)
@@ -254,11 +279,11 @@ func (g *DirectedGraph[T]) mark(needPath bool, needReverseMark bool) {
 		for v := range g.reverseGraph.reversePost.Iterate() {
 			if !cp.marked.Contains(v) {
 				cp.dfsMark(v.(T), v.(T), true)
-				cp.cnt++
+				cp.componentCnt++
 			}
 		}
 		g.groupId = cp.groupId
 		g.cycle = cp.cycle
-		g.cnt = cp.cnt
+		g.componentCnt = cp.componentCnt
 	}
 }
