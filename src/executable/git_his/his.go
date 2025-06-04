@@ -24,35 +24,38 @@ const (
 )
 
 type ILineHandler interface {
-	handleLine(string)
+	handleLine(string) bool
 }
 
 type logHandler struct {
 	p *regexp.Regexp
 }
 
-func (h *logHandler) handleLine(line string) {
+func (h *logHandler) handleLine(line string) bool {
 	if matched := h.p.MatchString(line); !matched {
 		fmt.Println(line)
+		return true
 	}
+	return false
 }
 
 type branchHandler struct {
 }
 
-func (h *branchHandler) handleLine(line string) {
+func (h *branchHandler) handleLine(line string) bool {
 	if line == "" {
-		return
+		return true
 	}
 	parts := strw.SplitNoEmpty(line, " ")
 	if len(parts) < 3 {
 		fmt.Println(line)
-		return
+		return true
 	}
 	branchName := color.CyanString(parts[0])
 	modifyTime := color.YellowString(parts[1])
 	subject := strings.Join(parts[2:], " ")
 	fmt.Printf("%s (%s) %s\n", branchName, modifyTime, subject)
+	return true
 }
 
 func getN(parser *terminalw.Parser) int {
@@ -92,8 +95,8 @@ func getHandler(parser *terminalw.Parser) ILineHandler {
 	}
 }
 
-func handleLine(h ILineHandler, line string) {
-	h.handleLine(line)
+func handleLine(h ILineHandler, line string) bool {
+	return h.handleLine(line)
 }
 
 func main() {
@@ -123,7 +126,8 @@ func main() {
 		if cnt >= n {
 			break
 		}
-		handleLine(handler, line)
-		cnt++
+		if handleLine(handler, line) {
+			cnt++
+		}
 	}
 }
