@@ -1,6 +1,8 @@
 package cw
 
 import (
+	"fmt"
+
 	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/typesw"
 )
@@ -122,8 +124,8 @@ func (g *UndirectedGraph[T]) Mark() {
 	for v := range g.nodes.Iterate() {
 		if !g.marked.Contains(v) {
 			g.groupCnt++
+			g.bfsMark(v)
 		}
-		g.bfsMark(v)
 	}
 	g.needRemark = false
 }
@@ -170,11 +172,19 @@ func (g *UndirectedGraph[T]) HasCycle() bool {
 }
 
 func (g *UndirectedGraph[T]) path(from, to T) []T {
-	var res []T
-	for x := to; g.cmp(x, from) != 0; x = g.edgeTo.Get(x) {
-		res = append(res, x)
+	s := NewOrderedSet()
+	fmt.Println("here", g.edgeTo)
+	for x := to; g.cmp(x, from) != 0 && !s.Contains(x); {
+		// res = append(res, x)
+		s.Add(x)
+		x = g.edgeTo.Get(x)
 	}
-	res = append(res, from)
+	// res = append(res, from)
+	s.Add(from)
+	res := make([]T, 0, s.Size())
+	for node := range s.Iterate() {
+		res = append(res, node.(T))
+	}
 	algow.Reverse(res)
 	return res
 }
@@ -188,12 +198,12 @@ func (g *UndirectedGraph[T]) bfsMark(u T) {
 	for !q.Empty() {
 		curr := q.Dequeue().(T)
 		g.marked.Add(curr)
-		g.marked.Add(curr)
 		g.groupId.PutIfAbsent(curr, g.groupCnt)
 		for adj := range g.Adj(curr).Iterate() {
 			if !g.marked.Contains(adj) {
 				q.Enqueue(adj)
 				g.edgeTo.Put(adj.(T), curr)
+				g.edgeTo.Put(curr, adj.(T))
 				parent.Put(adj.(T), curr)
 			} else if g.cmp(adj.(T), parent.Get(curr)) != 0 {
 				g.hasCycle = true

@@ -32,7 +32,7 @@ func (e *Edge[T]) Other(u T, cmp typesw.CompareFunc[T]) T {
 		return e.v2
 	}
 	if cmp(e.v2, u) == 0 {
-		return u
+		return e.v1
 	}
 	return e.V1()
 }
@@ -42,7 +42,7 @@ func (e *Edge[T]) Weight() float64 {
 }
 
 func (e *Edge[T]) String() string {
-	return fmt.Sprintf("Edge{%d,%d,%.3f}", e.v1, e.v2, e.weight)
+	return fmt.Sprintf("Edge{%v,%v,%.3f}", e.v1, e.v2, e.weight)
 }
 
 func (e *Edge[T]) cmp(other *Edge[T]) int {

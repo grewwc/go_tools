@@ -48,6 +48,23 @@ func (s OrderedSet) Iterate() <-chan interface{} {
 	return c
 }
 
+func (s OrderedSet) ReverseIterate() <-chan interface{} {
+	c := make(chan interface{})
+	go func() {
+		defer close(c)
+		l := s.l.Len()
+		elem := s.l.Back()
+		if elem == nil {
+			return
+		}
+		for i := 0; i < l; i++ {
+			c <- elem.Value
+			elem = elem.Prev()
+		}
+	}()
+	return c
+}
+
 func (s *OrderedSet) Contains(v interface{}) bool {
 	if _, exist := s.m[v]; exist {
 		return true

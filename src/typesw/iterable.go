@@ -12,6 +12,20 @@ func (i it[T]) Iterate() <-chan T {
 	return i()
 }
 
-func ToIterable[T any](f func() <-chan T) IterableT[T] {
+func FuncToIterable[T any](f func() <-chan T) IterableT[T] {
 	return it[T](f)
+}
+
+func ToIterable[T any](it Iterable) IterableT[T] {
+	f := func() <-chan T {
+		ch := make(chan T)
+		go func() {
+			defer close(ch)
+			for val := range it.Iterate() {
+				ch <- val.(T)
+			}
+		}()
+		return ch
+	}
+	return FuncToIterable(f)
 }

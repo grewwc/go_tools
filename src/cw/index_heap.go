@@ -85,6 +85,15 @@ func (h *IndexHeap[Index, T]) Update(index Index, val T) {
 	tup := h.m.GetOrDefault(index, nil)
 	if tup == nil {
 		h.Insert(index, val)
+	} else {
+		tup.Set(1, val)
 	}
-	tup.Set(1, val)
+}
+
+func (h *IndexHeap[Index, T]) GetByIndex(index Index, defaultVal T) T {
+	tup := h.m.GetOrDefault(index, nil)
+	if tup == nil {
+		return defaultVal
+	}
+	return tup.Get(1).(T)
 }

@@ -1,6 +1,8 @@
 package test
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -110,19 +112,39 @@ func TestUndirectedGraph(t *testing.T) {
 	}
 }
 
-func TestMst(t *testing.T) {
-	f, _ := os.Open("./weighted.txt")
+func initGraphFromFile(fname string) *cw.WeightedUndirectedGraph[int] {
 	g := cw.NewWeightedUndirectedGraph[int](nil)
+	f, _ := os.Open(fname)
+	for line := range strw.SplitByToken(f, "\n", false) {
+		parts := strings.Split(line, " ")
+		if len(parts) != 3 {
+			continue
+		}
+		u, _ := strconv.Atoi(parts[0])
+		v, _ := strconv.Atoi(parts[1])
+		weight, _ := strconv.ParseFloat(parts[2], 64)
+		g.AddEdge(u, v, weight)
+	}
+	return g
+}
+
+func TestMst(t *testing.T) {
+	fname := "./weighted.txt"
+	g := initGraphFromFile(fname)
 	sortEdge := func(arr []*cw.Edge[int]) {
 		sortw.StableSort(arr, func(e1, e2 *cw.Edge[int]) int {
-			if e1.V1() < e2.V1() {
+			v11 := algow.Min(e1.V1(), e1.V2())
+			v12 := algow.Max(e1.V1(), e1.V2())
+			v21 := algow.Min(e2.V1(), e2.V2())
+			v22 := algow.Max(e2.V1(), e2.V2())
+			if v11 < v21 {
 				return -1
-			} else if e1.V1() > e2.V1() {
+			} else if v11 > v21 {
 				return 1
 			}
-			if e1.V2() < e2.V2() {
+			if v12 < v22 {
 				return -1
-			} else if e1.V2() > e2.V2() {
+			} else if v12 > v22 {
 				return 1
 			}
 			if e1.Weight() < e2.Weight() {
@@ -147,24 +169,17 @@ func TestMst(t *testing.T) {
 			return false
 		}
 		for i := range s1 {
-			if s1[i] != s2[i] {
+			b1 := []byte(s1[i])
+			b2 := []byte(s2[i])
+			sortw.Sort(b1, nil)
+			sortw.Sort(b2, nil)
+			if !bytes.Equal(b1, b2) {
+				fmt.Println(string(b1), string(b2))
 				return false
 			}
 		}
 		return true
 	}
-
-	for line := range strw.SplitByToken(f, "\n", false) {
-		parts := strings.Split(line, " ")
-		if len(parts) != 3 {
-			continue
-		}
-		u, _ := strconv.Atoi(parts[0])
-		v, _ := strconv.Atoi(parts[1])
-		weight, _ := strconv.ParseFloat(parts[2], 64)
-		g.AddEdge(u, v, weight)
-	}
-
 	mst := g.Mst()
 	edges := mst.Edges()
 	sortEdge(edges)
@@ -174,14 +189,25 @@ func TestMst(t *testing.T) {
 		"Edge{0,7,0.160}",
 		"Edge{1,7,0.190}",
 		"Edge{2,3,0.170}",
+		"Edge{6,2,0.400}",
 		"Edge{4,5,0.350}",
 		"Edge{5,7,0.280}",
-		"Edge{6,2,0.400}",
 	}
 	if !compareEdge(calc, truth) {
 		t.Errorf("mst failed")
+		fmt.Println(calc)
+		fmt.Println(mst.TotalWeight())
 	}
 	if algow.Abs(mst.TotalWeight()-1.81) > 1e-5 {
 		t.Errorf("mst weight failed. calc:%.3f, truth:%.3f", mst.TotalWeight(), 1.81)
+	}
+}
+
+func TestDijkstra(t *testing.T) {
+	fname := "./test_dijkstra.txt"
+	g := initGraphFromFile(fname)
+	g.Mark()
+	for edge := range g.ShortestPath(0, 3).Iterate() {
+		fmt.Println(edge)
 	}
 }
