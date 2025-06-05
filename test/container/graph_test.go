@@ -12,6 +12,7 @@ import (
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/sortw"
 	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 func prepareData() []*cw.Tuple {
@@ -116,7 +117,23 @@ func initGraphFromFile(fname string) *cw.WeightedUndirectedGraph[int] {
 	g := cw.NewWeightedUndirectedGraph[int](nil)
 	f, _ := os.Open(fname)
 	for line := range strw.SplitByToken(f, "\n", false) {
-		parts := strings.Split(line, " ")
+		parts := strw.SplitNoEmpty(line, " ")
+		if len(parts) != 3 {
+			continue
+		}
+		u, _ := strconv.Atoi(parts[0])
+		v, _ := strconv.Atoi(parts[1])
+		weight, _ := strconv.ParseFloat(parts[2], 64)
+		g.AddEdge(u, v, weight)
+	}
+	return g
+}
+
+func initDirectedGraphFromFile(fname string) *cw.WeightedDirectedGraph[int] {
+	g := cw.NewWeightedDirectedGraph[int](nil)
+	f, _ := os.Open(fname)
+	for line := range strw.SplitByToken(f, "\n", false) {
+		parts := strw.SplitNoEmpty(line, " ")
 		if len(parts) != 3 {
 			continue
 		}
@@ -185,13 +202,13 @@ func TestMst(t *testing.T) {
 	sortEdge(edges)
 	calc := toSlice(edges)
 	truth := []string{
-		"Edge{0,2,0.260}",
-		"Edge{0,7,0.160}",
-		"Edge{1,7,0.190}",
-		"Edge{2,3,0.170}",
-		"Edge{6,2,0.400}",
-		"Edge{4,5,0.350}",
-		"Edge{5,7,0.280}",
+		"(0-2) 0.260",
+		"(0-7) 0.160",
+		"(1-7) 0.190",
+		"(2-3) 0.170",
+		"(6-2) 0.400",
+		"(4-5) 0.350",
+		"(5-7) 0.280",
 	}
 	if !compareEdge(calc, truth) {
 		t.Errorf("mst failed")
@@ -209,5 +226,77 @@ func TestDijkstra(t *testing.T) {
 	g.Mark()
 	for edge := range g.ShortestPath(0, 3).Iterate() {
 		fmt.Println(edge)
+	}
+}
+
+func totalWeight(it typesw.IterableT[*cw.Edge[int]]) float64 {
+	var res float64
+	for val := range it.Iterate() {
+		res += val.Weight()
+	}
+	return res
+}
+
+func TestBellmanford(t *testing.T) {
+	fname := "./test_bellmanford.txt"
+	g := initGraphFromFile(fname)
+
+	if g.NumEdges() != 10 {
+		t.Errorf("edge number failed. expected: 20, found: %d\n", g.NumEdges())
+	}
+
+	if g.NumNodes() != 5 {
+		t.Errorf("nodes number failed. expected: 5, found: %d\n", g.NumNodes())
+	}
+
+	if g.NumGroups() != 1 {
+		t.Errorf("group number failed. expected: 1, found: %d\n", g.NumGroups())
+	}
+
+	for e := range g.ShortestPath(0, 3).Iterate() {
+		fmt.Println(e)
+	}
+
+	truth := []float64{
+		0, // 0-0
+		2, // 0-1
+		3, // 0-2
+		2, // 0-3
+		1, // 0-4
+	}
+	for i := 0; i < len(truth); i++ {
+		if algow.Abs(totalWeight(g.ShortestPath(0, i))-truth[i]) > 1e-3 {
+			t.Errorf("0-%d weight error. expected: %f, found: %f\n", i, truth[i], totalWeight(g.ShortestPath(0, i)))
+		}
+	}
+
+}
+
+func TestDirectedWeightedGraph(t *testing.T) {
+	fname := "./test_bellmanford.txt"
+	g := initDirectedGraphFromFile(fname)
+	truth := []float64{
+		0, // 0-0
+		2, // 0-1
+		3, // 0-2
+		2, // 0-3
+		1, // 0-4
+	}
+
+	if g.NumEdges() != 18 {
+		t.Errorf("edge number failed. expected: 20, found: %d\n", g.NumEdges())
+	}
+
+	if g.NumNodes() != 5 {
+		t.Errorf("nodes number failed. expected: 5, found: %d\n", g.NumNodes())
+	}
+	g.Mark()
+	fmt.Println(g.HasCycle())
+	fmt.Println(g.Cycle())
+	fmt.Println(g.Sorted())
+	for i := 0; i < len(truth); i++ {
+		if algow.Abs(totalWeight(g.ShortestPath(0, i))-truth[i]) > 1e-3 {
+			t.Errorf("0-%d weight error. expected: %f, found: %f\n", i, truth[i], totalWeight(g.ShortestPath(0, i)))
+		}
 	}
 }

@@ -6,84 +6,70 @@ import (
 	"github.com/grewwc/go_tools/src/typesw"
 )
 
-type WeightedUndirectedGraph[T any] struct {
-	*UndirectedGraph[T]
+type WeightedDirectedGraph[T any] struct {
+	*DirectedGraph[T]
 
-	nodes *Map[T, *Set]
-
+	nodes  *Map[T, *Set]
 	distTo *Map[T, float64]
 	pq     *IndexHeap[T, float64]
 	edgeTo *Map[T, *Edge[T]]
 
-	um *Map[T, *Set]
-	vm *Map[T, *Set]
-
 	hasNegtiveCycle bool
 	negtiveEdge     *Set
+
+	um *Map[T, *Edge[T]]
 }
 
-type mst[T any] struct {
-	edges []*Edge[T]
-}
+func NewWeightedDirectedGraph[T any](cmp typesw.CompareFunc[T]) *WeightedDirectedGraph[T] {
+	return &WeightedDirectedGraph[T]{
+		DirectedGraph: NewDirectedGraph(cmp),
 
-func (m *mst[T]) Edges() []*Edge[T] {
-	return m.edges
-}
-
-func (m *mst[T]) TotalWeight() float64 {
-	total := 0.0
-	for _, edge := range m.edges {
-		total += edge.weight
-	}
-	return total
-}
-
-func NewWeightedUndirectedGraph[T any](cmp typesw.CompareFunc[T]) *WeightedUndirectedGraph[T] {
-	return &WeightedUndirectedGraph[T]{
-		UndirectedGraph: NewUndirectedGraph(cmp),
-		nodes:           NewMap[T, *Set](),
-
+		nodes:  NewMap[T, *Set](),
+		distTo: NewMap[T, float64](),
 		pq:     NewIndexHeap[T, float64](nil),
 		edgeTo: NewMap[T, *Edge[T]](),
 
-		um: NewMap[T, *Set](),
-		vm: NewMap[T, *Set](),
-
 		negtiveEdge: NewSet(),
+
+		um: NewMap[T, *Edge[T]](),
 	}
 }
 
-func (g *WeightedUndirectedGraph[T]) AddEdge(u, v T, weight float64) bool {
-	added := g.UndirectedGraph.AddEdge(u, v)
-	su := g.nodes.GetOrDefault(u, NewSet())
-	sv := g.nodes.GetOrDefault(v, NewSet())
-	g.nodes.PutIfAbsent(u, su)
-	g.nodes.PutIfAbsent(v, sv)
-
-	si := su.Intersect(sv)
-	if !si.Empty() {
-		ch := si.Iterate()
-		s := (<-ch).(*Edge[T])
-		if _, ok := <-ch; ok {
-			close(ch)
-		}
-		s.weight = weight
-		return true
-	} else if !added {
+func (g *WeightedDirectedGraph[T]) AddEdge(u, v T, weight float64) bool {
+	if !g.DirectedGraph.AddEdge(u, v) {
 		return false
 	}
-
-	edge := newEdge(u, v, weight, false)
-	su.Add(edge)
-	sv.Add(edge)
+	edge := newEdge(u, v, weight, true)
+	s := g.nodes.GetOrDefault(u, NewSet())
+	g.nodes.PutIfAbsent(u, s)
+	s.Add(edge)
+	g.um.Put(u, edge)
 	if weight < 0 {
 		g.negtiveEdge.Add(edge)
 	}
-
 	return true
 }
 
-func (g *WeightedUndirectedGraph[T]) Edges() typesw.IterableT[*Edge[T]] {
+func (g *WeightedDirectedGraph[T]) DeleteEdge(u, v T) bool {
+	if !g.DirectedGraph.DeleteEdge(u, v) {
+		return false
+	}
+	if !g.nodes.Contains(u) {
+		return false
+	}
+	e := g.um.Get(u)
+	g.nodes.Get(u).Delete(e)
+	if g.nodes.Get(u).Empty() {
+		g.nodes.Delete(u)
+		g.um.Delete(u)
+	}
+	if e.weight < 0 {
+		g.negtiveEdge.Delete(e)
+	}
+	return true
+}
+
+func (g *WeightedDirectedGraph[T]) Edges() typesw.IterableT[*Edge[T]] {
 	return typesw.FuncToIterable(func() chan *Edge[T] {
 		ch := make(chan *Edge[T])
 		go func() {
@@ -98,52 +84,7 @@ func (g *WeightedUndirectedGraph[T]) Edges() typesw.IterableT[*Edge[T]] {
 	})
 }
 
-func (g *WeightedUndirectedGraph[T]) Mst() *mst[T] {
-	edgeCmp := func(e1, e2 *Edge[T]) int {
-		return e1.cmp(e2)
-	}
-	uf := NewUF(g.cmp)
-	h := NewHeap(edgeCmp)
-	for edge := range g.Edges().Iterate() {
-		h.Insert(edge)
-	}
-	s := make([]*Edge[T], 0, g.NumEdges()-1)
-	for !h.IsEmpty() && len(s) < g.NumNodes()-1 {
-		edge := h.Pop()
-		if uf.IsConnected(edge.v1, edge.v2) {
-			continue
-		}
-		uf.Union(edge.v1, edge.v2)
-		s = append(s, edge)
-	}
-	return &mst[T]{
-		edges: s,
-	}
-}
-
-func (g *WeightedUndirectedGraph[T]) DeleteEdge(u, v T) bool {
-	res := g.UndirectedGraph.DeleteEdge(u, v)
-	if !res {
-		return res
-	}
-	e1 := g.nodes.Get(u)
-	if e1 == nil {
-		return false
-	}
-	deleted := e1.Delete(g.um.Get(u))
-	e2 := g.nodes.Get(v)
-	deleted = deleted && e2.Delete(g.vm.Get(v))
-
-	if e1.Empty() {
-		g.um.Delete(u)
-	}
-	if e2.Empty() {
-		g.vm.Delete(v)
-	}
-	return deleted
-}
-
-func (g *WeightedUndirectedGraph[T]) dijkstraRelax(v T) {
+func (g *WeightedDirectedGraph[T]) dijkstraRelax(v T) {
 	for e := range g.nodes.GetOrDefault(v, NewSet()).Iterate() {
 		edge := e.(*Edge[T])
 		w := edge.Other(v, g.cmp)
@@ -161,10 +102,10 @@ func (g *WeightedUndirectedGraph[T]) dijkstraRelax(v T) {
 	}
 }
 
-func (g *WeightedUndirectedGraph[T]) dijkstra(v T) {
+func (g *WeightedDirectedGraph[T]) dijkstra(v T) {
 	g.pq = NewIndexHeap[T, float64](nil)
 	g.pq.Update(v, 0)
-	g.distTo = NewMap[T, float64]()
+	g.distTo.Clear()
 	g.distTo.Put(v, 0)
 	for !g.pq.IsEmpty() {
 		curr := g.pq.PopIndex()
@@ -172,7 +113,18 @@ func (g *WeightedUndirectedGraph[T]) dijkstra(v T) {
 	}
 }
 
-func (g *WeightedUndirectedGraph[T]) bellmanFord(v T) {
+func (g *WeightedDirectedGraph[T]) acyclic(v T) {
+	g.mark(false, true)
+	g.distTo.Clear()
+	g.pq = NewIndexHeap[T, float64](nil)
+	g.pq.Update(v, 0)
+
+	for node := range g.Sorted().Iterate() {
+		g.dijkstraRelax(node)
+	}
+}
+
+func (g *WeightedDirectedGraph[T]) bellmanFord(v T) {
 	g.distTo = NewMap[T, float64]()
 	g.distTo.Put(v, 0)
 	for i := 0; i < g.NumNodes()-1; i++ {
@@ -194,17 +146,21 @@ func (g *WeightedUndirectedGraph[T]) bellmanFord(v T) {
 	}
 }
 
-func (g *WeightedUndirectedGraph[T]) HasNegtiveCycle() bool {
+func (g *WeightedDirectedGraph[T]) HasNegtiveCycle() bool {
 	return g.hasNegtiveCycle
 }
 
-func (g *WeightedUndirectedGraph[T]) ShortestPath(from, to T) typesw.IterableT[*Edge[T]] {
+func (g *WeightedDirectedGraph[T]) ShortestPath(from, to T) typesw.IterableT[*Edge[T]] {
 	g.Mark()
-	if !g.Connected(from, to) {
+	if !g.Reachable(from, to) {
 		return typesw.EmptyIterable[*Edge[T]]()
 	}
 	if g.negtiveEdge.Empty() {
-		g.dijkstra(from)
+		if g.hasCycle {
+			g.dijkstra(from)
+		} else {
+			g.acyclic(from)
+		}
 	} else {
 		g.bellmanFord(from)
 	}

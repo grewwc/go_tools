@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	DEEPSEEK               = "deepseek-r1"
+	DEEPSEEK               = "deepseek-r1-0528"
 	QWEN_MAX_LASTEST       = "qwen-max-latest"
 	QWEN_PLUS              = "qwen-plus"
 	QWEN_MAX               = "qwen-max"

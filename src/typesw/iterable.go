@@ -1,23 +1,23 @@
 package typesw
 
 type IterableT[T any] interface {
-	Iterate() <-chan T
+	Iterate() chan T
 }
 
 type Iterable = IterableT[interface{}]
 
-type it[T any] func() <-chan T
+type it[T any] func() chan T
 
-func (i it[T]) Iterate() <-chan T {
+func (i it[T]) Iterate() chan T {
 	return i()
 }
 
-func FuncToIterable[T any](f func() <-chan T) IterableT[T] {
+func FuncToIterable[T any](f func() chan T) IterableT[T] {
 	return it[T](f)
 }
 
 func ToIterable[T any](it Iterable) IterableT[T] {
-	f := func() <-chan T {
+	f := func() chan T {
 		ch := make(chan T)
 		go func() {
 			defer close(ch)
@@ -28,4 +28,12 @@ func ToIterable[T any](it Iterable) IterableT[T] {
 		return ch
 	}
 	return FuncToIterable(f)
+}
+
+func EmptyIterable[T any]() IterableT[T] {
+	return FuncToIterable(func() chan T {
+		ch := make(chan T)
+		close(ch)
+		return ch
+	})
 }

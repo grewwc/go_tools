@@ -5,10 +5,6 @@ import (
 	"github.com/grewwc/go_tools/src/typesw"
 )
 
-const (
-	panicMsg = "call Mark() first"
-)
-
 type DirectedGraph[T any] struct {
 	nodes      *Map[T, *Set]
 	markdedMap *Map[T, *Set]
@@ -16,7 +12,7 @@ type DirectedGraph[T any] struct {
 	edgeTo     *Map[T, T]
 	hasCycle   bool
 
-	onStack *Set
+	onStack *OrderedSet
 	cycle   []T
 
 	groupId      *Map[T, int]
@@ -41,7 +37,7 @@ func NewDirectedGraph[T any](cmp typesw.CompareFunc[T]) *DirectedGraph[T] {
 		edgeTo:     NewMap[T, T](),
 		groupId:    NewMap[T, int](),
 
-		onStack: NewSet(),
+		onStack: NewOrderedSet(),
 
 		reversePost: NewStack(8),
 
@@ -104,7 +100,7 @@ func (g *DirectedGraph[T]) Mark() {
 
 func (g *DirectedGraph[T]) Degree(u T, in bool) int {
 	if in {
-		g.checkState()
+		g.mark(false, true)
 		return g.reverseGraph.Degree(u, false)
 	} else {
 		return g.nodes.GetOrDefault(u, NewSet()).Size()
@@ -112,25 +108,21 @@ func (g *DirectedGraph[T]) Degree(u T, in bool) int {
 }
 
 func (g *DirectedGraph[T]) Reachable(u, v T) bool {
-	g.checkState()
+	g.mark(false, false)
 	marked := g.markdedMap.GetOrDefault(u, NewSet())
 	return marked.Contains(v)
 }
 
 func (g *DirectedGraph[T]) StronglyConnected(u, v T) bool {
-	return g.groupId.Get(u) == g.groupId.Get(v)
+	return g.groupId.Contains(u) && g.groupId.Contains(v) && g.groupId.Get(u) == g.groupId.Get(v)
 }
 
-func (g *DirectedGraph[T]) Sorted() []T {
-	g.checkState()
+func (g *DirectedGraph[T]) Sorted() typesw.IterableT[T] {
+	g.mark(false, true)
 	if g.hasCycle {
 		return nil
 	}
-	res := make([]T, 0, g.reversePost.Size())
-	for val := range g.reversePost.Iterate() {
-		res = append(res, val.(T))
-	}
-	return res
+	return typesw.ToIterable[T](g.reversePost)
 }
 
 func (g *DirectedGraph[T]) Nodes() []T {
@@ -165,7 +157,7 @@ func (g *DirectedGraph[T]) StrongComponents() [][]T {
 	return res
 }
 
-func (g *DirectedGraph[T]) dfsMark(root, u T, cycleDetection bool) {
+func (g *DirectedGraph[T]) dfsMark(root, u T) {
 	marked := g.markdedMap.GetOrDefault(root, NewSet())
 	g.markdedMap.PutIfAbsent(root, marked)
 	needPush := true
@@ -177,25 +169,23 @@ func (g *DirectedGraph[T]) dfsMark(root, u T, cycleDetection bool) {
 	g.marked.Add(u)
 	g.groupId.Put(u, g.componentCnt)
 	for adj := range g.Adj(u).Iterate() {
-		if cycleDetection && g.hasCycle {
-			return
+		if g.hasCycle {
+			break
 		}
 		w := adj.(T)
 		if !marked.Contains(adj) {
 			g.edgeTo.Put(w, u)
-			g.dfsMark(root, w, cycleDetection)
-		} else if g.onStack.Contains(u) {
+			g.dfsMark(root, w)
+		} else if g.onStack.Contains(u) && len(g.cycle) == 0 {
 			g.hasCycle = true
-			if cycleDetection {
-				s := NewStack(g.onStack.Size())
-				for node := u; g.cmp(node, w) != 0; node = g.edgeTo.Get(node) {
-					s.Push(node)
-				}
-				s.Push(adj)
-				s.Push(u)
-				for val := range s.Iterate() {
-					g.cycle = append(g.cycle, val.(T))
-				}
+			s := NewStack(g.onStack.Size())
+			for node := u; g.cmp(node, w) != 0; node = g.edgeTo.Get(node) {
+				s.Push(node)
+			}
+			s.Push(adj)
+			s.Push(u)
+			for val := range s.Iterate() {
+				g.cycle = append(g.cycle, val.(T))
 			}
 		}
 	}
@@ -225,7 +215,7 @@ func (g *DirectedGraph[T]) bfsMark(u T) {
 }
 
 func (g *DirectedGraph[T]) Path(from, to T) []T {
-	g.checkState()
+	g.mark(true, false)
 	if !g.Reachable(from, to) {
 		return nil
 	}
@@ -239,19 +229,13 @@ func (g *DirectedGraph[T]) Path(from, to T) []T {
 }
 
 func (g *DirectedGraph[T]) HasCycle() bool {
-	g.checkState()
+	g.mark(false, false)
 	return g.hasCycle
 }
 
 func (g *DirectedGraph[T]) Cycle() []T {
-	g.checkState()
+	g.mark(false, true)
 	return g.cycle
-}
-
-func (g *DirectedGraph[T]) checkState() {
-	if g.needRemark {
-		panic(panicMsg)
-	}
 }
 
 func (g *DirectedGraph[T]) reverse() *DirectedGraph[T] {
@@ -271,7 +255,7 @@ func (g *DirectedGraph[T]) mark(needPath bool, needReverseMark bool) {
 		return
 	}
 	for v := range g.nodes.Iterate() {
-		g.dfsMark(v, v, false)
+		g.dfsMark(v, v)
 		if needPath {
 			g.bfsMark(v)
 		}
@@ -280,14 +264,13 @@ func (g *DirectedGraph[T]) mark(needPath bool, needReverseMark bool) {
 		g.reverseGraph = g.reverse()
 		g.reverseGraph.mark(true, false)
 		cp := g.reverseGraph.reverse()
-		for v := range g.reverseGraph.reversePost.Iterate() {
+		for v := range g.reversePost.Iterate() {
 			if !cp.marked.Contains(v) {
-				cp.dfsMark(v.(T), v.(T), true)
+				cp.dfsMark(v.(T), v.(T))
 				cp.componentCnt++
 			}
 		}
 		g.groupId = cp.groupId
-		g.cycle = cp.cycle
 		g.componentCnt = cp.componentCnt
 	}
 }

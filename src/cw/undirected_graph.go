@@ -1,8 +1,6 @@
 package cw
 
 import (
-	"fmt"
-
 	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/typesw"
 )
@@ -50,7 +48,7 @@ func (g *UndirectedGraph[T]) AddNode(v T) bool {
 func (g *UndirectedGraph[T]) AddEdge(u, v T) bool {
 	g.AddNode(u)
 	g.AddNode(v)
-	if g.nodes.Get(u) != nil && g.nodes.Get(u).Contains(u) {
+	if g.nodes.Get(u) != nil && g.nodes.Get(u).Contains(v) {
 		return false
 	}
 	s := g.nodes.GetOrDefault(u, NewSet())
@@ -113,8 +111,9 @@ func (g *UndirectedGraph[T]) Degree(u T) int {
 }
 
 func (g *UndirectedGraph[T]) Connected(u, v T) bool {
-	g.checkState()
-	return g.groupId.Get(u) == g.groupId.Get(v)
+	g.Mark()
+	return g.groupId.Contains(u) && g.groupId.Contains(v) &&
+		g.groupId.Get(u) == g.groupId.Get(v)
 }
 
 func (g *UndirectedGraph[T]) Mark() {
@@ -131,19 +130,19 @@ func (g *UndirectedGraph[T]) Mark() {
 }
 
 func (g *UndirectedGraph[T]) NumGroups() int {
-	g.checkState()
+	g.Mark()
 	return g.groupCnt
 }
 
 // Group returns the group id.
 // returns -1 if u not existed in the graph.
 func (g *UndirectedGraph[T]) Group(u T) int {
-	g.checkState()
+	g.Mark()
 	return g.groupId.GetOrDefault(u, 0) - 1
 }
 
 func (g *UndirectedGraph[T]) Groups() [][]T {
-	g.checkState()
+	g.Mark()
 	m := NewMap[int, []T]()
 	for node := range g.groupId.data {
 		id := g.Group(node.(T))
@@ -159,7 +158,7 @@ func (g *UndirectedGraph[T]) Groups() [][]T {
 }
 
 func (g *UndirectedGraph[T]) Path(from, to T) []T {
-	g.checkState()
+	g.Mark()
 	if !g.Connected(from, to) {
 		return nil
 	}
@@ -167,13 +166,13 @@ func (g *UndirectedGraph[T]) Path(from, to T) []T {
 }
 
 func (g *UndirectedGraph[T]) HasCycle() bool {
-	g.checkState()
+	g.Mark()
 	return g.hasCycle
 }
 
 func (g *UndirectedGraph[T]) path(from, to T) []T {
 	s := NewOrderedSet()
-	fmt.Println("here", g.edgeTo)
+	// fmt.Println("here", g.edgeTo)
 	for x := to; g.cmp(x, from) != 0 && !s.Contains(x); {
 		// res = append(res, x)
 		s.Add(x)
@@ -209,11 +208,5 @@ func (g *UndirectedGraph[T]) bfsMark(u T) {
 				g.hasCycle = true
 			}
 		}
-	}
-}
-
-func (g *UndirectedGraph[T]) checkState() {
-	if g.needRemark {
-		panic("call Mark() first")
 	}
 }

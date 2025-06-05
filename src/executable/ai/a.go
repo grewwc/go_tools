@@ -262,7 +262,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 	parser.Bool("d", false, "deepseek model")
 	parser.Bool("clear", false, "clear history")
 	parser.Bool("c", false, "prepend content in clipboard")
-	parser.Bool("x", false, "ask with history")
+	parser.Bool("x", false, "ask without history")
 	parser.String("f", "", "input file names. seprated by comma.")
 	parser.String("out", "", "write output to file. default is output.txt")
 	parser.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear", "c", "x")

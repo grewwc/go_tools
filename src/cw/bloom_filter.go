@@ -2,7 +2,6 @@ package cw
 
 import (
 	"fmt"
-	"sync/atomic"
 
 	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/typesw"
@@ -26,12 +25,11 @@ func NewBloomFilter[T any](capacity int) *BloomFilter[T] {
 	}
 }
 
-func (f *BloomFilter[T]) MayExist(item T) bool {
+func (f *BloomFilter[T]) Contains(item T) bool {
 	hashVal := f.hash(item)
 	cnt := algow.Max(f.numDigit(hashVal), f.hashTimes)
 	for i := 0; i < cnt; i++ {
-		old := atomic.LoadUint64(&f.data[hashVal])
-		if old == 0 {
+		if f.data[hashVal] == 0 {
 			return false
 		}
 		hashVal = f.hasher(fmt.Sprintf("%v%d", item, hashVal)) % f.capacity
@@ -39,31 +37,22 @@ func (f *BloomFilter[T]) MayExist(item T) bool {
 	return true
 }
 
-func (f *BloomFilter[T]) Add(item T) bool {
+func (f *BloomFilter[T]) Add(item T) {
 	hashVal := f.hash(item)
-	swapped := true
 	cnt := algow.Max(f.numDigit(hashVal), f.hashTimes)
 	for i := 0; i < cnt; i++ {
-		old := atomic.LoadUint64(&f.data[hashVal])
-		swapped = swapped && atomic.CompareAndSwapUint64(&f.data[hashVal], old, old+1)
+		f.data[hashVal]++
 		hashVal = f.hasher(fmt.Sprintf("%v%d", item, hashVal)) % f.capacity
 	}
-	return swapped
 }
 
-func (f *BloomFilter[T]) Delete(item T) bool {
+func (f *BloomFilter[T]) Delete(item T) {
 	hashVal := f.hash(item)
-	swapped := true
 	cnt := algow.Max(f.numDigit(hashVal), f.hashTimes)
 	for i := 0; i < cnt; i++ {
-		old := atomic.LoadUint64(&f.data[hashVal])
-		if old == 0 {
-			return false
-		}
-		swapped = swapped && atomic.CompareAndSwapUint64(&f.data[hashVal], old, old-1)
+		f.data[hashVal]--
 		hashVal = f.hasher(fmt.Sprintf("%v%d", item, hashVal)) % f.capacity
 	}
-	return swapped
 }
 
 func (f *BloomFilter[T]) spread(h int) int {

@@ -25,7 +25,7 @@ func (s *Set) Contains(item interface{}) bool {
 	return false
 }
 
-func (s *Set) Iterate() <-chan interface{} {
+func (s *Set) Iterate() chan interface{} {
 	c := make(chan interface{})
 	go func() {
 		defer close(c)

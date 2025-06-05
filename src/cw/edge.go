@@ -7,15 +7,18 @@ import (
 )
 
 type Edge[T any] struct {
-	v1, v2 T
-	weight float64
+	v1, v2   T
+	weight   float64
+	directed bool
 }
 
-func newEdge[T any](v1, v2 T, weight float64) *Edge[T] {
+func newEdge[T any](v1, v2 T, weight float64, directed bool) *Edge[T] {
 	return &Edge[T]{
 		v1:     v1,
 		v2:     v2,
 		weight: weight,
+
+		directed: directed,
 	}
 }
 
@@ -42,7 +45,11 @@ func (e *Edge[T]) Weight() float64 {
 }
 
 func (e *Edge[T]) String() string {
-	return fmt.Sprintf("Edge{%v,%v,%.3f}", e.v1, e.v2, e.weight)
+	symbol := "-"
+	if e.directed {
+		symbol = "->"
+	}
+	return fmt.Sprintf("(%v%s%v) %.3f", e.v1, symbol, e.v2, e.weight)
 }
 
 func (e *Edge[T]) cmp(other *Edge[T]) int {
