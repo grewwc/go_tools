@@ -423,7 +423,11 @@ func (j *Json) StringWithIndent(prefix, indent string) string {
 	if err != nil {
 		return fmt.Sprintf("%v", j.data)
 	}
-	return buf.String()
+	res, err := strconv.Unquote(buf.String())
+	if err != nil {
+		return fmt.Sprintf("%v", j.data)
+	}
+	return res
 }
 
 func (j *Json) ToFile(fname string) {
