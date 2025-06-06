@@ -423,10 +423,12 @@ func (j *Json) StringWithIndent(prefix, indent string) string {
 	if err != nil {
 		return fmt.Sprintf("%v", j.data)
 	}
-	res, err := strconv.Unquote(buf.String())
-	if err != nil {
-		return fmt.Sprintf("%v", j.data)
-	}
+
+	res := buf.String()
+	// \u0026, \u003c, and \u003e
+	res = strings.ReplaceAll(res, `\u0026`, "&")
+	res = strings.ReplaceAll(res, `\u003c`, "<")
+	res = strings.ReplaceAll(res, `\u003e`, ">")
 	return res
 }
 
