@@ -9,14 +9,17 @@ import (
 	"github.com/grewwc/go_tools/src/utilsw"
 )
 
-// var missing = utilsw.NewJson(nil)
-// var extra = utilsw.NewJson(nil)
 var diff = utilsw.NewJson(nil)
 
 var diffKeys = cw.NewOrderedSet()
 
 func buildJson(key string, old, new interface{}) *utilsw.Json {
 	res := utilsw.NewJson(nil)
+	if old == nil {
+		key += "  [new]"
+	} else if new == nil {
+		key += "  [old]"
+	}
 	res.Set("key", key)
 	res.Set("old", old)
 	res.Set("new", new)
@@ -43,13 +46,18 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 		diffKeys.Add(k)
 		return
 	}
-	for _, key := range j1.Keys() {
+	keys := append(j1.Keys(), j2.Keys()...)
+	for _, key := range keys {
 		k := absKey(currKey, key)
+		if diffKeys.Contains(k) {
+			continue
+		}
 		v1 := j1.Get(key)
 		v2 := j2.Get(key)
 
-		if !j2.ContainsKey(key) {
+		if !j2.ContainsKey(key) || !j1.ContainsKey(key) {
 			diff.Add(buildJson(k, v1, v2))
+			diffKeys.Add(k)
 			continue
 		}
 
@@ -57,6 +65,7 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 		t2 := reflect.TypeOf(v2)
 		if t1 != t2 {
 			diff.Add(buildJson(k, v1, v2))
+			diffKeys.Add(k)
 			continue
 		}
 
@@ -70,12 +79,12 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 		}
 		if _, ok := v1.(*utilsw.Json); ok {
 			compareJson(absKey(currKey, key), v1.(*utilsw.Json), v2.(*utilsw.Json))
-
 			continue
 		}
 		// normal types
 		if v1 != v2 {
 			diff.Add(buildJson(k, v1, v2))
+			diffKeys.Add(k)
 			continue
 		}
 	}
@@ -93,5 +102,7 @@ func main() {
 	oldJson := utilsw.NewJsonFromFile(os.Args[1])
 	newJson := utilsw.NewJsonFromFile(os.Args[2])
 	compareJson("", oldJson, newJson)
-	diff.ToFile("./_s.json")
+	fname := "./_s.json"
+	diff.ToFile(fname)
+	fmt.Println("write to " + fname)
 }
