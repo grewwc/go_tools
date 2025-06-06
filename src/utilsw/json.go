@@ -368,7 +368,7 @@ func (j *Json) Len() int {
 func (j *Json) Keys() []string {
 	result := make([]string, 0, j.Len())
 	if mResult, ok := j.data.(*cw.OrderedMap); ok {
-		for k := range mResult.Iterate() {
+		for k := range mResult.Iter().Iterate() {
 			result = append(result, k.Key().(string))
 		}
 		return result

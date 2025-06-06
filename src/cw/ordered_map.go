@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 // OrderedMap is a map that maintains the order of insertion.
@@ -14,16 +16,17 @@ type OrderedMap struct {
 	l *list.List
 }
 
-type MapEntry struct {
-	k, v interface{}
+type MapEntry[K, V any] struct {
+	k K
+	v V
 }
 
-func (e MapEntry) Key() interface{} {
-	return e.k
+func (entry *MapEntry[K, V]) Key() K {
+	return entry.k
 }
 
-func (e MapEntry) Val() interface{} {
-	return e.v
+func (entry *MapEntry[K, V]) Val() V {
+	return entry.v
 }
 
 func NewOrderedMap() *OrderedMap {
@@ -34,10 +37,10 @@ func NewOrderedMap() *OrderedMap {
 
 func (s *OrderedMap) Put(k, v interface{}) {
 	if node, exist := s.m[k]; !exist {
-		e := s.l.PushBack(&MapEntry{k, v})
+		e := s.l.PushBack(&MapEntry[any, any]{k, v})
 		s.m[k] = e
 	} else {
-		node.Value = &MapEntry{k, v}
+		node.Value = &MapEntry[any, any]{k, v}
 	}
 }
 
@@ -52,31 +55,34 @@ func (s *OrderedMap) Get(k interface{}) interface{} {
 	if s.m[k] == nil {
 		return nil
 	}
-	return s.m[k].Value.(*MapEntry).v
+	return s.m[k].Value.(*MapEntry[any, any]).v
 }
 
 func (s *OrderedMap) GetOrDefault(k, defaultVal interface{}) interface{} {
 	if val, ok := s.m[k]; ok {
-		return val.Value.(*MapEntry).v
+		return val.Value.(*MapEntry[any, any]).v
 	}
 	return defaultVal
 }
 
-func (s OrderedMap) Iterate() <-chan *MapEntry {
-	c := make(chan *MapEntry)
-	go func() {
-		defer close(c)
-		l := s.l.Len()
-		elem := s.l.Front()
-		if elem == nil {
-			return
-		}
-		for i := 0; i < l; i++ {
-			c <- elem.Value.(*MapEntry)
-			elem = elem.Next()
-		}
-	}()
-	return c
+func (s OrderedMap) Iter() typesw.IterableT[*MapEntry[any, any]] {
+	f := func() chan *MapEntry[any, any] {
+		c := make(chan *MapEntry[any, any])
+		go func() {
+			defer close(c)
+			l := s.l.Len()
+			elem := s.l.Front()
+			if elem == nil {
+				return
+			}
+			for i := 0; i < l; i++ {
+				c <- elem.Value.(*MapEntry[any, any])
+				elem = elem.Next()
+			}
+		}()
+		return c
+	}
+	return typesw.FuncToIterable(f)
 }
 
 func (s *OrderedMap) Contains(k interface{}) bool {
@@ -213,7 +219,7 @@ func encode(w io.Writer, om *OrderedMap) error {
 	buf := &bytes.Buffer{}
 	buf.WriteString("{")
 	i := 0
-	for item := range om.Iterate() {
+	for item := range om.Iter().Iterate() {
 		// 写入键名
 		buf.WriteByte('"')
 		buf.WriteString(item.Key().(string))
@@ -309,7 +315,7 @@ func (s *OrderedMap) String() string {
 		return "\n"
 	}
 	for i := 0; i < s.Size(); i++ {
-		k := front.Value.(*MapEntry).k
+		k := front.Value.(*MapEntry[any, any]).k
 		res = append(res, fmt.Sprintf("%v: %v", k, s.Get(k)))
 		front = front.Next()
 	}
@@ -324,7 +330,7 @@ func (s OrderedMap) ShallowCopy() *OrderedMap {
 		return result
 	}
 	for i := 0; i < s.Size(); i++ {
-		k := front.Value.(*MapEntry).k
+		k := front.Value.(*MapEntry[any, any]).k
 		result.Put(k, s.Get(k))
 		front = front.Next()
 	}

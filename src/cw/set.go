@@ -2,6 +2,8 @@ package cw
 
 import (
 	"fmt"
+
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 type Set struct {
@@ -25,15 +27,10 @@ func (s *Set) Contains(item interface{}) bool {
 	return false
 }
 
-func (s *Set) Iterate() chan interface{} {
-	c := make(chan interface{})
-	go func() {
-		defer close(c)
-		for k := range s.data {
-			c <- k
-		}
-	}()
-	return c
+func (s *Set) Iter() typesw.Iterable {
+	return &interfaceKeyMapIterator[interface{}, bool]{
+		data: s.data,
+	}
 }
 
 func (s *Set) MutualExclude(another *Set) bool {

@@ -62,11 +62,10 @@ func (g *WeightedUndirectedGraph[T]) AddEdge(u, v T, weight float64) bool {
 
 	si := su.Intersect(sv)
 	if !si.Empty() {
-		ch := si.Iterate()
+		it := si.Iter()
+		ch := it.Iterate()
 		s := (<-ch).(*Edge[T])
-		if _, ok := <-ch; ok {
-			close(ch)
-		}
+		it.Stop()
 		s.weight = weight
 		return true
 	} else if !added {
@@ -88,8 +87,8 @@ func (g *WeightedUndirectedGraph[T]) Edges() typesw.IterableT[*Edge[T]] {
 		ch := make(chan *Edge[T])
 		go func() {
 			defer close(ch)
-			for tup := range g.nodes.IterateEntry() {
-				for e := range tup.Get(1).(*Set).Iterate() {
+			for tup := range g.nodes.IterEntry().Iterate() {
+				for e := range tup.Val().Iter().Iterate() {
 					ch <- e.(*Edge[T])
 				}
 			}
@@ -144,7 +143,7 @@ func (g *WeightedUndirectedGraph[T]) DeleteEdge(u, v T) bool {
 }
 
 func (g *WeightedUndirectedGraph[T]) dijkstraRelax(v T) {
-	for e := range g.nodes.GetOrDefault(v, NewSet()).Iterate() {
+	for e := range g.nodes.GetOrDefault(v, NewSet()).Iter().Iterate() {
 		edge := e.(*Edge[T])
 		w := edge.Other(v, g.cmp)
 		var newDist float64
@@ -218,5 +217,5 @@ func (g *WeightedUndirectedGraph[T]) ShortestPath(from, to T) typesw.IterableT[*
 		curr = edge.Other(curr, g.cmp)
 	}
 	// res = append(res, from)
-	return typesw.ToIterable[*Edge[T]](s)
+	return typesw.ToIterable[*Edge[T]](s.Iter())
 }

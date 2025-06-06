@@ -83,7 +83,7 @@ func (g *UndirectedGraph[T]) DeleteNode(u T) bool {
 		return false
 	}
 	g.needRemark = true
-	for adj := range g.Adj(u).Iterate() {
+	for adj := range g.Adj(u).Iter().Iterate() {
 		g.DeleteEdge(u, adj.(T))
 	}
 	g.nodes.Delete(u)
@@ -120,7 +120,7 @@ func (g *UndirectedGraph[T]) Mark() {
 	if !g.needRemark {
 		return
 	}
-	for v := range g.nodes.Iterate() {
+	for v := range g.nodes.Iter().Iterate() {
 		if !g.marked.Contains(v) {
 			g.groupCnt++
 			g.bfsMark(v)
@@ -198,7 +198,7 @@ func (g *UndirectedGraph[T]) bfsMark(u T) {
 		curr := q.Dequeue().(T)
 		g.marked.Add(curr)
 		g.groupId.PutIfAbsent(curr, g.groupCnt)
-		for adj := range g.Adj(curr).Iterate() {
+		for adj := range g.Adj(curr).Iter().Iterate() {
 			if !g.marked.Contains(adj) {
 				q.Enqueue(adj)
 				g.edgeTo.Put(adj.(T), curr)

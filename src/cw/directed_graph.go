@@ -59,7 +59,7 @@ func (g *DirectedGraph[T]) DeleteNode(u T) bool {
 		return false
 	}
 	g.needRemark = true
-	for adj := range g.Adj(u).Iterate() {
+	for adj := range g.Adj(u).Iter().Iterate() {
 		g.DeleteEdge(u, adj.(T))
 	}
 	g.nodes.Delete(u)
@@ -122,7 +122,7 @@ func (g *DirectedGraph[T]) Sorted() typesw.IterableT[T] {
 	if g.hasCycle {
 		return nil
 	}
-	return typesw.ToIterable[T](g.reversePost)
+	return typesw.ToIterable[T](g.reversePost.Iter())
 }
 
 func (g *DirectedGraph[T]) Nodes() []T {
@@ -149,9 +149,9 @@ func (g *DirectedGraph[T]) NumEdges() int {
 
 func (g *DirectedGraph[T]) StrongComponents() [][]T {
 	res := make([][]T, g.NumStrongComponents())
-	for t := range g.groupId.IterateEntry() {
-		id := t.Get(1).(int)
-		v := t.Get(0).(T)
+	for t := range g.groupId.IterEntry().Iterate() {
+		id := t.Val()
+		v := t.Key()
 		res[id] = append(res[id], v)
 	}
 	return res
@@ -168,7 +168,7 @@ func (g *DirectedGraph[T]) dfsMark(root, u T) {
 	marked.Add(u)
 	g.marked.Add(u)
 	g.groupId.Put(u, g.componentCnt)
-	for adj := range g.Adj(u).Iterate() {
+	for adj := range g.Adj(u).Iter().Iterate() {
 		if g.hasCycle {
 			break
 		}
@@ -184,7 +184,7 @@ func (g *DirectedGraph[T]) dfsMark(root, u T) {
 			}
 			s.Push(adj)
 			s.Push(u)
-			for val := range s.Iterate() {
+			for val := range s.Iter().Iterate() {
 				g.cycle = append(g.cycle, val.(T))
 			}
 		}
@@ -205,7 +205,7 @@ func (g *DirectedGraph[T]) bfsMark(u T) {
 	for !q.Empty() {
 		curr := q.Dequeue().(T)
 		marked.Add(curr)
-		for adj := range g.Adj(curr).Iterate() {
+		for adj := range g.Adj(curr).Iter().Iterate() {
 			if !marked.Contains(adj) {
 				q.Enqueue(adj)
 				g.edgeTo.Put(adj.(T), curr)
@@ -240,10 +240,10 @@ func (g *DirectedGraph[T]) Cycle() []T {
 
 func (g *DirectedGraph[T]) reverse() *DirectedGraph[T] {
 	res := NewDirectedGraph(g.cmp)
-	for t := range g.nodes.IterateEntry() {
-		k := t.Get(0).(T)
-		v := t.Get(1).(*Set)
-		for node := range v.Iterate() {
+	for t := range g.nodes.IterEntry().Iterate() {
+		k := t.Key()
+		v := t.Val()
+		for node := range v.Iter().Iterate() {
 			res.AddEdge(node.(T), k)
 		}
 	}
@@ -254,7 +254,7 @@ func (g *DirectedGraph[T]) mark(needPath bool, needReverseMark bool) {
 	if !g.needRemark {
 		return
 	}
-	for v := range g.nodes.Iterate() {
+	for v := range g.nodes.Iter().Iterate() {
 		g.dfsMark(v, v)
 		if needPath {
 			g.bfsMark(v)
@@ -264,7 +264,7 @@ func (g *DirectedGraph[T]) mark(needPath bool, needReverseMark bool) {
 		g.reverseGraph = g.reverse()
 		g.reverseGraph.mark(true, false)
 		cp := g.reverseGraph.reverse()
-		for v := range g.reversePost.Iterate() {
+		for v := range g.reversePost.Iter().Iterate() {
 			if !cp.marked.Contains(v) {
 				cp.dfsMark(v.(T), v.(T))
 				cp.componentCnt++

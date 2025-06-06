@@ -57,7 +57,7 @@ func (cm *ConcurrentHashMap[K, V]) rehash(size int) {
 		if bucket == nil {
 			continue
 		}
-		for entry := range bucket.data.IterateEntry() {
+		for entry := range bucket.data.IterEntry().Iterate() {
 			index := cm.hash(entry.k)
 			if cm.buckets[index] == nil {
 				cm.buckets[index] = &buck[K, V]{mu: &sync.RWMutex{}, data: NewTreeMap[K, V](cm.cmp)}
@@ -191,7 +191,7 @@ func (cm *ConcurrentHashMap[K, V]) Values() []V {
 		buck.mu.Unlock()
 	}
 	res := make([]V, 0, s.Size())
-	for val := range s.Iterate() {
+	for val := range s.Iter().Iterate() {
 		res = append(res, val.(V))
 	}
 	return res
@@ -286,43 +286,49 @@ func (cm *ConcurrentHashMap[K, V]) Clear() {
 }
 
 // Iterate is not thread safe
-func (cm *ConcurrentHashMap[K, V]) Iterate() <-chan K {
-	ch := make(chan K)
-	go func() {
-		defer close(ch)
-		cm.mutex.RLock()
-		defer cm.mutex.RUnlock()
-		for _, bucket := range cm.buckets {
-			if bucket == nil {
-				continue
+func (cm *ConcurrentHashMap[K, V]) Iter() typesw.IterableT[K] {
+	f := func() chan K {
+		ch := make(chan K)
+		go func() {
+			defer close(ch)
+			cm.mutex.RLock()
+			defer cm.mutex.RUnlock()
+			for _, bucket := range cm.buckets {
+				if bucket == nil {
+					continue
+				}
+				bucket.mu.RLock()
+				for k := range bucket.data.Iterate() {
+					ch <- k
+				}
+				bucket.mu.RUnlock()
 			}
-			bucket.mu.RLock()
-			for k := range bucket.data.Iterate() {
-				ch <- k
-			}
-			bucket.mu.RUnlock()
-		}
-	}()
-	return ch
+		}()
+		return ch
+	}
+	return typesw.FuncToIterable(f)
 }
 
 // Iterate is not thread safe
-func (cm *ConcurrentHashMap[K, V]) IterateEntry() <-chan *Tuple {
-	ch := make(chan *Tuple)
-	go func() {
-		defer close(ch)
-		cm.mutex.RLock()
-		defer cm.mutex.RUnlock()
-		for _, bucket := range cm.buckets {
-			if bucket == nil {
-				continue
+func (cm *ConcurrentHashMap[K, V]) IterEntry() typesw.IterableT[typesw.IMapEntry[K, V]] {
+	f := func() chan typesw.IMapEntry[K, V] {
+		ch := make(chan typesw.IMapEntry[K, V])
+		go func() {
+			defer close(ch)
+			cm.mutex.RLock()
+			defer cm.mutex.RUnlock()
+			for _, bucket := range cm.buckets {
+				if bucket == nil {
+					continue
+				}
+				bucket.mu.RLock()
+				for entry := range bucket.data.IterEntry().Iterate() {
+					ch <- &MapEntry[K, V]{entry.k, entry.v}
+				}
+				bucket.mu.RUnlock()
 			}
-			bucket.mu.RLock()
-			for entry := range bucket.data.IterateEntry() {
-				ch <- NewTuple(entry.k, entry.v)
-			}
-			bucket.mu.RUnlock()
-		}
-	}()
-	return ch
+		}()
+		return ch
+	}
+	return typesw.FuncToIterable(f)
 }

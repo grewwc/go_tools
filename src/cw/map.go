@@ -1,5 +1,7 @@
 package cw
 
+import "github.com/grewwc/go_tools/src/typesw"
+
 type Map[K, V any] struct {
 	data map[any]any
 }
@@ -43,7 +45,7 @@ func (m *Map[K, V]) Values() []V {
 		s.Add(v)
 	}
 	res := make([]V, 0, s.Size())
-	for val := range s.Iterate() {
+	for val := range s.Iter().Iterate() {
 		res = append(res, val.(V))
 	}
 	return res
@@ -81,32 +83,30 @@ func (m *Map[K, V]) DeleteAll(keys ...K) {
 	}
 }
 
-func (m *Map[K, V]) Iterate() <-chan K {
-	ch := make(chan K)
-	go func() {
-		defer close(ch)
-		for k := range m.data {
-			ch <- k.(K)
-		}
-	}()
-	return ch
+func (m *Map[K, V]) Iter() typesw.IterableT[K] {
+	return &interfaceKeyMapIterator[K, interface{}]{
+		data: m.data,
+	}
 }
 
-func (m *Map[K, V]) IterateEntry() <-chan *Tuple {
-	ch := make(chan *Tuple)
-	go func() {
-		for k, v := range m.data {
-			ch <- NewTuple(k, v)
-		}
-		close(ch)
-	}()
-	return ch
+func (m *Map[K, V]) IterEntry() typesw.IterableT[typesw.IMapEntry[K, V]] {
+	f := func() chan typesw.IMapEntry[K, V] {
+		ch := make(chan typesw.IMapEntry[K, V])
+		go func() {
+			for k, v := range m.data {
+				ch <- &MapEntry[K, V]{k.(K), v.(V)}
+			}
+			close(ch)
+		}()
+		return ch
+	}
+	return typesw.FuncToIterable(f)
 }
 
 func (m *Map[K, V]) ReverseKV() *Map[V, K] {
 	res := NewMap[V, K]()
-	for t := range m.IterateEntry() {
-		res.Put(t.Get(1).(V), t.Get(0).(K))
+	for t := range m.IterEntry().Iterate() {
+		res.Put(t.Val(), t.Key())
 	}
 	return res
 }

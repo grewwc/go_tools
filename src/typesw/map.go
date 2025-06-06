@@ -1,5 +1,10 @@
 package typesw
 
+type IMapEntry[K, V any] interface {
+	Key() K
+	Val() V
+}
+
 type IMap[K, V any] interface {
 	Get(key K) V
 	GetOrDefault(key K, defaultVal V) V
@@ -9,7 +14,8 @@ type IMap[K, V any] interface {
 	Delete(key K) bool
 	Size() int
 	DeleteAll(keys ...K)
-	Iterate() <-chan (K)
+	Iter() IterableT[K]
+	IterEntry() IterableT[IMapEntry[K, V]]
 	Clear()
 	Keys() []K
 	Values() []V
@@ -30,7 +36,7 @@ type IList interface {
 	Delete(interface{}) bool
 	Len() int
 	Empty() bool
-	Iterate() <-chan interface{}
+	Iter() Iterable
 	ShallowCopy() IList
 	Contains(interface{}) bool
 	Equals(IList) bool

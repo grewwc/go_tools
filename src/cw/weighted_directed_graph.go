@@ -74,8 +74,8 @@ func (g *WeightedDirectedGraph[T]) Edges() typesw.IterableT[*Edge[T]] {
 		ch := make(chan *Edge[T])
 		go func() {
 			defer close(ch)
-			for tup := range g.nodes.IterateEntry() {
-				for e := range tup.Get(1).(*Set).Iterate() {
+			for tup := range g.nodes.IterEntry().Iterate() {
+				for e := range tup.Val().Iter().Iterate() {
 					ch <- e.(*Edge[T])
 				}
 			}
@@ -85,7 +85,7 @@ func (g *WeightedDirectedGraph[T]) Edges() typesw.IterableT[*Edge[T]] {
 }
 
 func (g *WeightedDirectedGraph[T]) dijkstraRelax(v T) {
-	for e := range g.nodes.GetOrDefault(v, NewSet()).Iterate() {
+	for e := range g.nodes.GetOrDefault(v, NewSet()).Iter().Iterate() {
 		edge := e.(*Edge[T])
 		w := edge.Other(v, g.cmp)
 		var newDist float64
@@ -174,5 +174,5 @@ func (g *WeightedDirectedGraph[T]) ShortestPath(from, to T) typesw.IterableT[*Ed
 		curr = edge.Other(curr, g.cmp)
 	}
 	// res = append(res, from)
-	return typesw.ToIterable[*Edge[T]](s)
+	return typesw.ToIterable[*Edge[T]](s.Iter())
 }

@@ -2,6 +2,8 @@ package cw
 
 import (
 	"sync"
+
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 type MutexMap[K, V any] struct {
@@ -59,7 +61,7 @@ func (m *MutexMap[K, V]) Values() []V {
 		s.Add(v)
 	}
 	res := make([]V, 0, s.Size())
-	for val := range s.Iterate() {
+	for val := range s.Iter().Iterate() {
 		res = append(res, val.(V))
 	}
 	return res
@@ -107,21 +109,44 @@ func (m *MutexMap[K, V]) DeleteAll(keys ...K) {
 	}
 }
 
-func (m *MutexMap[K, V]) Iterate() <-chan K {
-	sz := m.Size()
-	if sz > 32 {
-		sz = 32
-	}
-	ch := make(chan K)
-	go func() {
-		defer close(ch)
-		m.mu.RLock()
-		defer m.mu.RUnlock()
-		for k := range m.data {
-			ch <- k.(K)
+func (m *MutexMap[K, V]) Iter() typesw.IterableT[K] {
+	f := func() chan K {
+		sz := m.Size()
+		if sz > 32 {
+			sz = 32
 		}
-	}()
-	return ch
+		ch := make(chan K)
+		go func() {
+			defer close(ch)
+			m.mu.RLock()
+			defer m.mu.RUnlock()
+			for k := range m.data {
+				ch <- k.(K)
+			}
+		}()
+		return ch
+	}
+	return typesw.FuncToIterable(f)
+}
+
+func (m *MutexMap[K, V]) IterEntry() typesw.IterableT[typesw.IMapEntry[K, V]] {
+	f := func() chan typesw.IMapEntry[K, V] {
+		sz := m.Size()
+		if sz > 32 {
+			sz = 32
+		}
+		ch := make(chan typesw.IMapEntry[K, V])
+		go func() {
+			defer close(ch)
+			m.mu.RLock()
+			defer m.mu.RUnlock()
+			for k, v := range m.data {
+				ch <- &MapEntry[K, V]{k.(K), v.(V)}
+			}
+		}()
+		return ch
+	}
+	return typesw.FuncToIterable(f)
 }
 
 func (m *MutexMap[K, V]) Clear() {

@@ -1,5 +1,7 @@
 package cw
 
+import "github.com/grewwc/go_tools/src/typesw"
+
 /*Stack is not thread safe*/
 type Stack struct {
 	data []interface{}
@@ -39,13 +41,8 @@ func (s *Stack) Resize() {
 	s.data = s.data[:0]
 }
 
-func (s *Stack) Iterate() chan interface{} {
-	res := make(chan interface{})
-	go func() {
-		for i := len(s.data) - 1; i >= 0; i-- {
-			res <- s.data[i]
-		}
-		close(res)
-	}()
-	return res
+func (s *Stack) Iter() typesw.Iterable {
+	return &sliceIterator[interface{}]{
+		data: s.data,
+	}
 }

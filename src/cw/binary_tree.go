@@ -405,21 +405,24 @@ func (t *RbTree[T]) Clear() {
 	t.root = nil
 }
 
-func (t *RbTree[T]) Iterate() <-chan T {
-	ret := make(chan T)
-	go func() {
-		defer close(ret)
-		st := NewDeque()
-		curr := t.root
-		for curr != nil || !st.Empty() {
-			for curr != nil {
-				st.PushBack(curr)
-				curr = curr.left
+func (t *RbTree[T]) Iter() typesw.IterableT[T] {
+	f := func() chan T {
+		ret := make(chan T)
+		go func() {
+			defer close(ret)
+			st := NewDeque()
+			curr := t.root
+			for curr != nil || !st.Empty() {
+				for curr != nil {
+					st.PushBack(curr)
+					curr = curr.left
+				}
+				curr = st.PopBack().(*treeNode[T])
+				ret <- curr.val
+				curr = curr.right
 			}
-			curr = st.PopBack().(*treeNode[T])
-			ret <- curr.val
-			curr = curr.right
-		}
-	}()
-	return ret
+		}()
+		return ret
+	}
+	return typesw.FuncToIterable(f)
 }

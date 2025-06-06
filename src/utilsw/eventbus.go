@@ -120,7 +120,7 @@ func (b *EventBus) UnRegister(topic string, listener interface{}) {
 func (b *EventBus) Post(topic string, args ...interface{}) {
 	// function
 outer:
-	for funcname := range b.functions.Iterate() {
+	for funcname := range b.functions.Iter().Iterate() {
 		funcname = _utils_helpers.RemoveTopicFromMethodName(topic, funcname)
 		funcname = _utils_helpers.AddTopicToMethodName(topic, funcname)
 		b.funcMu.RLock()
@@ -148,10 +148,10 @@ outer:
 		return
 	}
 
-	for obj := range b.m.Iterate() {
+	for obj := range b.m.Iter().Iterate() {
 		methodNameSet := b.m.Get(obj)
 	methodLoop:
-		for methodName := range methodNameSet.Iterate() {
+		for methodName := range methodNameSet.Iter().Iterate() {
 			methodName = _utils_helpers.RemoveTopicFromMethodName(topic, methodName)
 			methodName = _utils_helpers.AddTopicToMethodName(topic, methodName)
 			// b.nameMapMu.RLock()

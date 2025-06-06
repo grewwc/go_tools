@@ -2,20 +2,15 @@ package cw
 
 import "github.com/grewwc/go_tools/src/typesw"
 
-type sortedMapEntry[K any, V any] struct {
-	k K
-	v V
-}
-
 type TreeMap[K any, V any] struct {
-	rbTree *RbTree[*sortedMapEntry[K, V]]
+	rbTree *RbTree[*MapEntry[K, V]]
 }
 
 func NewTreeMap[K, V any](cmp typesw.CompareFunc[K]) *TreeMap[K, V] {
 	if cmp == nil {
 		cmp = typesw.CreateDefaultCmp[K]()
 	}
-	cmpWrapper := func(a, b *sortedMapEntry[K, V]) int {
+	cmpWrapper := func(a, b *MapEntry[K, V]) int {
 		return cmp(a.k, b.k)
 	}
 	return &TreeMap[K, V]{
@@ -24,7 +19,7 @@ func NewTreeMap[K, V any](cmp typesw.CompareFunc[K]) *TreeMap[K, V] {
 }
 
 func (m *TreeMap[K, V]) Get(key K) V {
-	ret := m.rbTree.Search(&sortedMapEntry[K, V]{k: key})
+	ret := m.rbTree.Search(&MapEntry[K, V]{k: key})
 	if ret == nil {
 		return *new(V)
 	}
@@ -32,7 +27,7 @@ func (m *TreeMap[K, V]) Get(key K) V {
 }
 
 func (m *TreeMap[K, V]) GetOrDefault(key K, defaultVal V) V {
-	ret := m.rbTree.Search(&sortedMapEntry[K, V]{k: key})
+	ret := m.rbTree.Search(&MapEntry[K, V]{k: key})
 	if ret == nil {
 		return defaultVal
 	}
@@ -40,7 +35,7 @@ func (m *TreeMap[K, V]) GetOrDefault(key K, defaultVal V) V {
 }
 
 func (m *TreeMap[K, V]) Contains(key K) bool {
-	return m.rbTree.Contains(&sortedMapEntry[K, V]{k: key})
+	return m.rbTree.Contains(&MapEntry[K, V]{k: key})
 }
 
 func (m *TreeMap[K, V]) Keys() []K {
@@ -53,18 +48,18 @@ func (m *TreeMap[K, V]) Keys() []K {
 
 func (m *TreeMap[K, V]) Values() []V {
 	s := NewSet()
-	for entry := range m.IterateEntry() {
+	for entry := range m.IterEntry().Iterate() {
 		s.Add(entry.v)
 	}
 	res := make([]V, 0, s.Size())
-	for val := range s.Iterate() {
+	for val := range s.Iter().Iterate() {
 		res = append(res, val.(V))
 	}
 	return res
 }
 
 func (m *TreeMap[K, V]) Put(key K, value V) bool {
-	node := sortedMapEntry[K, V]{k: key, v: value}
+	node := MapEntry[K, V]{k: key, v: value}
 	n := m.rbTree.Search(&node)
 	if n == nil {
 		m.rbTree.Insert(&node)
@@ -75,7 +70,7 @@ func (m *TreeMap[K, V]) Put(key K, value V) bool {
 }
 
 func (m *TreeMap[K, V]) PutIfAbsent(key K, value V) bool {
-	node := sortedMapEntry[K, V]{k: key, v: value}
+	node := MapEntry[K, V]{k: key, v: value}
 	if m.rbTree.Contains(&node) {
 		return false
 	}
@@ -92,7 +87,7 @@ func (m *TreeMap[K, V]) Len() int {
 }
 
 func (m *TreeMap[K, V]) Delete(key K) bool {
-	node := sortedMapEntry[K, V]{k: key}
+	node := MapEntry[K, V]{k: key}
 	n := m.rbTree.Search(&node)
 	if n == nil {
 		return false
@@ -111,7 +106,7 @@ func (m *TreeMap[K, V]) Iterate() <-chan K {
 	ch := make(chan K)
 	go func() {
 		defer close(ch)
-		for val := range m.rbTree.Iterate() {
+		for val := range m.rbTree.Iter().Iterate() {
 			ch <- val.k
 		}
 	}()
@@ -119,16 +114,18 @@ func (m *TreeMap[K, V]) Iterate() <-chan K {
 	return ch
 }
 
-func (m *TreeMap[K, V]) IterateEntry() <-chan *sortedMapEntry[K, V] {
-	ch := make(chan *sortedMapEntry[K, V])
-	go func() {
-		defer close(ch)
-		for val := range m.rbTree.Iterate() {
-			ch <- val
-		}
-	}()
-
-	return ch
+func (m *TreeMap[K, V]) IterEntry() typesw.IterableT[*MapEntry[K, V]] {
+	f := func() chan *MapEntry[K, V] {
+		ch := make(chan *MapEntry[K, V])
+		go func() {
+			defer close(ch)
+			for val := range m.rbTree.Iter().Iterate() {
+				ch <- val
+			}
+		}()
+		return ch
+	}
+	return typesw.FuncToIterable(f)
 }
 
 func (m *TreeMap[K, V]) Clear() {
@@ -136,8 +133,8 @@ func (m *TreeMap[K, V]) Clear() {
 }
 
 func (m *TreeMap[K, V]) SearchRange(lower, upper K) []K {
-	lowerEntry := sortedMapEntry[K, V]{k: lower}
-	upperEntry := sortedMapEntry[K, V]{k: upper}
+	lowerEntry := MapEntry[K, V]{k: lower}
+	upperEntry := MapEntry[K, V]{k: upper}
 	entry := m.rbTree.SearchRange(&lowerEntry, &upperEntry)
 	ret := make([]K, 0, len(entry))
 	for _, e := range entry {

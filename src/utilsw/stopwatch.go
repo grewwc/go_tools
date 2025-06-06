@@ -119,7 +119,7 @@ func (s *StopWatch) TellAll() {
 	start := atomic.LoadInt64(&s.start)
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for entry := range s.records.Iterate() {
+	for entry := range s.records.Iter().Iterate() {
 		fmt.Printf("%s: %s\n", entry.Key().(string), format(float64(entry.Val().(int64)-start)))
 	}
 	fmt.Println(format(float64(s.curr() - start)))

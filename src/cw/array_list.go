@@ -37,20 +37,15 @@ func (q *ArrayList) Len() int {
 	return q.Size()
 }
 
-func (q *ArrayList) Iterate() <-chan interface{} {
-	ch := make(chan interface{})
-	go func() {
-		defer close(ch)
-		for _, item := range q.data {
-			ch <- item
-		}
-	}()
-	return ch
+func (q *ArrayList) Iter() typesw.Iterable {
+	return &sliceIterator[interface{}]{
+		data: q.data,
+	}
 }
 
 func (q *ArrayList) ToStringSlice() []string {
 	res := make([]string, 0, q.Len())
-	for s := range q.Iterate() {
+	for s := range q.Iter().Iterate() {
 		res = append(res, s.(string))
 	}
 	return res
@@ -58,7 +53,7 @@ func (q *ArrayList) ToStringSlice() []string {
 
 func (q *ArrayList) ShallowCopy() typesw.IList {
 	res := NewArrayList()
-	for item := range q.Iterate() {
+	for item := range q.Iter().Iterate() {
 		res.Add(item)
 	}
 	return res
@@ -76,7 +71,7 @@ func (q *ArrayList) Delete(item interface{}) bool {
 }
 
 func (q *ArrayList) Contains(target interface{}) bool {
-	for item := range q.Iterate() {
+	for item := range q.Iter().Iterate() {
 		if item == target {
 			return true
 		}
