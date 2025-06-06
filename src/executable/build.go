@@ -31,7 +31,7 @@ func main() {
 	parser.ParseArgsCmd("f", "force", "a", "h")
 	var force bool = parser.ContainsFlag("f") || parser.ContainsFlag("force")
 	var all bool = parser.ContainsFlagStrict("a")
-	for fname := range parser.Positional.Iterate() {
+	for fname := range parser.Positional.Iter().Iterate() {
 		fnameStr := fname.(string)
 		forceRebuildName.Add(fnameStr + ".go")
 	}

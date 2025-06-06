@@ -359,8 +359,8 @@ func (j *Json) Len() int {
 	if data, ok := j.data.(*cw.OrderedMap); ok {
 		return data.Size()
 	}
-	if data, ok := j.data.([]interface{}); ok {
-		return len(data)
+	if reflect.TypeOf(j.data).Kind() == reflect.Slice {
+		return reflect.ValueOf(j.data).Len()
 	}
 	return 0
 }
@@ -373,8 +373,8 @@ func (j *Json) Keys() []string {
 		}
 		return result
 	}
-	if sliceResult, ok := j.data.([]interface{}); ok {
-		for idx := range sliceResult {
+	if reflect.TypeOf(j.data).Kind() == reflect.Slice {
+		for idx := 0; idx < reflect.ValueOf(j.data).Len(); idx++ {
 			result = append(result, strconv.Itoa(idx))
 		}
 		return result
@@ -384,13 +384,29 @@ func (j *Json) Keys() []string {
 }
 
 func (j *Json) ContainsKey(key string) bool {
-	keys := j.Keys()
-	for _, k := range keys {
-		if key == k {
-			return true
+	if j.IsArray() {
+		if iKey, err := strconv.Atoi(key); err != nil {
+			return false
+		} else {
+			return iKey >= 0 && iKey < j.Len()
 		}
 	}
+
+	// json object
+	if m, ok := j.data.(*cw.OrderedMap); ok {
+		return m.Contains(key)
+	}
 	return false
+}
+
+func (j *Json) Scalar() interface{} {
+	if _, ok := j.data.(*cw.OrderedMap); ok {
+		return nil
+	}
+	if reflect.TypeOf(j.data).Kind() == reflect.Slice {
+		return nil
+	}
+	return j.data
 }
 
 func (j *Json) String() string {
