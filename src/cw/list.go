@@ -2,10 +2,12 @@ package cw
 
 import (
 	"container/list"
+
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 type LinkedList struct {
-	data *list.List
+	*list.List
 }
 
 func NewLinkedList(items ...interface{}) *LinkedList {
@@ -17,7 +19,7 @@ func NewLinkedList(items ...interface{}) *LinkedList {
 }
 
 func (q *LinkedList) Add(item interface{}) {
-	q.data.PushBack(item)
+	q.PushBack(item)
 }
 
 func (q *LinkedList) AddAll(items ...interface{}) {
@@ -31,27 +33,20 @@ func (q *LinkedList) Empty() bool {
 }
 
 func (q *LinkedList) Size() int {
-	return q.data.Len()
+	return q.Len()
 }
 
 func (q *LinkedList) Len() int {
 	return q.Size()
 }
 
-func (q *LinkedList) Iterate() <-chan interface{} {
-	ch := make(chan interface{})
-	go func() {
-		defer close(ch)
-		for curr := q.data.Front(); curr != nil; curr = curr.Next() {
-			ch <- curr.Value
-		}
-	}()
-	return ch
+func (q *LinkedList) Iter() typesw.Iterable {
+	return &listIterator[any]{data: q.List}
 }
 
 func (q *LinkedList) ToStringSlice() []string {
-	res := make([]string, 0, q.data.Len())
-	for s := range q.Iterate() {
+	res := make([]string, 0, q.Len())
+	for s := range q.Iter().Iterate() {
 		res = append(res, s.(string))
 	}
 	return res
@@ -59,7 +54,7 @@ func (q *LinkedList) ToStringSlice() []string {
 
 func (q *LinkedList) ShallowCopy() *LinkedList {
 	res := NewLinkedList()
-	for item := range q.Iterate() {
+	for item := range q.Iter().Iterate() {
 		res.Add(item)
 	}
 	return res
@@ -67,9 +62,9 @@ func (q *LinkedList) ShallowCopy() *LinkedList {
 
 func (q *LinkedList) Delete(item interface{}) bool {
 	var removed bool
-	for curr := q.data.Front(); curr != nil; curr = curr.Next() {
+	for curr := q.Front(); curr != nil; curr = curr.Next() {
 		if curr.Value == item {
-			q.data.Remove(curr)
+			q.List.Remove(curr)
 			removed = true
 		}
 	}
@@ -77,7 +72,7 @@ func (q *LinkedList) Delete(item interface{}) bool {
 }
 
 func (q *LinkedList) Contains(target interface{}) bool {
-	for item := range q.Iterate() {
+	for item := range q.Iter().Iterate() {
 		if item == target {
 			return true
 		}
@@ -89,10 +84,10 @@ func (q *LinkedList) Equals(other *LinkedList) bool {
 	if other == nil {
 		return false
 	}
-	if q.data.Len() != other.data.Len() {
+	if q.Len() != other.Len() {
 		return false
 	}
-	ca, cb := q.data.Front(), other.data.Front()
+	ca, cb := q.Front(), other.Front()
 	for i := 0; i < q.Size(); i++ {
 		if ca.Value != cb.Value {
 			return false
@@ -104,7 +99,7 @@ func (q *LinkedList) Equals(other *LinkedList) bool {
 }
 
 func (q *LinkedList) get(idx int) interface{} {
-	curr := q.data.Front()
+	curr := q.Front()
 	for i := 0; i < idx; i++ {
 		curr = curr.Next()
 		if curr == nil {
@@ -138,5 +133,5 @@ func (q *LinkedList) Remove(idx int) interface{} {
 	if elem == nil {
 		return nil
 	}
-	return q.data.Remove(elem.(*list.Element))
+	return q.List.Remove(elem.(*list.Element))
 }

@@ -43,6 +43,7 @@ func (s *Stack) Resize() {
 
 func (s *Stack) Iter() typesw.Iterable {
 	return &sliceIterator[interface{}]{
-		data: s.data,
+		data:    s.data,
+		reverse: true,
 	}
 }

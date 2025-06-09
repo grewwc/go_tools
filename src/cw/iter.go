@@ -1,8 +1,15 @@
 package cw
 
+import (
+	"container/list"
+
+	"github.com/grewwc/go_tools/src/typesw"
+)
+
 // sliceIterator
 type sliceIterator[T any] struct {
-	data []T
+	data    []T
+	reverse bool
 
 	chT chan T
 }
@@ -10,8 +17,14 @@ type sliceIterator[T any] struct {
 func (it *sliceIterator[T]) Iterate() <-chan T {
 	it.chT = make(chan T)
 	go func() {
-		for _, val := range it.data {
-			it.chT <- val
+		if !it.reverse {
+			for _, val := range it.data {
+				it.chT <- val
+			}
+		} else {
+			for i := len(it.data) - 1; i >= 0; i-- {
+				it.chT <- it.data[i]
+			}
 		}
 		quiteClose(it.chT)
 	}()
@@ -20,6 +33,30 @@ func (it *sliceIterator[T]) Iterate() <-chan T {
 
 func (it *sliceIterator[T]) Stop() {
 	quiteClose(it.chT)
+}
+
+// listIterator
+type listIterator[T any] struct {
+	data *list.List
+	ch   chan T
+}
+
+func (it *listIterator[T]) Iterate() <-chan T {
+	if it == nil || it.data == nil {
+		return typesw.EmptyIterable[T]().Iterate()
+	}
+	it.ch = make(chan T)
+	go func() {
+		for curr := it.data.Front(); curr != nil; curr = curr.Next() {
+			it.ch <- curr.Value.(T)
+		}
+		quiteClose(it.ch)
+	}()
+	return it.ch
+}
+
+func (it *listIterator[T]) Stop() {
+	quiteClose(it.ch)
 }
 
 // interfaceKeyMapIterator
