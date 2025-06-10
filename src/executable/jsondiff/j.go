@@ -6,6 +6,8 @@ import (
 	"reflect"
 
 	"github.com/grewwc/go_tools/src/cw"
+	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/typesw"
 	"github.com/grewwc/go_tools/src/utilsw"
 )
 
@@ -94,7 +96,30 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 }
 
 func main() {
-	if len(os.Args) != 3 {
+	parser := terminalw.NewParser()
+	parser.String("f", "", "format file")
+	parser.ParseArgsCmd()
+	positional := parser.Positional
+
+	if parser.ContainsFlagStrict("f") {
+		fname := parser.MustGetFlagVal("f")
+		var text string
+		if fname == "" {
+			text = utilsw.ReadClipboardText()
+		} else {
+			text = utilsw.ReadString(fname)
+		}
+		formated := utilsw.NewJsonFromString(text).StringWithIndent("", "  ")
+		if len(text) < 1024*16 {
+			fmt.Println(formated)
+		} else {
+			fmt.Println("write file to _f.json")
+			utilsw.WriteToFile(fname, typesw.StrToBytes(formated))
+		}
+		return
+	}
+
+	if positional.Len() != 2 {
 		fmt.Println("jc old.json new.json")
 		return
 	}
