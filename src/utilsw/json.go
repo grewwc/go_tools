@@ -121,7 +121,6 @@ func getByIndex[T type_](j *Json, idx int) T {
 		return *new(T)
 	}
 	if idx >= len(data) {
-		fmt.Printf("ERROR: idx (%d) >= size (%d)\n", idx, len(data))
 		return *new(T)
 	}
 	if res, ok := data[idx].(T); ok {
@@ -159,8 +158,8 @@ func unwrapJson(value interface{}) interface{} {
 	if ok {
 		return data.data
 	}
-	ptr, jsonPtr := value.(*Json)
-	if jsonPtr {
+	ptr, ok := value.(*Json)
+	if ok {
 		return ptr.data
 	}
 	return nil
@@ -300,6 +299,13 @@ func (j *Json) Get(key string) interface{} {
 	return getT[interface{}](j, key)
 }
 
+func (j *Json) GetOrDefault(key string, defaultVal interface{}) interface{} {
+	if j.ContainsKey(key) {
+		return j.Get(key)
+	}
+	return defaultVal
+}
+
 func (json *Json) flatten() []*Json {
 	if !json.IsArray() {
 		return []*Json{json}
@@ -403,7 +409,8 @@ func (j *Json) Scalar() interface{} {
 	if _, ok := j.data.(*cw.OrderedMap); ok {
 		return nil
 	}
-	if reflect.TypeOf(j.data).Kind() == reflect.Slice {
+	t := reflect.TypeOf(j.data)
+	if t == nil || t.Kind() == reflect.Slice {
 		return nil
 	}
 	return j.data

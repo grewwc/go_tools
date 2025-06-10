@@ -54,8 +54,8 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 		if diffKeys.Contains(k) {
 			continue
 		}
-		v1 := j1.Get(key)
-		v2 := j2.Get(key)
+		v1 := j1.GetOrDefault(key, nil)
+		v2 := j2.GetOrDefault(key, nil)
 
 		if !j2.ContainsKey(key) || !j1.ContainsKey(key) {
 			diff.Add(buildJson(k, v1, v2))
