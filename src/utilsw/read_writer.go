@@ -40,9 +40,10 @@ func FilterReader(src io.Reader, filter BytesFilter) io.Reader {
 	go func() {
 		// 确保在函数退出时关闭管道的写入端。
 		defer pw.Close()
+		defer pr.Close()
 
 		// 创建一个缓冲区用于读取数据。
-		b := make([]byte, 4096)
+		b := make([]byte, 8192*1024)
 		// 创建一个缓冲区，用于暂存需要延迟处理的数据。
 		var buf bytes.Buffer
 		for {

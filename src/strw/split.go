@@ -58,8 +58,12 @@ func SplitByStrKeepQuote(str string, sep string) []string {
 	inquote := false
 	var buf bytes.Buffer
 	// var curr bytes.Buffer
-	for _, r := range str {
-		if r == '"' {
+	var prev byte
+	for i, r := range str {
+		if i > 0 {
+			prev = str[i-1]
+		}
+		if r == '"' && prev != '\\' {
 			inquote = !inquote
 			buf.WriteRune(r)
 		} else {

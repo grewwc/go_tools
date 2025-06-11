@@ -29,8 +29,9 @@ func NewJsonFromFile(filename string) *Json {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer b.Close()
-	return NewJsonFromReader(b)
+	res := NewJsonFromReader(b)
+	b.Close()
+	return res
 }
 
 func NewJsonFromByte(data []byte) *Json {
