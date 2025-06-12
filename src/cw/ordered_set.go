@@ -3,6 +3,8 @@ package cw
 import (
 	"container/list"
 	"fmt"
+
+	"github.com/grewwc/go_tools/src/typesw"
 )
 
 type OrderedSet struct {
@@ -31,38 +33,18 @@ func (s *OrderedSet) AddAll(vs ...interface{}) {
 	}
 }
 
-func (s OrderedSet) Iterate() <-chan interface{} {
-	c := make(chan interface{})
-	go func() {
-		defer close(c)
-		l := s.l.Len()
-		elem := s.l.Front()
-		if elem == nil {
-			return
-		}
-		for i := 0; i < l; i++ {
-			c <- elem.Value
-			elem = elem.Next()
-		}
-	}()
-	return c
+func (s OrderedSet) Iter() typesw.Iterable {
+	return &listIterator[any]{
+		data:    s.l,
+		reverse: false,
+	}
 }
 
-func (s OrderedSet) ReverseIterate() <-chan interface{} {
-	c := make(chan interface{})
-	go func() {
-		defer close(c)
-		l := s.l.Len()
-		elem := s.l.Back()
-		if elem == nil {
-			return
-		}
-		for i := 0; i < l; i++ {
-			c <- elem.Value
-			elem = elem.Prev()
-		}
-	}()
-	return c
+func (s OrderedSet) ReverseIter() typesw.Iterable {
+	return &listIterator[any]{
+		data:    s.l,
+		reverse: false,
+	}
 }
 
 func (s *OrderedSet) Contains(v interface{}) bool {
@@ -178,7 +160,7 @@ func (s *OrderedSet) Subtract(another OrderedSet) {
 
 func (s OrderedSet) ToSlice() []interface{} {
 	res := make([]interface{}, 0, s.Size())
-	for v := range s.Iterate() {
+	for v := range s.Iter().Iterate() {
 		res = append(res, v)
 	}
 	return res
@@ -193,9 +175,6 @@ func (s OrderedSet) ToStringSlice() []string {
 		res = append(res, cur.Value.(string))
 		cur = cur.Next()
 	}
-	// for v := range s.Iterate() {
-	// 	res = append(res, v.(string))
-	// }
 
 	return res
 }

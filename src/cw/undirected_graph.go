@@ -181,7 +181,7 @@ func (g *UndirectedGraph[T]) path(from, to T) []T {
 	// res = append(res, from)
 	s.Add(from)
 	res := make([]T, 0, s.Size())
-	for node := range s.Iterate() {
+	for node := range s.Iter().Iterate() {
 		res = append(res, node.(T))
 	}
 	algow.Reverse(res)

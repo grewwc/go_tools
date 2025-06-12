@@ -37,8 +37,10 @@ func (it *sliceIterator[T]) Stop() {
 
 // listIterator
 type listIterator[T any] struct {
-	data *list.List
-	ch   chan T
+	data    *list.List
+	reverse bool
+
+	ch chan T
 }
 
 func (it *listIterator[T]) Iterate() <-chan T {
@@ -47,8 +49,14 @@ func (it *listIterator[T]) Iterate() <-chan T {
 	}
 	it.ch = make(chan T)
 	go func() {
-		for curr := it.data.Front(); curr != nil; curr = curr.Next() {
-			it.ch <- curr.Value.(T)
+		if !it.reverse {
+			for curr := it.data.Front(); curr != nil; curr = curr.Next() {
+				it.ch <- curr.Value.(T)
+			}
+		} else {
+			for curr := it.data.Back(); curr != nil; curr = curr.Prev() {
+				it.ch <- curr.Value.(T)
+			}
 		}
 		quiteClose(it.ch)
 	}()

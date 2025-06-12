@@ -21,15 +21,23 @@ import (
 
 type Json struct {
 	data interface{}
+
+	allowComment bool
 }
 
-func NewJsonFromFile(filename string) *Json {
+type JsonOption func(*Json)
+
+func WithComment(j *Json) {
+	j.allowComment = true
+}
+
+func NewJsonFromFile(filename string, options ...JsonOption) *Json {
 	filename = ExpandUser(filename)
 	b, err := os.Open(filename)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	res := NewJsonFromReader(b)
+	res := NewJsonFromReader(b, options...)
 	b.Close()
 	return res
 }
@@ -38,10 +46,19 @@ func NewJsonFromByte(data []byte) *Json {
 	return NewJsonFromReader(strings.NewReader(typesw.BytesToStr(data)))
 }
 
-func NewJsonFromReader(r io.Reader) *Json {
-	f := &commentsFilter{}
-	rr := FilterReader(r, f)
-	// rr := r
+func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
+	res := NewJson(nil)
+	for _, option := range options {
+		option(res)
+	}
+	var rr io.Reader
+	if res.allowComment {
+		f := &commentsFilter{}
+		rr = FilterReader(r, f)
+	} else {
+		rr = r
+	}
+
 	b := make([]byte, 1)
 	for {
 		_, err := rr.Read(b)
@@ -55,10 +72,10 @@ func NewJsonFromReader(r io.Reader) *Json {
 	}
 	if b[0] == '[' {
 		var buf bytes.Buffer
-		buf.WriteString(fmt.Sprintf(`{"_arr": %c`, b[0]))
+		buf.WriteString(fmt.Sprintf(`{"_________arr": %c`, b[0]))
 		newReader := io.MultiReader(bytes.NewReader(buf.Bytes()), rr, bytes.NewReader([]byte{'}'}))
 		j := NewJsonFromReader(newReader)
-		return j.GetJson("_arr")
+		return j.GetJson("__________arr")
 	} else if b[0] == '{' {
 		m := cw.NewOrderedMap()
 		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), rr))
@@ -66,7 +83,6 @@ func NewJsonFromReader(r io.Reader) *Json {
 		if err != nil {
 			panic(err)
 		}
-		res := NewJson(nil)
 		res.data = m
 		return res
 	} else {
@@ -74,8 +90,8 @@ func NewJsonFromReader(r io.Reader) *Json {
 	}
 }
 
-func NewJsonFromString(content string) *Json {
-	return NewJsonFromReader(strings.NewReader(content))
+func NewJsonFromString(content string, options ...JsonOption) *Json {
+	return NewJsonFromReader(strings.NewReader(content), options...)
 }
 
 func NewJson(data interface{}) *Json {
