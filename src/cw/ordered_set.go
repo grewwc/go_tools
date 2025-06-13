@@ -14,7 +14,7 @@ type OrderedSet struct {
 
 func NewOrderedSet(items ...interface{}) *OrderedSet {
 	l := list.New()
-	res := &OrderedSet{make(map[interface{}]*list.Element), l}
+	res := &OrderedSet{make(map[interface{}]*list.Element, 8), l}
 	res.AddAll(items...)
 	return res
 }
@@ -43,7 +43,7 @@ func (s OrderedSet) Iter() typesw.Iterable {
 func (s OrderedSet) ReverseIter() typesw.Iterable {
 	return &listIterator[any]{
 		data:    s.l,
-		reverse: false,
+		reverse: true,
 	}
 }
 
@@ -180,5 +180,5 @@ func (s OrderedSet) ToStringSlice() []string {
 }
 
 func (s OrderedSet) Equals(another OrderedSet) bool {
-	return s.IsSubSet(another) && s.IsSubSet(another)
+	return s.IsSubSet(another) && another.IsSubSet(s)
 }

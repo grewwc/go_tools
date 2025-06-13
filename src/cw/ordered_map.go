@@ -31,7 +31,7 @@ func (entry *MapEntry[K, V]) Val() V {
 
 func NewOrderedMap() *OrderedMap {
 	l := list.New()
-	res := &OrderedMap{make(map[interface{}]*list.Element), l}
+	res := &OrderedMap{make(map[interface{}]*list.Element, initCap), l}
 	return res
 }
 
@@ -40,7 +40,10 @@ func (s *OrderedMap) Put(k, v interface{}) {
 		e := s.l.PushBack(&MapEntry[any, any]{k, v})
 		s.m[k] = e
 	} else {
-		node.Value = &MapEntry[any, any]{k, v}
+		val := node.Value.(*MapEntry[any, any])
+		val.k = k
+		val.v = v
+		// node.Value = &MapEntry[any, any]{k, v}
 	}
 }
 
@@ -66,23 +69,10 @@ func (s *OrderedMap) GetOrDefault(k, defaultVal interface{}) interface{} {
 }
 
 func (s OrderedMap) Iter() typesw.IterableT[*MapEntry[any, any]] {
-	f := func() chan *MapEntry[any, any] {
-		c := make(chan *MapEntry[any, any])
-		go func() {
-			defer close(c)
-			l := s.l.Len()
-			elem := s.l.Front()
-			if elem == nil {
-				return
-			}
-			for i := 0; i < l; i++ {
-				c <- elem.Value.(*MapEntry[any, any])
-				elem = elem.Next()
-			}
-		}()
-		return c
+	return &listIterator[*MapEntry[any, any]]{
+		data:    s.l,
+		reverse: false,
 	}
-	return typesw.FuncToIterable(f)
 }
 
 func (s *OrderedMap) Contains(k interface{}) bool {
@@ -116,7 +106,7 @@ func (s *OrderedMap) Size() int {
 }
 
 func (s *OrderedMap) Clear() {
-	s.m = make(map[interface{}]*list.Element)
+	s.m = make(map[interface{}]*list.Element, initCap)
 	s.l.Init()
 }
 
@@ -165,7 +155,7 @@ func (om *OrderedMap) parseobject(dec *json.Decoder) (err error) {
 
 func parsearray(dec *json.Decoder) (arr []interface{}, err error) {
 	var t json.Token
-	arr = make([]interface{}, 0)
+	arr = make([]interface{}, 0, initCap)
 	for dec.More() {
 		t, err = dec.Token()
 		if err != nil {
@@ -219,7 +209,8 @@ func encode(w io.Writer, om *OrderedMap) error {
 	buf := &bytes.Buffer{}
 	buf.WriteString("{")
 	i := 0
-	for item := range om.Iter().Iterate() {
+	for e := om.l.Front(); e != nil; e = e.Next() {
+		item := e.Value.(*MapEntry[any, any])
 		// 写入键名
 		buf.WriteByte('"')
 		buf.WriteString(item.Key().(string))
