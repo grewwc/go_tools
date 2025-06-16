@@ -127,7 +127,7 @@ func (encoder *HuffmanEncoder) Encode(data []byte) []byte {
 	for _, b := range data {
 		res.WriteString(m.Get(b))
 	}
-	fmt.Println("original", res.String()[:20])
+    // fmt.Println("original", res.String()[:20])
 	return encoder.strToBytes(res.String())
 }
 
@@ -138,7 +138,7 @@ func (encoder *HuffmanEncoder) Decode(encoded []byte) []byte {
 
 	var res []byte
 	encodedString := encoder.bytesToStr(encoded)
-	fmt.Println("after", encodedString[:20])
+    // fmt.Println("after", encodedString[:20])
 	for i := 0; i < len(encodedString); i++ {
 		curr.WriteByte(encodedString[i])
 		if m.Contains(curr.String()) {
