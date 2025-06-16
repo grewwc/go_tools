@@ -48,7 +48,7 @@ func (set *TreeSet[T]) Len() int {
 }
 
 func (set *TreeSet[T]) Iterate() <-chan T {
-	return set.data.Iterate()
+	return set.data.Iter().Iterate()
 }
 
 func (set *TreeSet[T]) Clear() {
@@ -86,7 +86,7 @@ func (s *TreeSet[T]) Union(another *TreeSet[T]) *TreeSet[T] {
 }
 
 func (s *TreeSet[T]) IsSuperSet(another *TreeSet[T]) bool {
-	for k := range another.data.Iterate() {
+	for k := range another.data.Iter().Iterate() {
 		if !s.Contains(k) {
 			return false
 		}

@@ -57,6 +57,9 @@ func (s *Set) DeleteAll(items ...interface{}) {
 }
 
 func (s *Set) Intersect(another *Set) *Set {
+	if another == nil {
+		return nil
+	}
 	result := NewSet()
 	for k := range s.data {
 		if another.Contains(k) {
@@ -70,6 +73,9 @@ func (s *Set) Union(another *Set) *Set {
 	result := NewSet()
 	for k := range s.data {
 		result.Add(k)
+	}
+	if another == nil {
+		return result
 	}
 	for k := range another.data {
 		result.Add(k)
@@ -118,7 +124,10 @@ func (s *Set) ShallowCopy() *Set {
 	return result
 }
 
-func (s *Set) Subtract(another Set) {
+func (s *Set) Subtract(another *Set) {
+	if another == nil {
+		return
+	}
 	for k := range another.data {
 		s.Delete(k)
 	}

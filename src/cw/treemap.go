@@ -40,7 +40,7 @@ func (m *TreeMap[K, V]) Contains(key K) bool {
 
 func (m *TreeMap[K, V]) Keys() []K {
 	res := make([]K, 0, m.Size())
-	for k := range m.Iterate() {
+	for k := range m.Iter().Iterate() {
 		res = append(res, k)
 	}
 	return res
@@ -102,16 +102,19 @@ func (m *TreeMap[K, V]) DeleteAll(keys ...K) {
 	}
 }
 
-func (m *TreeMap[K, V]) Iterate() <-chan K {
-	ch := make(chan K)
-	go func() {
-		defer close(ch)
-		for val := range m.rbTree.Iter().Iterate() {
-			ch <- val.k
-		}
-	}()
+func (m *TreeMap[K, V]) Iter() typesw.IterableT[K] {
+	f := func() chan K {
+		ch := make(chan K)
+		go func() {
+			defer close(ch)
+			for val := range m.rbTree.Iter().Iterate() {
+				ch <- val.k
+			}
+		}()
 
-	return ch
+		return ch
+	}
+	return typesw.FuncToIterable(f)
 }
 
 func (m *TreeMap[K, V]) IterEntry() typesw.IterableT[*MapEntry[K, V]] {
@@ -132,13 +135,19 @@ func (m *TreeMap[K, V]) Clear() {
 	m.rbTree.Clear()
 }
 
-func (m *TreeMap[K, V]) SearchRange(lower, upper K) []K {
-	lowerEntry := MapEntry[K, V]{k: lower}
-	upperEntry := MapEntry[K, V]{k: upper}
-	entry := m.rbTree.SearchRange(&lowerEntry, &upperEntry)
-	ret := make([]K, 0, len(entry))
-	for _, e := range entry {
-		ret = append(ret, e.k)
+func (m *TreeMap[K, V]) SearchRange(lower, upper K) typesw.IterableT[K] {
+	f := func() chan K {
+		lowerEntry := MapEntry[K, V]{k: lower}
+		upperEntry := MapEntry[K, V]{k: upper}
+		entry := m.rbTree.SearchRange(&lowerEntry, &upperEntry)
+		ch := make(chan K)
+		go func() {
+			defer close(ch)
+			for e := range entry.Iterate() {
+				ch <- e.k
+			}
+		}()
+		return ch
 	}
-	return ret
+	return typesw.FuncToIterable(f)
 }

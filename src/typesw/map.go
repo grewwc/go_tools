@@ -23,7 +23,7 @@ type IMap[K, V any] interface {
 
 type ISortedMap[K, V any] interface {
 	IMap[K, V]
-	SearchRange(lower, upper K) []K
+	SearchRange(lower, upper K) IterableT[K]
 }
 
 type IConcurrentMap[K, V any] interface {
@@ -54,5 +54,4 @@ type IHeap[T any] interface {
 	ToList() []T
 	Next() T
 	Top() T
-	Contains(T) bool
 }

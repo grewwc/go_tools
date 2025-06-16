@@ -1,7 +1,6 @@
 package cw
 
 import (
-	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/typesw"
 )
 
@@ -184,7 +183,7 @@ func (g *UndirectedGraph[T]) path(from, to T) []T {
 	for node := range s.Iter().Iterate() {
 		res = append(res, node.(T))
 	}
-	algow.Reverse(res)
+	reverse(res)
 	return res
 }
 

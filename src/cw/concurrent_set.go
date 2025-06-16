@@ -69,7 +69,7 @@ func (s *ConcurrentHashSet[T]) Intersect(another *ConcurrentHashSet[T]) *Concurr
 	if another == nil {
 		return nil
 	}
-	result := NewConcurrentHashSet[T](s.data.hash, s.data.cmp)
+	result := NewConcurrentHashSet(s.data.hash, s.data.cmp)
 	for k := range s.Iter().Iterate() {
 		if another.data.Contains(k) {
 			result.Add(k)
@@ -79,7 +79,7 @@ func (s *ConcurrentHashSet[T]) Intersect(another *ConcurrentHashSet[T]) *Concurr
 }
 
 func (s *ConcurrentHashSet[T]) Union(another *ConcurrentHashSet[T]) *ConcurrentHashSet[T] {
-	result := NewConcurrentHashSet[T](s.data.hasher, s.data.cmp)
+	result := NewConcurrentHashSet(s.data.hasher, s.data.cmp)
 	for k := range s.data.Iter().Iterate() {
 		result.Add(k)
 	}
@@ -116,7 +116,7 @@ func (s *ConcurrentHashSet[T]) Empty() bool {
 }
 
 func (s *ConcurrentHashSet[T]) Size() int {
-	return s.Size()
+	return s.data.Size()
 }
 
 func (s *ConcurrentHashSet[T]) Clear() {

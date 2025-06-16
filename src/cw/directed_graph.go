@@ -1,7 +1,6 @@
 package cw
 
 import (
-	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/typesw"
 )
 
@@ -224,7 +223,7 @@ func (g *DirectedGraph[T]) Path(from, to T) []T {
 		res = append(res, v)
 	}
 	res = append(res, from)
-	algow.Reverse(res)
+	reverse(res)
 	return res
 }
 
@@ -272,5 +271,11 @@ func (g *DirectedGraph[T]) mark(needPath bool, needReverseMark bool) {
 		}
 		g.groupId = cp.groupId
 		g.componentCnt = cp.componentCnt
+	}
+}
+
+func reverse[T any](arr []T) {
+	for i := 0; i < len(arr)/2; i++ {
+		arr[i], arr[len(arr)-i-1] = arr[len(arr)-i-1], arr[i]
 	}
 }

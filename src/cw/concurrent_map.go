@@ -5,7 +5,6 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/typesw"
 )
 
@@ -242,7 +241,7 @@ func (cm *ConcurrentHashMap[K, V]) Delete(key K) bool {
 			cm.mutex.Lock()
 			r := int64(len(cm.buckets) / shrinkThreash)
 			if atomic.LoadInt64(&cm.cnt) < r {
-				cm.rehash(algow.Max(len(cm.buckets)/shrinkThreash, initCap))
+				cm.rehash(max(len(cm.buckets)/shrinkThreash, initCap))
 			}
 			cm.mutex.Unlock()
 		}
@@ -298,7 +297,7 @@ func (cm *ConcurrentHashMap[K, V]) Iter() typesw.IterableT[K] {
 					continue
 				}
 				bucket.mu.RLock()
-				for k := range bucket.data.Iterate() {
+				for k := range bucket.data.Iter().Iterate() {
 					ch <- k
 				}
 				bucket.mu.RUnlock()

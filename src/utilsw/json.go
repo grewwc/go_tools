@@ -71,11 +71,11 @@ func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
 		break
 	}
 	if b[0] == '[' {
-		var buf bytes.Buffer
-		buf.WriteString(fmt.Sprintf(`{"_________arr": %c`, b[0]))
-		newReader := io.MultiReader(bytes.NewReader(buf.Bytes()), rr, bytes.NewReader([]byte{'}'}))
+		var buf strings.Builder
+		buf.WriteString(fmt.Sprintf(`{"_arr": %c`, b[0]))
+		newReader := io.MultiReader(strings.NewReader(buf.String()), rr, strings.NewReader("}"))
 		j := NewJsonFromReader(newReader)
-		return j.GetJson("__________arr")
+		return j.GetJson("_arr")
 	} else if b[0] == '{' {
 		m := cw.NewOrderedMap()
 		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), rr))
@@ -438,7 +438,7 @@ func (j *Json) String() string {
 }
 
 func (j *Json) StringWithIndent(prefix, indent string) string {
-	var buf bytes.Buffer
+	var buf strings.Builder
 	var err error
 	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)

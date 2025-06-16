@@ -1,11 +1,11 @@
 package cw
 
 import (
-	"bytes"
 	"container/list"
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/grewwc/go_tools/src/typesw"
 )
@@ -15,6 +15,10 @@ type OrderedMap struct {
 	m map[interface{}]*list.Element
 	l *list.List
 }
+
+const (
+	cap = 8
+)
 
 type MapEntry[K, V any] struct {
 	k K
@@ -31,7 +35,7 @@ func (entry *MapEntry[K, V]) Val() V {
 
 func NewOrderedMap() *OrderedMap {
 	l := list.New()
-	res := &OrderedMap{make(map[interface{}]*list.Element, initCap), l}
+	res := &OrderedMap{make(map[interface{}]*list.Element, cap), l}
 	return res
 }
 
@@ -106,7 +110,7 @@ func (s *OrderedMap) Size() int {
 }
 
 func (s *OrderedMap) Clear() {
-	s.m = make(map[interface{}]*list.Element, initCap)
+	s.m = make(map[interface{}]*list.Element, cap)
 	s.l.Init()
 }
 
@@ -155,7 +159,7 @@ func (om *OrderedMap) parseobject(dec *json.Decoder) (err error) {
 
 func parsearray(dec *json.Decoder) (arr []interface{}, err error) {
 	var t json.Token
-	arr = make([]interface{}, 0, initCap)
+	arr = make([]interface{}, 0, cap)
 	for dec.More() {
 		t, err = dec.Token()
 		if err != nil {
@@ -206,7 +210,7 @@ func handledelim(t json.Token, dec *json.Decoder) (res interface{}, err error) {
 }
 
 func encode(w io.Writer, om *OrderedMap) error {
-	buf := &bytes.Buffer{}
+	buf := &strings.Builder{}
 	buf.WriteString("{")
 	i := 0
 	for e := om.l.Front(); e != nil; e = e.Next() {
@@ -219,8 +223,8 @@ func encode(w io.Writer, om *OrderedMap) error {
 		// fmt.Println(",,", item.Key(), item.Val(), reflect.TypeOf(item.Val()))
 		switch v := item.Val().(type) {
 		case *OrderedMap:
-			var subBuf bytes.Buffer
-			if err := encode(&subBuf, v); err != nil {
+			subBuf := &strings.Builder{}
+			if err := encode(subBuf, v); err != nil {
 				return err
 			}
 			buf.WriteString(subBuf.String())
@@ -228,7 +232,7 @@ func encode(w io.Writer, om *OrderedMap) error {
 			buf.WriteString("[")
 			for j, elem := range v {
 				if omElem, ok := elem.(*OrderedMap); ok {
-					subBuf := &bytes.Buffer{}
+					subBuf := &strings.Builder{}
 					if err := encode(subBuf, omElem); err != nil {
 						return err
 					}
@@ -260,21 +264,22 @@ func encode(w io.Writer, om *OrderedMap) error {
 	}
 
 	buf.WriteString("}")
-	_, err := w.Write(buf.Bytes())
+	_, err := w.Write(typesw.StrToBytes(buf.String()))
 	return err
 }
 
 func (om *OrderedMap) MarshalJSON() (res []byte, err error) {
-	var buf bytes.Buffer
+	var buf strings.Builder
+	buf.Grow(len(res))
 	if err := encode(&buf, om); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return typesw.StrToBytes(buf.String()), nil
 }
 
 // this implements type json.Unmarshaler interface, so can be called in json.Unmarshal(data, om)
 func (om *OrderedMap) UnmarshalJSON(data []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(data))
+	dec := json.NewDecoder(strings.NewReader(typesw.BytesToStr(data)))
 	dec.UseNumber()
 
 	// must open with a delim token '{'

@@ -1,6 +1,8 @@
 package cw
 
-import "github.com/grewwc/go_tools/src/typesw"
+import (
+	"github.com/grewwc/go_tools/src/typesw"
+)
 
 const (
 	black = iota
@@ -17,7 +19,9 @@ type treeNode[T any] struct {
 type RbTree[T any] struct {
 	root *treeNode[T]
 	cmp  typesw.CompareFunc[T]
-	size int
+
+	min, max *T
+	size     int
 }
 
 func newTreeNode[T any](val T) *treeNode[T] {
@@ -79,6 +83,8 @@ func (t *RbTree[T]) Insert(val T) {
 	if curr == nil {
 		newNode.color = black
 		t.root = newNode
+		t.min = &newNode.val
+		t.max = &newNode.val
 		return
 	}
 	parent := curr.parent
@@ -99,6 +105,13 @@ func (t *RbTree[T]) Insert(val T) {
 		parent.right = newNode
 	}
 	t.fixInsert(newNode)
+	// update min/max
+	if t.min != nil && t.cmp(newNode.val, *t.min) < 0 {
+		t.min = &newNode.val
+	}
+	if t.max != nil && t.cmp(newNode.val, *t.max) > 0 {
+		t.max = &newNode.val
+	}
 }
 
 func (t *RbTree[T]) fixInsert(node *treeNode[T]) {
@@ -177,7 +190,6 @@ func (t *RbTree[T]) leftRotate(n *treeNode[T]) {
 
 	r.left = n
 	n.parent = r
-
 	// 更新父节点的指向
 	if parent == nil {
 		// 如果 n 是根节点，则 r 成为新的根节点
@@ -239,11 +251,17 @@ func (t *RbTree[T]) Delete(val T) {
 	}
 	t.deleteNode(node)
 	t.size--
+
+	t.min = &t.minimum(t.root).val
+	t.max = &t.maximum(t.root).val
 }
 
 func (t *RbTree[T]) search(n *treeNode[T], val T) *treeNode[T] {
+	if n == nil {
+		return nil
+	}
 	tmp := t.cmp(val, n.val)
-	if n == nil || tmp == 0 {
+	if tmp == 0 {
 		return n
 	}
 	if tmp < 0 {
@@ -288,8 +306,21 @@ func (t *RbTree[T]) deleteNode(z *treeNode[T]) {
 }
 
 func (t *RbTree[T]) minimum(n *treeNode[T]) *treeNode[T] {
+	if n == nil {
+		return nil
+	}
 	for n.left != nil {
 		n = n.left
+	}
+	return n
+}
+
+func (t *RbTree[T]) maximum(n *treeNode[T]) *treeNode[T] {
+	if n == nil {
+		return nil
+	}
+	for n.right != nil {
+		n = n.right
 	}
 	return n
 }
@@ -377,27 +408,33 @@ func (t *RbTree[T]) fixDelete(x, parent *treeNode[T]) {
 
 // SearchRange search vals in ranges between [lower, upper].
 // Both inclusive.
-func (t *RbTree[T]) SearchRange(lower, upper T) []T {
-	st := NewDeque()
-	curr := t.root
-	ret := make([]T, 0, 16)
-	for !st.Empty() || curr != nil {
-		for curr != nil {
-			st.PushBack(curr)
-			curr = curr.left
-		}
-		curr = st.PopBack().(*treeNode[T])
-		tmp := t.cmp(curr.val, lower)
-		if tmp >= 0 {
-			if t.cmp(curr.val, upper) <= 0 {
-				ret = append(ret, curr.val)
-			} else {
-				return ret
+func (t *RbTree[T]) SearchRange(lower, upper T) typesw.IterableT[T] {
+	f := func() chan T {
+		ch := make(chan T)
+		go func() {
+			defer close(ch)
+			curr := t.root
+			st := NewDeque()
+			for !st.Empty() || curr != nil {
+				for curr != nil {
+					st.PushBack(curr)
+					curr = curr.left
+				}
+				curr = st.PopBack().(*treeNode[T])
+				tmp := t.cmp(curr.val, lower)
+				if tmp >= 0 {
+					if t.cmp(curr.val, upper) <= 0 {
+						ch <- curr.val
+					} else {
+						break
+					}
+				}
+				curr = curr.right
 			}
-		}
-		curr = curr.right
+		}()
+		return ch
 	}
-	return ret
+	return typesw.FuncToIterable(f)
 }
 
 func (t *RbTree[T]) Clear() {
@@ -425,4 +462,8 @@ func (t *RbTree[T]) Iter() typesw.IterableT[T] {
 		return ret
 	}
 	return typesw.FuncToIterable(f)
+}
+
+func (t *RbTree[T]) Len() int {
+	return t.size
 }

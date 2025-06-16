@@ -3,8 +3,8 @@ package cw
 import (
 	"fmt"
 
-	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/typesw"
+	"golang.org/x/exp/constraints"
 )
 
 type BloomFilter[T any] struct {
@@ -25,9 +25,22 @@ func NewBloomFilter[T any](capacity int) *BloomFilter[T] {
 	}
 }
 
+func max[T constraints.Ordered](args ...T) T {
+	if len(args) == 0 {
+		return *new(T)
+	}
+	res := args[0]
+	for _, val := range args[1:] {
+		if val > res {
+			res = val
+		}
+	}
+	return res
+}
+
 func (f *BloomFilter[T]) Contains(item T) bool {
 	hashVal := f.hash(item)
-	cnt := algow.Max(f.numDigit(hashVal), f.hashTimes)
+	cnt := max(f.numDigit(hashVal), f.hashTimes)
 	for i := 0; i < cnt; i++ {
 		if f.data[hashVal] == 0 {
 			return false
@@ -39,7 +52,7 @@ func (f *BloomFilter[T]) Contains(item T) bool {
 
 func (f *BloomFilter[T]) Add(item T) {
 	hashVal := f.hash(item)
-	cnt := algow.Max(f.numDigit(hashVal), f.hashTimes)
+	cnt := max(f.numDigit(hashVal), f.hashTimes)
 	for i := 0; i < cnt; i++ {
 		f.data[hashVal]++
 		hashVal = f.hasher(fmt.Sprintf("%v%d", item, hashVal)) % f.capacity
@@ -48,7 +61,7 @@ func (f *BloomFilter[T]) Add(item T) {
 
 func (f *BloomFilter[T]) Delete(item T) {
 	hashVal := f.hash(item)
-	cnt := algow.Max(f.numDigit(hashVal), f.hashTimes)
+	cnt := max(f.numDigit(hashVal), f.hashTimes)
 	for i := 0; i < cnt; i++ {
 		f.data[hashVal]--
 		hashVal = f.hasher(fmt.Sprintf("%v%d", item, hashVal)) % f.capacity

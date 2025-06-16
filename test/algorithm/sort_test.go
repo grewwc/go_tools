@@ -31,7 +31,10 @@ func TestTreeSort(t *testing.T) {
 		for _, val := range arr {
 			st.Insert(val)
 		}
-		arr = st.SearchRange(0, 100)
+		arr = []int{}
+		for val := range st.SearchRange(0, 100).Iterate() {
+			arr = append(arr, val)
+		}
 		if !sort.IntsAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}
