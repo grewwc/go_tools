@@ -240,7 +240,7 @@ func BuildMongoRegularExpExclude(specialPattern *cw.Set) string {
 		return fmt.Sprintf("^(?!%s).*", specialPattern.ToSlice()[0].(string))
 	}
 	res := bytes.NewBufferString("^(?!(")
-	for val := range specialPattern.Iterate() {
+	for val := range specialPattern.Iter().Iterate() {
 		res.WriteString(val.(string))
 		res.WriteString("|")
 	}
@@ -250,7 +250,7 @@ func BuildMongoRegularExpExclude(specialPattern *cw.Set) string {
 }
 
 func SearchTrie(trie *cw.Trie, specialPattern *cw.Set) bool {
-	for val := range specialPattern.Iterate() {
+	for val := range specialPattern.Iter().Iterate() {
 		if trie.HasPrefix(val.(string)) {
 			return true
 		}
