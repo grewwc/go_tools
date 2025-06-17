@@ -318,7 +318,7 @@ func main() {
 	if extExclude != "" {
 		// need to exclude some type of files
 		excludeSet := terminalw.FormatFileExtensions(extExclude)
-		terminalw.Extensions.Subtract(*excludeSet)
+		terminalw.Extensions.Subtract(excludeSet)
 		terminalw.CheckExtension = true
 	}
 

@@ -197,7 +197,7 @@ func ls(dir string, prefixSpace, retryCount int) {
 			}
 		}
 	}
-	for name := range s.Iterate() {
+	for name := range s.Iter().Iterate() {
 		fmt.Println(name)
 	}
 }

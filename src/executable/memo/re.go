@@ -1312,7 +1312,7 @@ func main() {
 					testTags.Put(t, testTags.GetOrDefault(t, 0).(int)+1)
 				}
 			}
-			for it := range testTags.Iterate() {
+			for it := range testTags.Iter().Iterate() {
 				v := it.Val().(int)
 				t := tag{Name: it.Key().(string), Count: int64(v), modifiedDate: mtMap[it.Key().(string)]}
 				// fmt.Println("here", it.Key().(string), mtMap[it.Key().(string)])

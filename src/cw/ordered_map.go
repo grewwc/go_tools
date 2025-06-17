@@ -17,7 +17,7 @@ type OrderedMap struct {
 }
 
 const (
-	cap = 8
+	cap = 1
 )
 
 type MapEntry[K, V any] struct {
@@ -47,7 +47,6 @@ func (s *OrderedMap) Put(k, v interface{}) {
 		val := node.Value.(*MapEntry[any, any])
 		val.k = k
 		val.v = v
-		// node.Value = &MapEntry[any, any]{k, v}
 	}
 }
 

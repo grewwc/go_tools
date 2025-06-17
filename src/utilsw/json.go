@@ -79,6 +79,7 @@ func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
 	} else if b[0] == '{' {
 		m := cw.NewOrderedMap()
 		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), rr))
+		decoder.UseNumber()
 		err := decoder.Decode(&m)
 		if err != nil {
 			panic(err)
