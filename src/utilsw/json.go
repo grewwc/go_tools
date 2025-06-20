@@ -15,6 +15,7 @@ import (
 	"unsafe"
 
 	"github.com/grewwc/go_tools/src/cw"
+	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/typesw"
 	"golang.org/x/exp/constraints"
 )
@@ -336,8 +337,49 @@ func (json *Json) flatten() []*Json {
 	return result
 }
 
-// Extract get nested keys
 func (json *Json) Extract(key string) *Json {
+	idx := strings.LastIndexByte(key, '.')
+	if idx < 0 {
+		return json.extract(key)
+	}
+
+	last := strings.TrimSpace(key[idx+1:])
+
+	if last[0] == '[' && last[len(last)-1] == ']' {
+		if !strings.Contains(last, ",") {
+			return json.extract(key)
+		}
+		rootKey := key[:idx]
+		m := cw.NewOrderedMap()
+		for subKey := range strw.SplitByToken(strings.NewReader(last[1:len(last)-1]), ",", false) {
+			sub := json.extract(fmt.Sprintf("%s.%s", rootKey, subKey))
+			m.Put(subKey, sub)
+		}
+		var arr []*Json
+		for entry := range m.Iter().Iterate() {
+			subKey := entry.Key().(string)
+			absKey := fmt.Sprintf("%s.%s", rootKey, subKey)
+			val := entry.Val().(*Json)
+			for i, k := range val.Keys() {
+				item := val.Get(k)
+				if len(arr) > i {
+					arr[i].Set(absKey, item)
+				} else {
+					subJ := NewJson(nil)
+					subJ.Set(absKey, item)
+					arr = append(arr, subJ)
+				}
+			}
+		}
+		return NewJson(arr)
+	} else {
+		return json.extract(key)
+	}
+
+}
+
+// Extract get nested keys
+func (json *Json) extract(key string) *Json {
 	keys := strings.Split(key, ".")
 	if len(keys) == 1 {
 		if json.IsArray() {
