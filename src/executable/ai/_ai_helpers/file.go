@@ -14,7 +14,7 @@ type FileParser struct {
 }
 
 func NewParser(content string) *FileParser {
-	files := strw.SplitNoEmptyKeepQuote(content, ',')
+	files := strw.SplitNoEmptyPreserveQuote(content, ',', '"', false)
 	ret := FileParser{}
 	for _, file := range files {
 		file = strings.TrimSpace(file)

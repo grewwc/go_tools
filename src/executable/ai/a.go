@@ -133,7 +133,7 @@ func buildMessageArr(n int) []Message {
 	}
 	history := utilsw.ReadString(historyFile)
 	result := make([]Message, 0)
-	lines := strw.SplitNoEmptyKeepQuote(history, '\x01')
+	lines := strw.SplitNoEmptyPreserveQuote(history, '\x01', '"', true)
 	for _, line := range lines {
 		if line == "" {
 			continue
@@ -173,9 +173,9 @@ func modifyQuestion(question string) string {
 	return question
 }
 
-func getQuestion(parsed *terminalw.Parser, userInput bool) (question string) {
+func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 	var fileContent string
-	if userInput {
+	if loopMode {
 		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
 		question = utilsw.UserInput("> ", multiLine)
 		tempParser := terminalw.NewParser()

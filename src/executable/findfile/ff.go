@@ -268,7 +268,7 @@ func main() {
 	}
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
-	allIgnores := strw.SplitNoEmptyKeepQuote(ignores, ' ')
+	allIgnores := strw.SplitNoEmptyPreserveQuote(ignores, ' ', '"', false)
 	for i := range allIgnores {
 		temp := strings.ReplaceAll(allIgnores[i], `.`, `\.`)
 		temp = strings.ReplaceAll(temp, `?`, `.`)

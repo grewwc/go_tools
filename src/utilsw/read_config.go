@@ -44,7 +44,7 @@ func GetAllConfig() (m *cw.OrderedMap) {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		res := strw.SplitNoEmptyKeepQuote(line, '=')
+		res := strw.SplitNoEmptyPreserveQuote(line, '=', '"', false)
 		var key, val string
 		// fmt.Println(res)
 		key = res[0]

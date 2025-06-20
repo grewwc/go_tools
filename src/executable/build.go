@@ -74,6 +74,7 @@ func main() {
 			executableFilename += ".exe"
 		}
 		// fmt.Println("what", filename, forceRebuildName)
+		// fmt.Println(filename, forceRebuildName.Contains(filename))
 		if (!all && !force && !forceRebuildName.Contains(filename)) &&
 			(utilsw.IsExist(executableFilename) && utilsw.IsNewer(executableFilename, filename)) {
 			continue

@@ -25,8 +25,8 @@ func SplitNoEmpty(str, sep string) []string {
 	return res
 }
 
-// SplitNoEmptyKeepQuote keep content in quote intact
-func SplitNoEmptyKeepQuote(str string, sep rune) []string {
+// SplitNoEmptyPreserveQuote keep content in quote intact
+func SplitNoEmptyPreserveQuote(str string, sep rune, symbol rune, keepSymbol bool) []string {
 	inQuote := false
 	var res []string
 	var word bytes.Buffer
@@ -35,8 +35,11 @@ func SplitNoEmptyKeepQuote(str string, sep rune) []string {
 	}
 
 	for _, s := range str {
-		if s == '"' {
+		if s == symbol {
 			inQuote = !inQuote
+			if keepSymbol {
+				word.WriteRune(s)
+			}
 		} else if s != sep || inQuote {
 			word.WriteRune(s)
 		} else if word.Len() != 0 {

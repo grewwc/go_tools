@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	sep  = '\x00'
-	dash = '-'
+	sep   = '\x00'
+	quote = '\x05'
+	dash  = '-'
 )
 
 type Parser struct {
@@ -304,6 +305,9 @@ func classifyArguments(cmd string, boolOptionals ...string) (*cw.ArrayList, []st
 	var vBuf bytes.Buffer
 
 	for _, ch := range cmd {
+		if ch == quote {
+			continue
+		}
 		// fmt.Println("beg", ch, prev, mode)
 		switch mode {
 		case spaceMode:
@@ -393,6 +397,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	// fmt.Println("keys", keys)
 	// fmt.Println("vals", vals)
 	// fmt.Println("boolKeys", boolKeys)
+	// fmt.Println([]byte(allPositionals.ToStringSlice()[0]))
 	for i, key := range keys {
 		key = strings.ReplaceAll(key, string(dash), "-")
 		if i < len(vals) {
@@ -419,7 +424,7 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 	r.cmd = strings.Join(os.Args, " ")
 	args := make([]string, len(os.Args))
 	for i, arg := range os.Args {
-		args[i] = fmt.Sprintf("%q", arg)
+		args[i] = fmt.Sprintf("%c%s%c", quote, arg, quote)
 	}
 	cmd := strings.Join(args, " ")
 	// fmt.Println("here", cmd)
@@ -428,7 +433,7 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 	numArgs := re.FindString(cmd)
 	if len(numArgs) > 0 {
 		numArgs = numArgs[1:]
-		cmd = strings.ReplaceAll(cmd, fmt.Sprintf("%q", numArgs), "")
+		cmd = strings.ReplaceAll(cmd, fmt.Sprintf("%c%s%c", quote, numArgs, quote), "")
 
 		boolOptionals = append(boolOptionals, numArgs)
 	}
@@ -441,7 +446,7 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	r.cmd = cmd
 	// cmd = strw.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
-	cmdSlice := strw.SplitNoEmptyKeepQuote(cmd, ' ')
+	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', quote, true)
 	// if len(cmdSlice) <= 1 {
 	// 	return
 	// }
