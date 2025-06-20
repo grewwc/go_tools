@@ -152,6 +152,9 @@ func UserInput(msg string, multiline bool) string {
 	defer RunCmd("stty sane", os.Stdin)
 	line := liner.NewLiner()
 	line.SetMultiLineMode(multiline)
+	if multiline {
+		msg = "  "
+	}
 	defer line.Close()
 	historyFile := ExpandUser("~/.liner_histroy")
 	f, err := os.OpenFile(historyFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0664)
