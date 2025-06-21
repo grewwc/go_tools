@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilsw"
 )
@@ -12,7 +13,7 @@ import (
 const (
 	DEEPSEEK               = "deepseek-r1-0528"
 	QWEN_MAX_LASTEST       = "qwen-max-latest"
-	QWEN_PLUS              = "qwen-plus"
+	QWEN_PLUS_LATEST       = "qwen-plus-latest"
 	QWEN_MAX               = "qwen-max"
 	QWEN_CODER_PLUS_LATEST = "qwen-coder-plus-latest"
 	QWEN_LONG              = "qwen-long"
@@ -46,7 +47,7 @@ func GetModel(parsed *terminalw.Parser) string {
 	case 0:
 		return QWQ
 	case 1:
-		return QWEN_PLUS
+		return QWEN_PLUS_LATEST
 	case 2:
 		return QWEN_MAX
 	case 3:
@@ -61,8 +62,8 @@ func GetModel(parsed *terminalw.Parser) string {
 	switch model {
 	case QWQ, "0":
 		return QWQ
-	case QWEN_PLUS, "1":
-		return QWEN_PLUS
+	case QWEN_PLUS_LATEST, "1":
+		return QWEN_PLUS_LATEST
 	case QWEN_MAX, "2":
 		return QWEN_MAX
 	case QWEN_MAX_LASTEST, "3":
@@ -106,7 +107,11 @@ func GetModelByInput(prevModel string, input *string) string {
 	return prevModel
 }
 
+var enableSearchModels = cw.NewSet(
+	QWEN_MAX, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_TURBO_LATEST, QWEN_PLUS_LATEST,
+	DEEPSEEK,
+)
+
 func SearchEnabled(model string) bool {
-	return model == QWEN_MAX || model == QWEN_MAX_LASTEST || model == QWEN_PLUS ||
-		model == QWEN_TURBO_LATEST
+	return enableSearchModels.Contains(model)
 }

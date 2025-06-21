@@ -272,7 +272,8 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 	}
 
 	if parser.ContainsFlagStrict("-clear") {
-		_ = os.Remove(historyFile)
+		os.Remove(historyFile)
+		fmt.Println("History cleared.")
 		return
 	}
 
@@ -307,6 +308,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		model = nextModel
 		question = modifyQuestion(question)
 		// 构建请求体
+		// fmt.Println(_ai_helpers.SearchEnabled(model), model)
 		requestBody := RequestBody{
 			// 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
 			Model: nextModel,
@@ -348,8 +350,11 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		resp, _ := client.Do(req)
 		curr.WriteString("assistant\x00")
 		ch := handleResponse(resp.Body)
-
-		fmt.Printf("[%s] ", color.GreenString(requestBody.Model))
+		search := "true"
+		if !_ai_helpers.SearchEnabled(model) {
+			search = "false"
+		}
+		fmt.Printf("[%s (search: %s)] ", color.GreenString(requestBody.Model), color.RedString(search))
 		for {
 			select {
 			case <-sigChan:
