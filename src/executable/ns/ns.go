@@ -50,17 +50,17 @@ type info struct {
 }
 
 func showSpeed(ch chan<- *info) {
-	interval := 1
-	stats, err := net.IOCounters(true)
-	if err != nil {
-		panic(err)
-	}
+	interval := 500
+	// stats, err := net.IOCounters(true)
+	// if err != nil {
+	// 	panic(err)
+	// }
 	interface_ := detectInterface()
 	for {
-		stats, _ = net.IOCounters(true)
+		stats, _ := net.IOCounters(true)
 		currStat := selectEn0(stats, interface_)
 		ch <- &info{sent: float64(currStat.BytesSent), recv: float64(currStat.BytesRecv), tp: time.Now().UnixMilli()}
-		time.Sleep(time.Second * time.Duration(interval))
+		time.Sleep(time.Millisecond * time.Duration(interval))
 	}
 }
 
@@ -72,6 +72,7 @@ func main() {
 	for curr := range ch {
 		if prev == nil {
 			prev = curr
+			fmt.Print("Waiting...\r")
 			fmt.Printf("    Ul: %s    Dl: %s%s\r", changeFormat(sent), changeFormat(float64(download)), strings.Repeat(" ", 20))
 			continue
 		}
@@ -81,4 +82,5 @@ func main() {
 		fmt.Printf("    Ul: %s    Dl: %s%s\r", changeFormat(sent), changeFormat(download), strings.Repeat(" ", 20))
 		prev = curr
 	}
+	close(ch)
 }

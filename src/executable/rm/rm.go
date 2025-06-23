@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/grewwc/go_tools/src/terminalw"
+	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 func removeSingle(filename string, parser terminalw.Parser) {

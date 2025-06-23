@@ -79,14 +79,14 @@ var (
 )
 
 type record struct {
-	ID           primitive.ObjectID `bson:"_id,ignoreempty" json:"id,ignoreempty"`
-	Tags         []string           `bson:"tags,ignoreempty" json:"tags,ignoreempty"`
-	AddDate      time.Time          `bson:"add_date,ignoreempty" json:"add_date,ignoreempty"`
-	ModifiedDate time.Time          `bson:"modified_date,ignoreempty" json:"modified_date,ignoreempty"`
-	MyProblem    bool               `bson:"my_problem,ignoreempty" json:"my_problem,ignoreempty"`
-	Finished     bool               `bson:"finished,ignoreempty" json:"finished,ignoreempty"`
-	Hold         bool               `bson:"hold,ignoreempty" json:"hold,ignoreempty"`
-	Title        string             `bson:"title,ignoreempty" json:"title,ignoreempty"`
+	ID           primitive.ObjectID `bson:"_id,ignoreempty" json:"id,omitempty"`
+	Tags         []string           `bson:"tags,ignoreempty" json:"tags,omitempty"`
+	AddDate      time.Time          `bson:"add_date,ignoreempty" json:"add_date,omitempty"`
+	ModifiedDate time.Time          `bson:"modified_date,ignoreempty" json:"modified_date,omitempty"`
+	MyProblem    bool               `bson:"my_problem,ignoreempty" json:"my_problem,omitempty"`
+	Finished     bool               `bson:"finished,ignoreempty" json:"finished,omitempty"`
+	Hold         bool               `bson:"hold,ignoreempty" json:"hold,omitempty"`
+	Title        string             `bson:"title,ignoreempty" json:"title,omitempty"`
 }
 
 type tag struct {
@@ -487,6 +487,7 @@ func update(parser *terminalw.Parser, fromFile bool, fromEditor bool, prev bool)
 		changed = true
 		newRecord.Tags = strw.SplitNoEmpty(tags, " ")
 		c := make(chan interface{}, 1)
+		defer close(c)
 		go func(c chan interface{}) {
 			incrementTagCount(cli.Database(dbName), oldTags, -1)
 			c <- nil
@@ -558,6 +559,7 @@ func insert(fromEditor bool, filename, tagName string) {
 	for _, title = range titleSlice {
 		r := newRecord(title, tags...)
 		c := make(chan interface{})
+		defer close(c)
 		go func(chan interface{}) {
 			defer func() {
 				c <- nil
@@ -592,6 +594,7 @@ func toggle(val bool, id string, name string, prev bool) {
 	}
 	r.loadByID()
 	c := make(chan interface{})
+	defer close(c)
 
 	var changed bool
 	inc := 0
@@ -672,6 +675,7 @@ func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 		panic(err)
 	}
 	c := make(chan interface{})
+	defer close(c)
 	go func(chan interface{}) {
 		r.loadByID()
 		c <- nil
@@ -733,6 +737,7 @@ func addTag(add bool, id string, prev bool) {
 		panic(err)
 	}
 	c := make(chan interface{})
+	defer close(c)
 	go func(c chan interface{}) {
 		defer func() {
 			c <- nil
@@ -1009,8 +1014,7 @@ func main() {
 	positional := parser.Positional
 	prefix := parser.ContainsAnyFlagStrict("prefix", "pre", "all", "a")
 	isWindows := utilsw.WINDOWS == utilsw.GetPlatform()
-	onlyHold := parser.ContainsFlagStrict("onlyhold") ||
-		(parser.ContainsFlagStrict("hold") && parser.GetFlagValueDefault("hold", "") == "")
+	onlyHold := parser.ContainsAnyFlagStrict("onlyhold", "hold")
 
 	if parser.ContainsFlagStrict("remote") {
 		initAtlas()
@@ -1439,12 +1443,13 @@ func main() {
 		}
 		return
 	}
-	if positional.Contains("open") {
+	if positional.Contains("open") || positional.Contains("o") {
 		positional.Delete("open")
+		positional.Delete("o")
 		listSpecial = true
 		tags := positional.ToStringSlice()
 		isObjectID := false
-		if positional.Len() > 0 {
+		if !positional.Empty() {
 			isObjectID = _helpers.IsObjectID(tags[0])
 		}
 		// tags 里面可能是 objectid
@@ -1476,7 +1481,7 @@ func main() {
 			}
 		}
 
-		tag := time.Now().Add(time.Duration(nextDay * int(time.Hour) * 24)).Format(fmt.Sprintf("%s.2006-01-02", "log"))
+		tag := time.Now().Add(time.Duration(nextDay * int(time.Hour) * 24)).Format("log.2006-01-02")
 		rs, _ := listRecords(-1, true, true, true, []string{tag}, false, "", false, false, false)
 		if len(rs) > 1 {
 			panic("log failed: ")
