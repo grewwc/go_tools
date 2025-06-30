@@ -56,6 +56,8 @@ func GetModel(parsed *terminalw.Parser) string {
 		return QWEN_CODER_PLUS_LATEST
 	case 5:
 		return DEEPSEEK
+	case 6:
+		return QWEN_TURBO_LATEST
 	}
 	model := parsed.GetFlagValueDefault("m", getDefaultModel())
 
@@ -72,6 +74,8 @@ func GetModel(parsed *terminalw.Parser) string {
 		return QWEN_CODER_PLUS_LATEST
 	case DEEPSEEK, "5":
 		return DEEPSEEK
+	case QWEN_TURBO_LATEST, "6":
+		return QWEN_TURBO_LATEST
 	default:
 		return getDefaultModel()
 	}
