@@ -183,7 +183,7 @@ func main() {
 	parser.Int("level", math.MaxInt32, `number of directory levels to search. current directory's level is 0`)
 	parser.Bool("strict", false, "find exact the same matches (after triming space)")
 	parser.String("nt", "", "check files which are not some types")
-	parser.Bool("word", false, "only match the concrete word, is a shortcut for -re")
+	parser.Bool("w", false, "only match the concrete word, is a shortcut for -re")
 	parser.Bool("all", false, "shortcut for -n=-1")
 	parser.Bool("a", false, "shortcut for -all")
 	parser.String("f", "", "check only these files/directories") // this flag will override -t
@@ -194,7 +194,7 @@ func main() {
 
 	fmt.Println()
 
-	parser.ParseArgsCmd("re", "v", "ignore", "strict", "all", "word", "i", "a", "h")
+	parser.ParseArgsCmd("re", "v", "ignore", "strict", "all", "w", "i", "a", "h")
 	// fmt.Println("here", parser)
 	if parser.Empty() || parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
