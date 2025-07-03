@@ -40,25 +40,22 @@ func NewParser() *Parser {
 		Positional:    cw.NewArrayList(),
 		defaultValMap: cw.NewTreeMap[string, string](nil),
 		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
+
+		groups: cw.NewOrderedMap(),
 	}
 }
 
 func (p *Parser) PrintDefaults() {
-	if p.groups != nil {
-		for entry := range p.groups.Iter().Iterate() {
-			fmt.Println(color.YellowString(entry.Key().(string)))
-			subP := entry.Val().(*Parser)
-			subP.PrintDefaults()
-		}
+	for entry := range p.groups.Iter().Iterate() {
+		fmt.Println(color.YellowString(entry.Key().(string)))
+		subP := entry.Val().(*Parser)
+		subP.PrintDefaults()
 	}
 	p.FlagSet.PrintDefaults()
 }
 
 func (p *Parser) AddGroup(groupName string) *Parser {
 	sub := NewParser()
-	if p.groups == nil {
-		p.groups = cw.NewOrderedMap()
-	}
 	p.groups.Put(groupName, sub)
 	return sub
 }
@@ -67,10 +64,8 @@ func (p *Parser) Groups() typesw.IterableT[*Parser] {
 	return typesw.FuncToIterable(func() chan *Parser {
 		ch := make(chan *Parser)
 		go func() {
-			if p.groups != nil {
-				for entry := range p.groups.Iter().Iterate() {
-					ch <- entry.Val().(*Parser)
-				}
+			for entry := range p.groups.Iter().Iterate() {
+				ch <- entry.Val().(*Parser)
 			}
 			close(ch)
 		}()
@@ -79,9 +74,6 @@ func (p *Parser) Groups() typesw.IterableT[*Parser] {
 }
 
 func (p *Parser) GetGroupByName(groupName string) *Parser {
-	if p.groups == nil {
-		return nil
-	}
 	res := p.groups.GetOrDefault(groupName, nil)
 	if res == nil {
 		return nil
