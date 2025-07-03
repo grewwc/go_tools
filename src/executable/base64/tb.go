@@ -79,9 +79,9 @@ func base64ToImage(fname, outName string) {
 
 func main() {
 	parser := terminalw.NewParser()
-	parser.Bool("f", true, "get content from file")
+	parser.Bool("in", true, "get content from file")
 	parser.Bool("c", false, "get content from clipboard")
-	parser.String("out", "", "output file name")
+	parser.String("o", "", "output file name")
 	parser.Bool("toimg", false, "")
 	parser.Bool("h", false, "print help msg")
 	parser.ParseArgsCmd("f", "toimg", "c", "h")
@@ -91,11 +91,11 @@ func main() {
 	}
 	isURL := true
 	toImage := parser.ContainsFlagStrict("toimg")
-	if parser.ContainsAnyFlagStrict("f", "c") {
+	if parser.ContainsAnyFlagStrict("in", "c") {
 		isURL = false
 	}
-	if parser.GetFlagValueDefault("out", "") != "" {
-		outName = parser.GetFlagValueDefault("out", "")
+	if parser.GetFlagValueDefault("o", "") != "" {
+		outName = parser.GetFlagValueDefault("o", "")
 	}
 	pos := parser.Positional.ToStringSlice()
 	if len(pos) > 1 {

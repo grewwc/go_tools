@@ -97,7 +97,7 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 
 func main() {
 	parser := terminalw.NewParser()
-	parser.String("f", "", "format file")
+	parser.String("f", "", "format json file")
 	parser.ParseArgsCmd()
 	positional := parser.Positional
 
@@ -120,7 +120,8 @@ func main() {
 	}
 
 	if positional.Len() != 2 {
-		fmt.Println("jc old.json new.json")
+		parser.PrintDefaults()
+		fmt.Println("j old.json new.json")
 		return
 	}
 

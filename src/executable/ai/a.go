@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/grewwc/go_tools/src/executable/ai/_ai_helpers"
+	internal "github.com/grewwc/go_tools/src/executable/ai/internel"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/typesw"
@@ -205,9 +205,9 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {
 		files := parsed.MustGetFlagVal("f")
-		parser := _ai_helpers.NewParser(files)
+		parser := internal.NewParser(files)
 		question = parser.TextFileContents() + "\n" + question
-		_ai_helpers.NonTextFile.Set(parser.NonTextFiles())
+		internal.NonTextFile.Set(parser.NonTextFiles())
 		parsed.RemoveFlagValue("f")
 	}
 	if parsed.ContainsFlagStrict("c") {
@@ -279,7 +279,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 
 	args := parser.GetPositionalArgs(true)
 
-	var model = _ai_helpers.GetModel(parser)
+	var model = internal.GetModel(parser)
 	var curr bytes.Buffer
 
 	client := &http.Client{}
@@ -304,11 +304,11 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		}
 		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
 
-		nextModel := _ai_helpers.GetModelByInput(model, &question)
+		nextModel := internal.GetModelByInput(model, &question)
 		model = nextModel
 		question = modifyQuestion(question)
 		// 构建请求体
-		// fmt.Println(_ai_helpers.SearchEnabled(model), model)
+		// fmt.Println(internal.SearchEnabled(model), model)
 		requestBody := RequestBody{
 			// 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
 			Model: nextModel,
@@ -318,14 +318,14 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 					Content: "You are a helpful assistant.",
 				},
 			},
-			EnableSearch: _ai_helpers.SearchEnabled(nextModel),
+			EnableSearch: internal.SearchEnabled(nextModel),
 			Stream:       true,
 		}
-		files := _ai_helpers.NonTextFile.Get().([]string)
+		files := internal.NonTextFile.Get().([]string)
 		if len(files) > 0 || len(fileidArr) > 0 {
-			_ai_helpers.NonTextFile.Set([]string{})
+			internal.NonTextFile.Set([]string{})
 			if len(files) > 0 {
-				fileidArr = _ai_helpers.UploadQwenLongFiles(apiKey, files)
+				fileidArr = internal.UploadQwenLongFiles(apiKey, files)
 			}
 			fileids := strings.Join(fileidArr, ",")
 			msg := Message{
@@ -333,7 +333,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 				Content: fmt.Sprintf("fileid://%s", fileids),
 			}
 			requestBody.Messages = append(requestBody.Messages, msg)
-			requestBody.Model = _ai_helpers.QWEN_LONG
+			requestBody.Model = internal.QWEN_LONG
 		} else {
 			arr := buildMessageArr(nHistory)
 			requestBody.Messages = append(requestBody.Messages, arr...)
@@ -343,7 +343,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 			Content: question,
 		})
 		jsonData, _ := json.Marshal(requestBody)
-		req, _ := http.NewRequest("POST", _ai_helpers.GetEndpoint(), bytes.NewBuffer(jsonData))
+		req, _ := http.NewRequest("POST", internal.GetEndpoint(), bytes.NewBuffer(jsonData))
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		req.Header.Set("Content-Type", "application/json")
 		// 发送请求
@@ -351,7 +351,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		curr.WriteString("assistant\x00")
 		ch := handleResponse(resp.Body)
 		search := "true"
-		if !_ai_helpers.SearchEnabled(model) {
+		if !internal.SearchEnabled(model) {
 			search = "false"
 		}
 		fmt.Printf("[%s (search: %s)] ", color.GreenString(requestBody.Model), color.RedString(search))

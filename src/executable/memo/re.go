@@ -18,10 +18,10 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/cw"
+	"github.com/grewwc/go_tools/src/executable/memo/internal"
 	"github.com/grewwc/go_tools/src/sortw"
 	"github.com/grewwc/go_tools/src/utilsw"
 
-	"github.com/grewwc/go_tools/src/executable/memo/_helpers"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -159,7 +159,7 @@ func initAtlas() {
 	}
 	// check if tags and memo collections exists
 	db := atlasClient.Database(dbName)
-	if !_helpers.CollectionExists(db, ctx, tagCollectionName) {
+	if !internal.CollectionExists(db, ctx, tagCollectionName) {
 		db.Collection(tagCollectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
 			Keys:    bson.D{bson.DocElem{Name: "name", Value: "text"}}.Map(),
 			Options: options.Index().SetUnique(true),
@@ -411,7 +411,7 @@ func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, t
 			for _, t := range tags {
 				trie.Insert(t)
 			}
-			if !_helpers.SearchTrie(trie, specialTagPatterns) {
+			if !internal.SearchTrie(trie, specialTagPatterns) {
 				resCopy = append(resCopy, r)
 			}
 		}
@@ -424,7 +424,7 @@ func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, t
 		recordIDs[i] = &res[i].ID
 	}
 	// fmt.Println("here", recordIDs)
-	written := _helpers.WriteInfo(recordIDs, recordTitles)
+	written := internal.WriteInfo(recordIDs, recordTitles)
 	return res, written
 }
 
@@ -438,7 +438,7 @@ func update(parser *terminalw.Parser, fromFile bool, fromEditor bool, prev bool)
 	scanner := bufio.NewScanner(os.Stdin)
 	id := parser.GetFlagValueDefault("u", "")
 	if prev {
-		id = _helpers.ReadInfo(false)
+		id = internal.ReadInfo(false)
 		if !fromFile {
 			fromEditor = true
 		}
@@ -582,7 +582,7 @@ func toggle(val bool, id string, name string, prev bool) {
 	}
 	id = strings.TrimSpace(id)
 	if prev {
-		id = _helpers.ReadInfo(false)
+		id = internal.ReadInfo(false)
 	} else if id == "" {
 		scanner := bufio.NewScanner(os.Stdin)
 		fmt.Print("input the Object ID: ")
@@ -645,7 +645,7 @@ func deleteRecord(id string, prev bool) {
 	r := record{}
 	id = strings.TrimSpace(id)
 	if prev {
-		id = _helpers.ReadInfo(false)
+		id = internal.ReadInfo(false)
 	} else if id == "" {
 		scanner := bufio.NewScanner(os.Stdin)
 		fmt.Print("input the Object ID: ")
@@ -665,7 +665,7 @@ func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 	r := record{}
 	scanner := bufio.NewScanner(os.Stdin)
 	if prev {
-		id = _helpers.ReadInfo(false)
+		id = internal.ReadInfo(false)
 	} else if id == "" {
 		fmt.Print("input the Object ID: ")
 		scanner.Scan()
@@ -726,7 +726,7 @@ func addTag(add bool, id string, prev bool) {
 	id = strings.TrimSpace(id)
 	scanner := bufio.NewScanner(os.Stdin)
 	if prev {
-		id = _helpers.ReadInfo(false)
+		id = internal.ReadInfo(false)
 	} else if id == "" {
 		fmt.Print("input the Object ID: ")
 		scanner.Scan()
@@ -901,7 +901,7 @@ func getObjectIdByTags(tags []string) string {
 	if len(tags) > 0 {
 		listRecords(-1, true, false, false, tags, false, "", true, false, false)
 	}
-	id := _helpers.ReadInfo(false)
+	id := internal.ReadInfo(false)
 	return id
 }
 
@@ -1090,7 +1090,7 @@ func main() {
 
 	verbose := parser.ContainsFlagStrict("v")
 	tags := []string{}
-	listTagsAndOrderByTime := _helpers.OrderByTime(parser)
+	listTagsAndOrderByTime := internal.OrderByTime(parser)
 	if parser.ContainsFlagStrict("out") {
 		txtOutputName, _ = parser.GetFlagVal("out")
 		if txtOutputName == "" {
@@ -1131,7 +1131,7 @@ func main() {
 		}
 		var records []*record
 		// 如果是 id，特殊处理
-		if _helpers.IsObjectID(parser.GetFlagValueDefault("t", "")) {
+		if internal.IsObjectID(parser.GetFlagValueDefault("t", "")) {
 			id, err := primitive.ObjectIDFromHex(parser.GetFlagValueDefault("t", ""))
 			if err != nil {
 				panic(err)
@@ -1228,7 +1228,7 @@ func main() {
 		tags := positional.ToStringSlice()
 		isObjectID := false
 		if positional.Len() > 0 {
-			isObjectID = _helpers.IsObjectID(tags[0])
+			isObjectID = internal.IsObjectID(tags[0])
 		}
 		// tags 里面可能是 objectid
 		if len(tags) == 1 && isObjectID {
@@ -1242,7 +1242,7 @@ func main() {
 				return
 			}
 		}
-		id = _helpers.ReadInfo(false)
+		id = internal.ReadInfo(false)
 	tagIsId:
 		parser.Optional["-u"] = id
 		if id != "" {
@@ -1353,7 +1353,7 @@ func main() {
 			cli = atlasClient
 		}
 		if !listSpecial {
-			m["name"] = bson.M{"$regex": primitive.Regex{Pattern: _helpers.BuildMongoRegularExpExclude(specialTagPatterns)}}
+			m["name"] = bson.M{"$regex": primitive.Regex{Pattern: internal.BuildMongoRegularExpExclude(specialTagPatterns)}}
 		}
 		cursor, err = cli.Database(dbName).Collection(tagCollectionName).Find(ctx, m, &op1)
 		if err != nil {
@@ -1450,14 +1450,14 @@ func main() {
 		tags := positional.ToStringSlice()
 		isObjectID := false
 		if !positional.Empty() {
-			isObjectID = _helpers.IsObjectID(tags[0])
+			isObjectID = internal.IsObjectID(tags[0])
 		}
 		// tags 里面可能是 objectid
 		if len(tags) == 1 && isObjectID {
 			objectID, _ := primitive.ObjectIDFromHex(tags[0])
 			r := &record{ID: objectID}
 			r.loadByID()
-			_helpers.WriteInfo([]*primitive.ObjectID{&r.ID}, []string{r.Title})
+			internal.WriteInfo([]*primitive.ObjectID{&r.ID}, []string{r.Title})
 		}
 		if !isObjectID && len(tags) > 0 {
 			if _, written := listRecords(-1, true, true, true, tags, false, "", false, onlyHold, prefix); !written {
@@ -1466,7 +1466,7 @@ func main() {
 			}
 		}
 
-		_helpers.ReadInfo(true)
+		internal.ReadInfo(true)
 		return
 	}
 
@@ -1542,7 +1542,7 @@ func main() {
 			return
 		}
 		type_, filename := s[2], s[1]
-		logMsg := _helpers.LogMoveImages(type_, strings.ReplaceAll(filename, "\\\\", "\\"))
+		logMsg := internal.LogMoveImages(type_, strings.ReplaceAll(filename, "\\\\", "\\"))
 		tag := "move_" + type_
 		rs, _ := listRecords(-1, true, true, true, []string{tag}, false, "", false, false, false)
 		if len(rs) == 0 {

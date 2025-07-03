@@ -1,4 +1,4 @@
-package _ai_helpers
+package internal
 
 import (
 	"bytes"

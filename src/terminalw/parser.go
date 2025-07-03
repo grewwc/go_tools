@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/typesw"
@@ -26,6 +27,9 @@ type Parser struct {
 	Positional    typesw.IList
 	defaultValMap *cw.TreeMap[string, string] // key is prefix with '-'
 
+	groups        *cw.OrderedMap
+	foundGroupKey bool
+
 	cmd string
 	*flag.FlagSet
 }
@@ -37,6 +41,52 @@ func NewParser() *Parser {
 		defaultValMap: cw.NewTreeMap[string, string](nil),
 		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
 	}
+}
+
+func (p *Parser) PrintDefaults() {
+	if p.groups != nil {
+		for entry := range p.groups.Iter().Iterate() {
+			fmt.Println(color.YellowString(entry.Key().(string)))
+			subP := entry.Val().(*Parser)
+			subP.PrintDefaults()
+		}
+	}
+	p.FlagSet.PrintDefaults()
+}
+
+func (p *Parser) AddGroup(groupName string) *Parser {
+	sub := NewParser()
+	if p.groups == nil {
+		p.groups = cw.NewOrderedMap()
+	}
+	p.groups.Put(groupName, sub)
+	return sub
+}
+
+func (p *Parser) Groups() typesw.IterableT[*Parser] {
+	return typesw.FuncToIterable(func() chan *Parser {
+		ch := make(chan *Parser)
+		go func() {
+			if p.groups != nil {
+				for entry := range p.groups.Iter().Iterate() {
+					ch <- entry.Val().(*Parser)
+				}
+			}
+			close(ch)
+		}()
+		return ch
+	})
+}
+
+func (p *Parser) GetGroupByName(groupName string) *Parser {
+	if p.groups == nil {
+		return nil
+	}
+	res := p.groups.GetOrDefault(groupName, nil)
+	if res == nil {
+		return nil
+	}
+	return res.(*Parser)
 }
 
 func (r *Parser) GetFlagVal(flagName string) (string, error) {
@@ -418,12 +468,13 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 }
 
 func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
-	// if len(os.Args) <= 1 {
-	// 	return
-	// }
-	r.cmd = strings.Join(os.Args, " ")
-	args := make([]string, len(os.Args))
-	for i, arg := range os.Args {
+	start := 1
+	if len(os.Args) > 1 && r.groups.Contains(os.Args[1]) {
+		start++
+		r = r.GetGroupByName(os.Args[1])
+	}
+	args := make([]string, len(os.Args)-start)
+	for i, arg := range os.Args[start:] {
 		args[i] = fmt.Sprintf("%c%s%c", quote, arg, quote)
 	}
 	cmd := strings.Join(args, " ")
