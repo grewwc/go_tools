@@ -501,7 +501,7 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	// if len(cmdSlice) <= 1 {
 	// 	return
 	// }
-	cmd = strings.Join(cmdSlice[1:], string(sep))
+	cmd = strings.Join(cmdSlice, string(sep))
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)
 	r.parseArgs(cmd, boolOptionals...)
 }
