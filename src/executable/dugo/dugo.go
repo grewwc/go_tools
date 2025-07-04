@@ -27,9 +27,9 @@ var lowerSizeBound float64 = -1
 
 var threadControl = make(chan struct{}, 50)
 
-var excludes *cw.MutexSet[string] = cw.NewMutexSet[string]()
+var excludes = cw.NewConcurrentHashSet[string](nil, nil)
 
-var types *cw.MutexSet[string] = cw.NewMutexSet[string]()
+var types = cw.NewConcurrentHashSet[string](nil, nil)
 
 func listFile(path string) ([]os.DirEntry, error) {
 	threadControl <- struct{}{}
@@ -49,14 +49,14 @@ func walkDir(root string, fileSize chan<- int64, wg *sync.WaitGroup) {
 		return
 	}
 	for _, file := range files {
-		if !valid(file.Name()) {
-			continue
-		}
 		if file.IsDir() {
 			subDir := path.Join(root, file.Name())
 			wg.Add(1)
 			go walkDir(subDir, fileSize, wg)
 		} else {
+			if !valid(file.Name()) {
+				continue
+			}
 			fileInfo, err := file.Info()
 			if err != nil {
 				return
@@ -95,7 +95,7 @@ func formatFileSize(fileSize int64) string {
 }
 
 func checkOneDirectory(root string) {
-	if !valid(root) {
+	if utilsw.IsRegular(root) && !valid(root) {
 		return
 	}
 	var wg sync.WaitGroup
