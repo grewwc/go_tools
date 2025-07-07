@@ -415,6 +415,9 @@ func (json *Json) extract(key string) *Json {
 }
 
 func (j *Json) IsArray() bool {
+	if j == nil || j.data == nil {
+		return false
+	}
 	return reflect.TypeOf(j.data).Kind() == reflect.Slice
 }
 
