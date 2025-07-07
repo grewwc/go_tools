@@ -105,7 +105,6 @@ func (s *OrderedMap) Empty() bool {
 }
 
 func (s *OrderedMap) Size() int {
-	fmt.Println("what", s)
 	return len(s.m)
 }
 
@@ -311,7 +310,7 @@ func (s *OrderedMap) String() string {
 	res := make([]interface{}, 0, len(s.m))
 	front := s.l.Front()
 	if front == nil {
-		return "\n"
+		return ""
 	}
 	for i := 0; i < s.Size(); i++ {
 		k := front.Value.(*MapEntry[any, any]).k

@@ -32,6 +32,8 @@ func WithComment(j *Json) {
 	j.allowComment = true
 }
 
+var jsonType = reflect.TypeOf(new(Json))
+
 func NewJsonFromFile(filename string, options ...JsonOption) *Json {
 	filename = ExpandUser(filename)
 	b, err := os.Open(filename)
@@ -146,7 +148,7 @@ func getByIndex[T type_](j *Json, idx int) T {
 	if res, ok := data[idx].(T); ok {
 		return res
 	}
-	res := Json{
+	res := &Json{
 		data: data[idx],
 	}
 	return *(*T)(unsafe.Pointer(&res))
@@ -197,15 +199,19 @@ func getT[T type_, U keytype](j *Json, key U) T {
 			return getByIndex[T](j, int(reflect.ValueOf(key).Int()))
 		}
 	}
+	if data == nil {
+		return *new(T)
+	}
 	strKey := reflect.ValueOf(key).String()
 	if data.GetOrDefault(strKey, nil) == nil {
 		return *new(T)
 	}
+	// fmt.Println("??", strKey, reflect.TypeOf(data.Get(strKey)).Kind() == reflect.Pointer, reflect.TypeOf(*new(T)), jsonType)
 	if res, ok := data.Get(strKey).(T); ok {
 		return res
 	} else if ptrRes, ok := data.Get(strKey).(*T); ok {
 		return *ptrRes
-	} else if k := reflect.TypeOf(data.Get(strKey)).Kind(); k == reflect.Map && reflect.TypeOf(*new(T)) == reflect.TypeOf(*new(Json)) {
+	} else if k := reflect.TypeOf(data.Get(strKey)).Kind(); k == reflect.Pointer && reflect.TypeOf(*new(T)) == jsonType {
 		obj, ok := data.Get(strKey).(*cw.OrderedMap)
 		if !ok {
 			fmt.Printf("ERROR: key %s is not Json object, maybe array?\n", strKey)
@@ -214,13 +220,14 @@ func getT[T type_, U keytype](j *Json, key U) T {
 		newJson := &Json{
 			data: obj,
 		}
-		return *(*T)(unsafe.Pointer(newJson))
-
+		res := *(*T)(unsafe.Pointer(&newJson))
+		return res
 	} else if k == reflect.Slice {
 		obj, _ := data.Get(strKey).([]interface{})
-		res := Json{
+		res := &Json{
 			data: obj,
 		}
+		// fmt.Println("..", obj, reflect.TypeOf(obj), reflect.TypeOf(*(*T)(unsafe.Pointer(res))))
 		return *(*T)(unsafe.Pointer(&res))
 	} else if k == reflect.Float64 &&
 		reflect.TypeOf(*new(T)).Kind() == reflect.Int &&
@@ -281,8 +288,8 @@ func (j *Json) GetInt(key string) int {
 }
 
 func (j *Json) GetIndex(idx int) *Json {
-	res := getT[Json](j, idx)
-	return &res
+	res := getT[*Json](j, idx)
+	return res
 }
 
 func (j *Json) GetFloat(key string) float64 {
@@ -304,12 +311,12 @@ func (j *Json) GetJson(key string) *Json {
 			return j.GetIndex(keyInt)
 		}
 	}
-	res := getT[Json](j, key)
-	if res.data == nil {
+	res := getT[*Json](j, key)
+	if res != nil && res.data == nil {
 		data := getT[*cw.OrderedMap](j, key)
 		res.data = data
 	}
-	return &res
+	return res
 }
 
 func (j *Json) Get(key string) interface{} {
