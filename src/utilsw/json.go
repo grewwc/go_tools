@@ -71,13 +71,14 @@ func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
 		}
 		break
 	}
-	if b[0] == '[' {
+	switch b[0] {
+	case '[':
 		var buf strings.Builder
 		buf.WriteString(fmt.Sprintf(`{"_arr": %c`, b[0]))
 		newReader := io.MultiReader(strings.NewReader(buf.String()), rr, strings.NewReader("}"))
 		j := NewJsonFromReader(newReader)
 		return j.GetJson("_arr")
-	} else if b[0] == '{' {
+	case '{':
 		m := cw.NewOrderedMap()
 		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), rr))
 		decoder.UseNumber()
@@ -87,7 +88,7 @@ func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
 		}
 		res.data = m
 		return res
-	} else {
+	default:
 		panic(b)
 	}
 }
@@ -255,6 +256,7 @@ func (j *Json) Set(key string, value interface{}) bool {
 func (j *Json) Add(value interface{}) {
 	if j == nil || j.data == nil {
 		fmt.Println("ERROR: json is nil")
+		return
 	}
 	arr, ok := j.data.([]interface{})
 	if !ok {
@@ -292,6 +294,9 @@ func (j *Json) GetBool(key string) bool {
 }
 
 func (j *Json) GetJson(key string) *Json {
+	if j == nil {
+		return nil
+	}
 	if j.IsArray() {
 		if keyInt, err := strconv.Atoi(key); err != nil {
 			return nil
@@ -308,6 +313,9 @@ func (j *Json) GetJson(key string) *Json {
 }
 
 func (j *Json) Get(key string) interface{} {
+	if j == nil {
+		return nil
+	}
 	if j.IsArray() {
 		if keyInt, err := strconv.Atoi(key); err != nil {
 			return nil
@@ -319,6 +327,9 @@ func (j *Json) Get(key string) interface{} {
 }
 
 func (j *Json) GetOrDefault(key string, defaultVal interface{}) interface{} {
+	if j == nil || j.data == nil {
+		return defaultVal
+	}
 	if j.ContainsKey(key) {
 		return j.Get(key)
 	}
@@ -338,6 +349,9 @@ func (json *Json) flatten() []*Json {
 }
 
 func (json *Json) Extract(key string) *Json {
+	if json == nil || json.data == nil {
+		return nil
+	}
 	idx := strings.LastIndexByte(key, '.')
 	if idx < 0 {
 		return json.extract(key)
@@ -426,6 +440,9 @@ func (j *Json) Len() int {
 		return 0
 	}
 	if data, ok := j.data.(*cw.OrderedMap); ok {
+		if data == nil {
+			return 0
+		}
 		return data.Size()
 	}
 	if reflect.TypeOf(j.data).Kind() == reflect.Slice {

@@ -105,6 +105,7 @@ func (s *OrderedMap) Empty() bool {
 }
 
 func (s *OrderedMap) Size() int {
+	fmt.Println("what", s)
 	return len(s.m)
 }
 
@@ -304,6 +305,9 @@ func (om *OrderedMap) UnmarshalJSON(data []byte) error {
 }
 
 func (s *OrderedMap) String() string {
+	if s == nil || s.m == nil || s.l == nil {
+		return ""
+	}
 	res := make([]interface{}, 0, len(s.m))
 	front := s.l.Front()
 	if front == nil {
