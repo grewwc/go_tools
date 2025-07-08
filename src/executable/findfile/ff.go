@@ -33,6 +33,7 @@ var printMd5 bool = false
 var caseInsensitive bool = false
 var relativePath bool = true
 var wd string
+var glob = false
 
 var numThreads = make(chan struct{}, 50)
 
@@ -100,17 +101,27 @@ func findFile(rootDir string, numPrint int, allIgnores []string) {
 			goto OUTER
 		}
 		var m []string
-		var err error
-		if caseInsensitive {
-			m, err = terminalw.GlobCaseInsensitive(target, rootDir)
+		if glob {
+			var err error
+			if caseInsensitive {
+				m, err = terminalw.GlobCaseInsensitive(target, rootDir)
+			} else {
+				m, err = terminalw.Glob(target, rootDir)
+			}
+			if err != nil {
+				if verbose {
+					fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
+				}
+			}
 		} else {
-			m, err = terminalw.Glob(target, rootDir)
-		}
-		if err != nil {
-			if verbose {
-				fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
+			for _, file := range utilsw.LsDir(rootDir, nil, nil) {
+				abs := filepath.Join(rootDir, file)
+				if utilsw.IsRegular(abs) && file == target {
+					matches = append(matches, abs)
+				}
 			}
 		}
+
 		if len(m) == 0 {
 			continue
 		}
@@ -156,10 +167,11 @@ OUTER:
 			}
 			if verbose {
 				info, err := os.Stat(match)
-				fileSize := info.Size()
 				if err != nil {
 					fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
+					continue
 				}
+				fileSize := info.Size()
 				toPrint += "  " + parseFileSize(fileSize)
 				toPrint += "  " + info.ModTime().Format("2006.01.02/15:04:05")
 			}
@@ -215,7 +227,8 @@ func main() {
 	parser.Bool("md5", false, "print md5 value")
 	parser.Bool("abs", false, fmt.Sprintf("print absolute path. (%s in ~/.configW)", absName))
 	parser.Bool("rel", false, "print relative path.")
-	parser.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs", "i", "rel")
+	parser.Bool("glob", false, "use filepath.Glob to match")
+	parser.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs", "i", "rel", "glob")
 
 	if parser.Empty() {
 		parser.PrintDefaults()
@@ -229,6 +242,9 @@ func main() {
 
 	if parser.ContainsFlagStrict("md5") {
 		printMd5 = true
+	}
+	if parser.ContainsFlagStrict("glob") {
+		glob = true
 	}
 
 	verboseFlag := parser.ContainsFlagStrict("v")
