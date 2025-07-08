@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/typesw"
 )
 
@@ -26,22 +27,25 @@ func SplitNoEmpty(str, sep string) []string {
 }
 
 // SplitNoEmptyPreserveQuote keep content in quote intact
-func SplitNoEmptyPreserveQuote(str string, sep rune, symbol rune, keepSymbol bool) []string {
+func SplitNoEmptyPreserveQuote(str string, sep rune, symbols string, keepSymbol bool) []string {
 	inQuote := false
 	var res []string
-	var word bytes.Buffer
+	var word strings.Builder
 	if str == "" {
 		return res
 	}
-
-	for _, s := range str {
-		if s == symbol {
+	s := cw.NewSet()
+	for _, symbol := range symbols {
+		s.Add(symbol)
+	}
+	for _, ch := range str {
+		if s.Contains(ch) {
 			inQuote = !inQuote
 			if keepSymbol {
-				word.WriteRune(s)
+				word.WriteRune(ch)
 			}
-		} else if s != sep || inQuote {
-			word.WriteRune(s)
+		} else if ch != sep || inQuote {
+			word.WriteRune(ch)
 		} else if word.Len() != 0 {
 			res = append(res, word.String())
 			word.Reset()

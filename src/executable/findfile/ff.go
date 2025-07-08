@@ -116,6 +116,7 @@ func findFile(rootDir string, numPrint int, allIgnores []string) {
 		} else {
 			for _, file := range utilsw.LsDir(rootDir, nil, nil) {
 				abs := filepath.Join(rootDir, file)
+				fmt.Println("here", abs, target)
 				if utilsw.IsRegular(abs) && file == target {
 					matches = append(matches, abs)
 				}
@@ -284,7 +285,7 @@ func main() {
 	}
 
 	ignores = strings.ReplaceAll(ignores, ",", " ")
-	allIgnores := strw.SplitNoEmptyPreserveQuote(ignores, ' ', '"', false)
+	allIgnores := strw.SplitNoEmptyPreserveQuote(ignores, ' ', `"`, false)
 	for i := range allIgnores {
 		temp := strings.ReplaceAll(allIgnores[i], `.`, `\.`)
 		temp = strings.ReplaceAll(temp, `?`, `.`)

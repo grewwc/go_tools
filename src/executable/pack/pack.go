@@ -158,7 +158,7 @@ func main() {
 		err = nil
 	}
 	if exclude != "" {
-		for _, ex := range strw.SplitNoEmptyPreserveQuote(exclude, ',', '"', false) {
+		for _, ex := range strw.SplitNoEmptyPreserveQuote(exclude, ',', `"`, false) {
 			ex = strings.TrimSpace(ex)
 			excludeSlice = append(excludeSlice, utilsw.Abs(ex))
 		}
