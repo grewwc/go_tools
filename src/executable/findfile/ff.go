@@ -116,7 +116,7 @@ func findFile(rootDir string, numPrint int, allIgnores []string) {
 		} else {
 			for _, file := range utilsw.LsDir(rootDir, nil, nil) {
 				abs := filepath.Join(rootDir, file)
-				if utilsw.IsRegular(abs) && file == target {
+				if file == target {
 					matches = append(matches, abs)
 				}
 			}

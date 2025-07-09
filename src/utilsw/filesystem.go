@@ -30,7 +30,7 @@ func LsDir(fname string, filter func(filename string) bool, postProcess func(fil
 	}
 	infos, err := os.ReadDir(fname)
 	if err != nil {
-		log.Fatalln(err)
+		return nil
 	}
 	res := make([]string, 0, len(infos))
 	for _, info := range infos {
