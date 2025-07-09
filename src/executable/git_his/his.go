@@ -19,7 +19,7 @@ const (
 )
 
 const (
-	logHistoryCmd = `git log --oneline --format="%h %an %ad %s" --date=short`
+	logHistoryCmd = `git log $branch$ --oneline --format="%h %an %ad %s" --date=short`
 	branchCmd     = `git for-each-ref --sort=-committerdate --format="%(refname:short) %(committerdate:short) %(subject)" refs/heads/ `
 )
 
@@ -83,7 +83,11 @@ func getCmd(parser *terminalw.Parser) string {
 	if parser.ContainsFlagStrict("b") {
 		return branchCmd
 	}
-	return logHistoryCmd
+	branch := ""
+	if !parser.Positional.Empty() {
+		branch = parser.Positional.Get(0).(string)
+	}
+	return strings.ReplaceAll(logHistoryCmd, `$branch$`, branch)
 }
 
 func getHandler(parser *terminalw.Parser) ILineHandler {
@@ -108,6 +112,7 @@ func main() {
 	parser.ParseArgsCmd("h", "a", "b")
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
+		fmt.Println("his $branch")
 		return
 	}
 	n := getN(parser)
