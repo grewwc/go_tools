@@ -63,24 +63,26 @@ func swim[T any](arr []T, idx int, cmp typesw.CompareFunc[T]) {
 		return
 	}
 
-	if cmp(arr[idx/2], arr[idx]) > 0 {
-		arr[idx/2], arr[idx] = arr[idx], arr[idx/2]
-		swim(arr, idx/2, cmp)
-		sink(arr, idx, cmp)
+	for p := idx / 2; p >= 1 && cmp(arr[p], arr[idx]) > 0; {
+		arr[p], arr[idx] = arr[idx], arr[p]
+		idx = p
+		p = idx / 2
 	}
 }
 
+func getC[T any](arr []T, cmp typesw.CompareFunc[T], idx int) int {
+	c := idx * 2
+	if c+1 < len(arr) && cmp(arr[c], arr[c+1]) > 0 {
+		c++
+	}
+	return c
+}
+
 func sink[T any](arr []T, idx int, cmp typesw.CompareFunc[T]) {
-	childIdx := idx * 2
-	if childIdx >= len(arr) {
-		return
-	}
-	if childIdx+1 < len(arr) && cmp(arr[childIdx], arr[childIdx+1]) > 0 {
-		childIdx++
-	}
-	if cmp(arr[idx], arr[childIdx]) > 0 {
-		arr[childIdx], arr[idx] = arr[idx], arr[childIdx]
-		sink(arr, childIdx, cmp)
+	for c := getC(arr, cmp, idx); c < len(arr) && cmp(arr[idx], arr[c]) > 0; {
+		arr[c], arr[idx] = arr[idx], arr[c]
+		idx = c
+		c = getC(arr, cmp, idx)
 	}
 }
 

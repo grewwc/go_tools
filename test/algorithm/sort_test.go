@@ -43,9 +43,17 @@ func TestTreeSort(t *testing.T) {
 
 func TestHeapSort(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		arr := algow.RandInt(-100, 100, 500)
+		arr := algow.RandInt(-10, 100, 5000)
 		sortw.HeapSort(arr, false)
 		if !sort.IntsAreSorted(arr) {
+			t.Errorf("arr is not sorted, %v", arr)
+		}
+	}
+
+	for i := 0; i < 100; i++ {
+		arr := algow.RandFloat64(10000)
+		sortw.HeapSort(arr, false)
+		if !sort.Float64sAreSorted(arr) {
 			t.Errorf("arr is not sorted, %v", arr)
 		}
 	}
