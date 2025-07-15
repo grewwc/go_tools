@@ -230,6 +230,7 @@ func test() {
 	x := "1-1+1"
 	x = "2*2"
 	x = `(4527.9869-4661)/4661*100`
+	x = "210/2"
 	prec = 16
 	res := calc(typesw.StrToBytes(processInputStr(x)))
 	fmt.Println(res)

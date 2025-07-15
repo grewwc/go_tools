@@ -418,13 +418,13 @@ func Div(a, b string, numDigitToKeep int) string {
 func Helper(a *string, b string) (string, int, bool) {
 	if len((*a)) > len(b) {
 		if (*a)[:len(b)] >= b {
-			modified, divResult, clean := doDiv((*a)[:len(b)], b)
-			*a = modified + (*a)[len(b):]
+			remainder, divResult, clean := doDiv((*a)[:len(b)], b)
+			*a = remainder + (*a)[len(b):]
 			return divResult, 0, clean
 		} else {
-			modified, divResult, clean := doDiv((*a)[:len(b)+1], b)
-			*a = modified + (*a)[len(b)+1:]
-			return divResult, 0, clean
+			remainder, divResult, clean := doDiv((*a)[:len(b)+1], b)
+			*a = remainder + (*a)[len(b)+1:]
+			return divResult, 1, clean
 		}
 	} else if len((*a)) == len(b) {
 		if (*a) >= b {
