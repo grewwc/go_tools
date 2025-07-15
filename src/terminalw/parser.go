@@ -489,7 +489,7 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	r.cmd = cmd
 	// cmd = strw.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
-	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', `"'`, true)
+	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', fmt.Sprintf(`"'%c`, quote), true)
 	// if len(cmdSlice) <= 1 {
 	// 	return
 	// }

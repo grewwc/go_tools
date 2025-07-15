@@ -239,7 +239,7 @@ func main() {
 	parser := terminalw.NewParser()
 	parser.Int("prec", 16, "division precision. default is: 16")
 	parser.Bool("h", false, "print help info")
-	parser.ParseArgsCmd()
+	parser.ParseArgsCmd("h")
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
