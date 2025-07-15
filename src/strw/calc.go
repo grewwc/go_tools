@@ -381,7 +381,7 @@ func Div(a, b string, numDigitToKeep int) string {
 	sumRemovedZero := 0
 	var removedCount, prevRemoveCount int
 	for decimalCount < numDigitToKeep+1 {
-		divResult, addedZero, _ := Helper(&a, b)
+		divResult, addedZero, _ := helper(&a, b)
 		a, removedCount = removeLeadingZero(a)
 
 		decimalCount += addedZero
@@ -415,7 +415,7 @@ func Div(a, b string, numDigitToKeep int) string {
 	return res
 }
 
-func Helper(a *string, b string) (string, int, bool) {
+func helper(a *string, b string) (string, int, bool) {
 	if len((*a)) > len(b) {
 		if (*a)[:len(b)] >= b {
 			remainder, divResult, clean := doDiv((*a)[:len(b)], b)
@@ -444,7 +444,7 @@ func Helper(a *string, b string) (string, int, bool) {
 			*a += "0"
 			zeroCount++
 		}
-		divResult, addedZero, clean := Helper(a, b)
+		divResult, addedZero, clean := helper(a, b)
 
 		return divResult, addedZero + zeroCount, clean
 	}

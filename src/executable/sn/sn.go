@@ -11,7 +11,7 @@ import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/cw"
-	_helpers "github.com/grewwc/go_tools/src/executable/sn/_helpers"
+	_helper "github.com/grewwc/go_tools/src/executable/sn/internal"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilsw"
@@ -54,7 +54,7 @@ func init() {
 
 func uploadSingleFile(wg *sync.WaitGroup, filename, ossKey string, force bool, retryCount int) {
 	defer wg.Done()
-	key := _helpers.GetOssKey(ossKey)
+	key := _helper.GetOssKey(ossKey)
 	if key[len(key)-1] != '/' {
 		if !force {
 			if utilsw.PromptYesOrNo(fmt.Sprintf("do you want to overwrite the file: %s", key)) {
@@ -112,7 +112,7 @@ func download(filename, ossKey string, ch chan struct{}, retryCount int) {
 	if filename, err = filepath.Abs(filename); err != nil {
 		panic(err)
 	}
-	key := _helpers.GetOssKey(ossKey)
+	key := _helper.GetOssKey(ossKey)
 
 	if utilsw.IsDir(filename) {
 		filename += "/" + filepath.Base(key)
@@ -215,7 +215,7 @@ func handleDelete(args []string) {
 }
 
 func deleteSingle(ossKey string) {
-	key := _helpers.GetOssKey(ossKey)
+	key := _helper.GetOssKey(ossKey)
 	fmt.Printf(">>> begin deleting %s\n", color.RedString(key))
 	if err = bucket.DeleteObject(key); err != nil {
 		fmt.Fprintf(os.Stderr, "<<< failed to delete %s\n", key)
