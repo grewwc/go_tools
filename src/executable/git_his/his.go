@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultN = 10
+	defaultN = 5
 )
 
 const (
