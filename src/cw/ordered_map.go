@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/grewwc/go_tools/src/typesw"
 )
@@ -208,8 +209,16 @@ func handledelim(t json.Token, dec *json.Decoder) (res interface{}, err error) {
 	return t, nil
 }
 
+var pool = sync.Pool{
+	New: func() interface{} {
+		return &strings.Builder{}
+	},
+}
+
 func encode(w io.Writer, om *OrderedMap) error {
-	buf := &strings.Builder{}
+	buf := pool.Get().(*strings.Builder)
+	buf.Reset()
+	defer pool.Put(buf)
 	buf.WriteString("{")
 	i := 0
 	for e := om.l.Front(); e != nil; e = e.Next() {
@@ -218,24 +227,30 @@ func encode(w io.Writer, om *OrderedMap) error {
 		buf.WriteByte('"')
 		buf.WriteString(item.Key().(string))
 		buf.WriteByte('"')
-		buf.WriteString(":")
+		buf.WriteByte(':')
 		// fmt.Println(",,", item.Key(), item.Val(), reflect.TypeOf(item.Val()))
 		switch v := item.Val().(type) {
 		case *OrderedMap:
-			subBuf := &strings.Builder{}
+			subBuf := pool.Get().(*strings.Builder)
+			subBuf.Reset()
 			if err := encode(subBuf, v); err != nil {
 				return err
 			}
 			buf.WriteString(subBuf.String())
+			pool.Put(subBuf)
 		case []interface{}:
-			buf.WriteString("[")
+			buf.WriteByte('[')
 			for j, elem := range v {
 				if omElem, ok := elem.(*OrderedMap); ok {
-					subBuf := &strings.Builder{}
+					// subBuf := &strings.Builder{}
+					subBuf := pool.Get().(*strings.Builder)
+					subBuf.Reset()
 					if err := encode(subBuf, omElem); err != nil {
+						pool.Put(subBuf)
 						return err
 					}
 					buf.WriteString(subBuf.String())
+					pool.Put(subBuf)
 				} else {
 					encoded, err := json.Marshal(elem)
 					if err != nil {
@@ -244,10 +259,10 @@ func encode(w io.Writer, om *OrderedMap) error {
 					buf.Write(encoded)
 				}
 				if j < len(v)-1 {
-					buf.WriteString(",")
+					buf.WriteByte(',')
 				}
 			}
-			buf.WriteString("]")
+			buf.WriteByte(']')
 		default:
 			encoded, err := json.Marshal(v)
 			if err != nil {
@@ -257,12 +272,12 @@ func encode(w io.Writer, om *OrderedMap) error {
 		}
 		// 添加逗号分隔符
 		if i < om.Size()-1 {
-			buf.WriteString(",")
+			buf.WriteByte(',')
 		}
 		i++
 	}
 
-	buf.WriteString("}")
+	buf.WriteByte('}')
 	_, err := w.Write(typesw.StrToBytes(buf.String()))
 	return err
 }

@@ -40,6 +40,7 @@ func NewJsonFromFile(filename string, options ...JsonOption) *Json {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	options = append(options, WithComment)
 	res := NewJsonFromReader(b, options...)
 	b.Close()
 	return res
@@ -50,6 +51,7 @@ func NewJsonFromByte(data []byte) *Json {
 }
 
 func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
+	options = append(options, WithComment)
 	res := NewJson(nil)
 	for _, option := range options {
 		option(res)

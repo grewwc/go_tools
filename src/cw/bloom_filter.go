@@ -25,19 +25,6 @@ func NewBloomFilter[T any](capacity int) *BloomFilter[T] {
 	}
 }
 
-func max[T constraints.Ordered](args ...T) T {
-	if len(args) == 0 {
-		return *new(T)
-	}
-	res := args[0]
-	for _, val := range args[1:] {
-		if val > res {
-			res = val
-		}
-	}
-	return res
-}
-
 func (f *BloomFilter[T]) Contains(item T) bool {
 	hashVal := f.hash(item)
 	cnt := max(f.numDigit(hashVal), f.hashTimes)
@@ -85,4 +72,17 @@ func (f *BloomFilter[T]) numDigit(val int) int {
 		val = val >> 1
 	}
 	return ret
+}
+
+func max[T constraints.Ordered](args ...T) T {
+	if len(args) == 0 {
+		return *new(T)
+	}
+	res := args[0]
+	for _, val := range args[1:] {
+		if val > res {
+			res = val
+		}
+	}
+	return res
 }
