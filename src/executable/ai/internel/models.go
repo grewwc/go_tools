@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/grewwc/go_tools/src/cw"
+	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilsw"
 )
@@ -77,6 +78,9 @@ func GetModel(parsed *terminalw.Parser) string {
 	case QWEN_TURBO_LATEST, "6":
 		return QWEN_TURBO_LATEST
 	default:
+		if !strw.IsBlank(model) {
+			return model
+		}
 		return getDefaultModel()
 	}
 }
