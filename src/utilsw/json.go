@@ -21,7 +21,7 @@ import (
 )
 
 type Json struct {
-	data interface{}
+	data any
 
 	allowComment bool
 }
@@ -83,7 +83,7 @@ func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
 		j := NewJsonFromReader(newReader)
 		return j.GetJson("_arr")
 	case '{':
-		m := cw.NewOrderedMap()
+		m := cw.NewOrderedMapT[string, any]()
 		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), rr))
 		decoder.UseNumber()
 		err := decoder.Decode(&m)
@@ -101,18 +101,18 @@ func NewJsonFromString(content string, options ...JsonOption) *Json {
 	return NewJsonFromReader(strings.NewReader(content), options...)
 }
 
-func NewJson(data interface{}) *Json {
+func NewJson(data any) *Json {
 	if data == nil {
-		data = cw.NewOrderedMap()
+		data = cw.NewOrderedMapT[string, any]()
 	}
 	for isJson(data) {
 		data = unwrapJson(data)
 	}
 	jsonArr, isJson_ := data.([]Json)
 	jsonPtrArr, isJsonPtr := data.([]*Json)
-	interfaceArr, isInterface := data.([]interface{})
+	interfaceArr, isInterface := data.([]any)
 
-	var dataArr []interface{}
+	var dataArr []any
 	if isJson_ {
 		dataArr = unwrapArr(jsonArr)
 	} else if isJsonPtr {
@@ -127,7 +127,7 @@ func NewJson(data interface{}) *Json {
 }
 
 type type_ interface {
-	bool | constraints.Float | constraints.Integer | string | Json | interface{}
+	bool | constraints.Float | constraints.Integer | string | Json | any
 }
 
 type keytype interface {
@@ -139,7 +139,7 @@ func getByIndex[T type_](j *Json, idx int) T {
 		fmt.Println("ERROR: json is nil")
 		return *new(T)
 	}
-	data, ok := j.data.([]interface{})
+	data, ok := j.data.([]any)
 	if !ok {
 		fmt.Println("ERROR: json is not array")
 		return *new(T)
@@ -156,7 +156,7 @@ func getByIndex[T type_](j *Json, idx int) T {
 	return *(*T)(unsafe.Pointer(&res))
 }
 
-func isJson(data interface{}) bool {
+func isJson(data any) bool {
 	_, ok := data.(Json)
 	if ok {
 		return true
@@ -165,10 +165,10 @@ func isJson(data interface{}) bool {
 	return ok
 }
 
-func unwrapArr[T interface{} | Json | *Json](arr []T) []interface{} {
-	res := make([]interface{}, 0, len(arr))
+func unwrapArr[T any | Json | *Json](arr []T) []any {
+	res := make([]any, 0, len(arr))
 	for i := 0; i < len(arr); i++ {
-		var e interface{} = arr[i]
+		var e any = arr[i]
 		for isJson(e) {
 			e = unwrapJson(e)
 		}
@@ -177,7 +177,7 @@ func unwrapArr[T interface{} | Json | *Json](arr []T) []interface{} {
 	return res
 }
 
-func unwrapJson(value interface{}) interface{} {
+func unwrapJson(value any) any {
 	data, ok := value.(Json)
 	if ok {
 		return data.data
@@ -194,7 +194,7 @@ func getT[T type_, U keytype](j *Json, key U) T {
 		fmt.Println("ERROR: json is nil")
 		return *new(T)
 	}
-	data, ok := j.data.(*cw.OrderedMap)
+	data, ok := j.data.(*cw.OrderedMapT[string, any])
 	if !ok {
 		keyKind := reflect.TypeOf(key).Kind()
 		if keyKind == reflect.Int {
@@ -214,7 +214,7 @@ func getT[T type_, U keytype](j *Json, key U) T {
 	} else if ptrRes, ok := data.Get(strKey).(*T); ok {
 		return *ptrRes
 	} else if k := reflect.TypeOf(data.Get(strKey)).Kind(); k == reflect.Pointer && reflect.TypeOf(*new(T)) == jsonType {
-		obj, ok := data.Get(strKey).(*cw.OrderedMap)
+		obj, ok := data.Get(strKey).(*cw.OrderedMapT[string, any])
 		if !ok {
 			fmt.Printf("ERROR: key %s is not Json object, maybe array?\n", strKey)
 			return *new(T)
@@ -225,7 +225,7 @@ func getT[T type_, U keytype](j *Json, key U) T {
 		res := *(*T)(unsafe.Pointer(&newJson))
 		return res
 	} else if k == reflect.Slice {
-		obj, _ := data.Get(strKey).([]interface{})
+		obj, _ := data.Get(strKey).([]any)
 		res := &Json{
 			data: obj,
 		}
@@ -242,12 +242,12 @@ func getT[T type_, U keytype](j *Json, key U) T {
 	}
 }
 
-func (j *Json) Set(key string, value interface{}) bool {
+func (j *Json) Set(key string, value any) bool {
 	if j == nil || j.data == nil {
 		fmt.Println("ERROR: json is nil")
 		return false
 	}
-	data, ok := j.data.(*cw.OrderedMap)
+	data, ok := j.data.(*cw.OrderedMapT[string, any])
 	if !ok {
 		fmt.Println("ERROR: not json format, json array?")
 		return false
@@ -262,18 +262,18 @@ func (j *Json) Set(key string, value interface{}) bool {
 	return exist
 }
 
-func (j *Json) Add(value interface{}) {
+func (j *Json) Add(value any) {
 	if j == nil || j.data == nil {
 		fmt.Println("ERROR: json is nil")
 		return
 	}
-	arr, ok := j.data.([]interface{})
+	arr, ok := j.data.([]any)
 	if !ok {
-		if m, isMap := j.data.(*cw.OrderedMap); !isMap || m.Size() > 0 {
+		if m, isMap := j.data.(*cw.OrderedMapT[string, any]); !isMap || m.Size() > 0 {
 			fmt.Println("ERROR: not json array.")
 			return
 		}
-		j.data = make([]interface{}, 0, 2)
+		j.data = make([]any, 0, 2)
 	}
 	for isJson(value) {
 		value = unwrapJson(value)
@@ -315,13 +315,13 @@ func (j *Json) GetJson(key string) *Json {
 	}
 	res := getT[*Json](j, key)
 	if res != nil && res.data == nil {
-		data := getT[*cw.OrderedMap](j, key)
+		data := getT[*cw.OrderedMapT[string, any]](j, key)
 		res.data = data
 	}
 	return res
 }
 
-func (j *Json) Get(key string) interface{} {
+func (j *Json) Get(key string) any {
 	if j == nil {
 		return nil
 	}
@@ -332,10 +332,10 @@ func (j *Json) Get(key string) interface{} {
 			return j.GetIndex(keyInt)
 		}
 	}
-	return getT[interface{}](j, key)
+	return getT[any](j, key)
 }
 
-func (j *Json) GetOrDefault(key string, defaultVal interface{}) interface{} {
+func (j *Json) GetOrDefault(key string, defaultVal any) any {
 	if j == nil || j.data == nil {
 		return defaultVal
 	}
@@ -373,14 +373,14 @@ func (json *Json) Extract(key string) *Json {
 			return json.extract(key)
 		}
 		rootKey := key[:idx]
-		m := cw.NewOrderedMap()
+		m := cw.NewOrderedMapT[string, any]()
 		for subKey := range strw.SplitByToken(strings.NewReader(last[1:len(last)-1]), ",", false) {
 			sub := json.extract(fmt.Sprintf("%s.%s", rootKey, subKey))
 			m.Put(subKey, sub)
 		}
 		var arr []*Json
 		for entry := range m.Iter().Iterate() {
-			subKey := entry.Key().(string)
+			subKey := entry.Key()
 			absKey := fmt.Sprintf("%s.%s", rootKey, subKey)
 			val := entry.Val().(*Json)
 			for i, k := range val.Keys() {
@@ -422,7 +422,7 @@ func (json *Json) extract(key string) *Json {
 				}
 			}
 			return result
-		} else if data, ok := json.data.(*cw.OrderedMap); ok {
+		} else if data, ok := json.data.(*cw.OrderedMapT[string, any]); ok {
 			return NewJson(data.Get(key))
 		} else {
 			return NewJson(nil)
@@ -448,7 +448,7 @@ func (j *Json) Len() int {
 	if j == nil || j.data == nil {
 		return 0
 	}
-	if data, ok := j.data.(*cw.OrderedMap); ok {
+	if data, ok := j.data.(*cw.OrderedMapT[string, any]); ok {
 		if data == nil {
 			return 0
 		}
@@ -462,9 +462,9 @@ func (j *Json) Len() int {
 
 func (j *Json) Keys() []string {
 	result := make([]string, 0, j.Len())
-	if mResult, ok := j.data.(*cw.OrderedMap); ok {
+	if mResult, ok := j.data.(*cw.OrderedMapT[string, any]); ok {
 		for k := range mResult.Iter().Iterate() {
-			result = append(result, k.Key().(string))
+			result = append(result, k.Key())
 		}
 		return result
 	}
@@ -488,14 +488,14 @@ func (j *Json) ContainsKey(key string) bool {
 	}
 
 	// json object
-	if m, ok := j.data.(*cw.OrderedMap); ok {
+	if m, ok := j.data.(*cw.OrderedMapT[string, any]); ok {
 		return m.Contains(key)
 	}
 	return false
 }
 
-func (j *Json) Scalar() interface{} {
-	if _, ok := j.data.(*cw.OrderedMap); ok {
+func (j *Json) Scalar() any {
+	if _, ok := j.data.(*cw.OrderedMapT[string, any]); ok {
 		return nil
 	}
 	t := reflect.TypeOf(j.data)

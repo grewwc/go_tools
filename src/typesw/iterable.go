@@ -5,7 +5,7 @@ type IterableT[T any] interface {
 	Stop()
 }
 
-type Iterable = IterableT[interface{}]
+type Iterable = IterableT[any]
 
 func FuncToIterable[T any](f func() chan T) IterableT[T] {
 	return &funcIterable[T]{
