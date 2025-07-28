@@ -417,7 +417,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	}
 	supportedOptions := cw.NewSet()
 	r.VisitAll(func(f *flag.Flag) {
-		supportedOptions.Add(f.Name)
+		supportedOptions.Add(fmt.Sprintf("%c%s", dash, f.Name))
 		key := fmt.Sprintf("-%s%c", f.Name, sep)
 		// fmt.Println("==>", f.Name, f.DefValue)
 		r.defaultValMap.Put(fmt.Sprintf("-%s", f.Name), f.DefValue)

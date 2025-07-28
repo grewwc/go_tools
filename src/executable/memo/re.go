@@ -1244,9 +1244,9 @@ func main() {
 		}
 		id = internal.ReadInfo(false)
 	tagIsId:
-		parser.Optional["-u"] = id
+		parser.Optional.Put("-u", id)
 		if id != "" {
-			parser.Optional["-e"] = ""
+			parser.Optional.Put("-e", "")
 		}
 		update(parser, parser.ContainsFlagStrict("file"), parser.ContainsFlagStrict("e"), id == "")
 		return
@@ -1489,7 +1489,7 @@ func main() {
 		if len(rs) == 0 {
 			insert(true, "", tag)
 		} else {
-			parser.Optional["-u"] = rs[0].ID.Hex()
+			parser.Optional.Put("-u", rs[0].ID.Hex())
 			update(parser, false, true, false)
 		}
 		return
