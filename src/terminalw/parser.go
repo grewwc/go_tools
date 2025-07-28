@@ -23,7 +23,7 @@ const (
 )
 
 type Parser struct {
-	Optional      map[string]string // key is prefix with '-'
+	Optional      *cw.OrderedMap // key is prefix with '-'
 	Positional    typesw.IList
 	defaultValMap *cw.TreeMap[string, string] // key is prefix with '-'
 
@@ -36,7 +36,7 @@ type Parser struct {
 
 func NewParser() *Parser {
 	return &Parser{
-		Optional:      make(map[string]string),
+		Optional:      cw.NewOrderedMap(),
 		Positional:    cw.NewArrayList(),
 		defaultValMap: cw.NewTreeMap[string, string](nil),
 		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
@@ -88,8 +88,8 @@ func (r *Parser) GetFlagVal(flagName string) (string, error) {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
-	if val, exists := r.Optional[flagName]; exists {
-		return val, nil
+	if r.Optional.Contains(flagName) {
+		return r.Optional.Get(flagName).(string), nil
 	}
 	return "", fmt.Errorf("GetFlagVal: flagName (%s) not exist", flagName)
 }
@@ -132,7 +132,7 @@ func (r *Parser) GetPositionalArgs(excludeNumArg bool) []string {
 }
 
 func (r *Parser) Empty() bool {
-	return len(r.Optional) == 0 && r.Positional.Empty()
+	return r.Optional.Empty() && r.Positional.Empty()
 }
 
 func (r *Parser) MustGetFlagValAsInt64(flagName string) (res int64) {
@@ -151,24 +151,21 @@ func (r *Parser) GetFlagValueDefault(flagName string, defaultVal string) string 
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
-	if val, exists := r.Optional[flagName]; exists {
-		return val
-	}
-	return defaultVal
+	return r.Optional.GetOrDefault(flagName, defaultVal).(string)
 }
 
 func (r *Parser) SetFlagValue(flagName string, val string) {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
-	r.Optional[flagName] = val
+	r.Optional.Put(flagName, val)
 }
 
 func (r *Parser) RemoveFlagValue(flagName string) {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
-	delete(r.Optional, flagName)
+	r.Optional.Delete(flagName)
 }
 
 func (r *Parser) GetMultiFlagValDefault(flagNames []string, defaultVal string) string {
@@ -192,15 +189,16 @@ func (r *Parser) MustGetFlagVal(flagName string) string {
 
 func (r *Parser) GetFlags() *cw.OrderedSet {
 	res := cw.NewOrderedSet()
-	for k := range r.Optional {
-		res.Add(k)
+	for entry := range r.Optional.Iter().Iterate() {
+		res.Add(entry.Key())
 	}
 	return res
 }
 
 func (r *Parser) GetBooleanArgs() *cw.OrderedSet {
 	res := cw.NewOrderedSet()
-	for k, v := range r.Optional {
+	for entry := range r.Optional.Iter().Iterate() {
+		k, v := entry.Key().(string), entry.Val().(string)
 		if v == "" {
 			if k[0] == '-' {
 				res.Add(strings.TrimPrefix(k, "-"))
@@ -218,8 +216,8 @@ func (r *Parser) GetBooleanArgs() *cw.OrderedSet {
 func (r *Parser) ContainsFlag(flagName string) bool {
 	flagName = strw.StripPrefix(flagName, "-")
 	buf := bytes.NewBufferString("")
-	for option := range r.Optional {
-		buf.WriteString(option)
+	for entry := range r.Optional.Iter().Iterate() {
+		buf.WriteString(entry.Key().(string))
 	}
 	return strings.Contains(buf.String(), flagName)
 }
@@ -231,10 +229,7 @@ func (r *Parser) ContainsFlagStrict(flagName string) bool {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
-	if _, exists := r.Optional[flagName]; exists {
-		return true
-	}
-	return false
+	return r.Optional.Contains(flagName)
 }
 
 func (r *Parser) ContainsAnyFlagStrict(flagNames ...string) bool {
@@ -259,7 +254,8 @@ func (r *Parser) ContainsAllFlagStrict(flagNames ...string) bool {
 // args 的顺序无关
 func (r *Parser) CoExists(args ...string) bool {
 outer:
-	for optional := range r.Optional {
+	for entry := range r.Optional.Iter().Iterate() {
+		optional := entry.Key().(string)
 		optional = strings.TrimPrefix(optional, "-")
 		for _, arg := range args {
 			newOptional := strings.Replace(optional, arg, "", 1)
@@ -280,7 +276,8 @@ func (r *Parser) GetNumArgs() int {
 	res := -1
 	p := regexp.MustCompile(`-(\d+)`)
 
-	for k := range r.Optional {
+	for entry := range r.Optional.Iter().Iterate() {
+		k := entry.Key().(string)
 		if !p.MatchString(k) {
 			continue
 		}
@@ -418,7 +415,9 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	for i, boolArg := range boolOptionals {
 		normalizedBoolOptionals[i] = strings.TrimLeft(boolArg, string(dash))
 	}
+	supportedOptions := cw.NewSet()
 	r.VisitAll(func(f *flag.Flag) {
+		supportedOptions.Add(f.Name)
 		key := fmt.Sprintf("-%s%c", f.Name, sep)
 		// fmt.Println("==>", f.Name, f.DefValue)
 		r.defaultValMap.Put(fmt.Sprintf("-%s", f.Name), f.DefValue)
@@ -435,26 +434,36 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	allPositionals, boolKeys, keys, vals := classifyArguments(cmd, normalizedBoolOptionals...)
 	r.Positional = allPositionals
 
-	r.Optional = make(map[string]string)
+	r.Optional = cw.NewOrderedMap()
 	// fmt.Println("keys", keys)
 	// fmt.Println("vals", vals)
 	// fmt.Println("boolKeys", boolKeys)
 	// fmt.Println([]byte(allPositionals.ToStringSlice()[0]))
 	for i, key := range keys {
+		if !supportedOptions.Contains(key) {
+			if i < len(vals) {
+				r.Positional.Add(fmt.Sprintf("%s %s", key, vals[i]))
+			} else {
+				r.Positional.Add(key)
+			}
+			// put the key back to positionals
+			r.Optional.Delete(key)
+			continue
+		}
 		key = strings.ReplaceAll(key, string(dash), "-")
 		if i < len(vals) {
-			r.Optional[key] = vals[i]
+			r.Optional.Put(key, vals[i])
 		} else {
-			r.Optional[key] = r.defaultValMap.GetOrDefault(key, "")
+			r.Optional.Put(key, r.defaultValMap.GetOrDefault(key, ""))
 		}
 	}
 	for _, key := range boolKeys {
 		key = strings.ReplaceAll(key, string(dash), "-")
 		defaultVal := r.defaultValMap.GetOrDefault(key, "")
 		if defaultVal == "false" {
-			r.Optional[key] = "true"
+			r.Optional.Put(key, "true")
 		} else {
-			r.Optional[key] = "false"
+			r.Optional.Put(key, "false")
 		}
 	}
 }

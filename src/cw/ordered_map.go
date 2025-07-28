@@ -13,7 +13,7 @@ import (
 
 // OrderedMap is a map that maintains the order of insertion.
 type OrderedMap struct {
-	m map[interface{}]*list.Element
+	m map[any]*list.Element
 	l *list.List
 }
 
@@ -36,11 +36,11 @@ func (entry *MapEntry[K, V]) Val() V {
 
 func NewOrderedMap() *OrderedMap {
 	l := list.New()
-	res := &OrderedMap{make(map[interface{}]*list.Element, cap), l}
+	res := &OrderedMap{make(map[any]*list.Element, cap), l}
 	return res
 }
 
-func (s *OrderedMap) Put(k, v interface{}) {
+func (s *OrderedMap) Put(k, v any) {
 	if node, exist := s.m[k]; !exist {
 		e := s.l.PushBack(&MapEntry[any, any]{k, v})
 		s.m[k] = e
@@ -51,25 +51,33 @@ func (s *OrderedMap) Put(k, v interface{}) {
 	}
 }
 
-func (s *OrderedMap) PutIfAbsent(k, v interface{}) {
+func (s *OrderedMap) PutIfAbsent(k, v any) {
 	if _, ok := s.m[k]; ok {
 		return
 	}
 	s.Put(k, v)
 }
 
-func (s *OrderedMap) Get(k interface{}) interface{} {
+func (s *OrderedMap) Get(k any) any {
 	if s.m[k] == nil {
 		return nil
 	}
 	return s.m[k].Value.(*MapEntry[any, any]).v
 }
 
-func (s *OrderedMap) GetOrDefault(k, defaultVal interface{}) interface{} {
+func (s *OrderedMap) GetOrDefault(k, defaultVal any) any {
 	if val, ok := s.m[k]; ok {
 		return val.Value.(*MapEntry[any, any]).v
 	}
 	return defaultVal
+}
+
+func (s *OrderedMap) Keys() []any {
+	res := make([]any, 0, len(s.m))
+	for key := range s.m {
+		res = append(res, key)
+	}
+	return res
 }
 
 func (s OrderedMap) Iter() typesw.IterableT[*MapEntry[any, any]] {
@@ -79,14 +87,14 @@ func (s OrderedMap) Iter() typesw.IterableT[*MapEntry[any, any]] {
 	}
 }
 
-func (s *OrderedMap) Contains(k interface{}) bool {
+func (s *OrderedMap) Contains(k any) bool {
 	if _, exist := s.m[k]; exist {
 		return true
 	}
 	return false
 }
 
-func (s *OrderedMap) Delete(k interface{}) bool {
+func (s *OrderedMap) Delete(k any) bool {
 	if val, ok := s.m[k]; ok {
 		delete(s.m, k)
 		s.l.Remove(val)
@@ -95,7 +103,7 @@ func (s *OrderedMap) Delete(k interface{}) bool {
 	return false
 }
 
-func (s *OrderedMap) DeleteAll(ks ...interface{}) {
+func (s *OrderedMap) DeleteAll(ks ...any) {
 	for _, k := range ks {
 		s.Delete(k)
 	}
@@ -110,7 +118,7 @@ func (s *OrderedMap) Size() int {
 }
 
 func (s *OrderedMap) Clear() {
-	s.m = make(map[interface{}]*list.Element, cap)
+	s.m = make(map[any]*list.Element, cap)
 	s.l.Init()
 }
 
@@ -134,7 +142,7 @@ func (om *OrderedMap) parseobject(dec *json.Decoder) (err error) {
 			return err
 		}
 
-		var value interface{}
+		var value any
 		value, err = handledelim(t, dec)
 		if err != nil {
 			return err
@@ -157,16 +165,16 @@ func (om *OrderedMap) parseobject(dec *json.Decoder) (err error) {
 	return nil
 }
 
-func parsearray(dec *json.Decoder) (arr []interface{}, err error) {
+func parsearray(dec *json.Decoder) (arr []any, err error) {
 	var t json.Token
-	arr = make([]interface{}, 0, cap)
+	arr = make([]any, 0, cap)
 	for dec.More() {
 		t, err = dec.Token()
 		if err != nil {
 			return
 		}
 
-		var value interface{}
+		var value any
 		value, err = handledelim(t, dec)
 		if err != nil {
 			return
@@ -185,7 +193,7 @@ func parsearray(dec *json.Decoder) (arr []interface{}, err error) {
 	return
 }
 
-func handledelim(t json.Token, dec *json.Decoder) (res interface{}, err error) {
+func handledelim(t json.Token, dec *json.Decoder) (res any, err error) {
 	if delim, ok := t.(json.Delim); ok {
 		switch delim {
 		case '{':
@@ -196,7 +204,7 @@ func handledelim(t json.Token, dec *json.Decoder) (res interface{}, err error) {
 			}
 			return om2, nil
 		case '[':
-			var value []interface{}
+			var value []any
 			value, err = parsearray(dec)
 			if err != nil {
 				return
@@ -210,7 +218,7 @@ func handledelim(t json.Token, dec *json.Decoder) (res interface{}, err error) {
 }
 
 var pool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &strings.Builder{}
 	},
 }
@@ -238,7 +246,7 @@ func encode(w io.Writer, om *OrderedMap) error {
 			}
 			buf.WriteString(subBuf.String())
 			pool.Put(subBuf)
-		case []interface{}:
+		case []any:
 			buf.WriteByte('[')
 			for j, elem := range v {
 				if omElem, ok := elem.(*OrderedMap); ok {
@@ -322,7 +330,7 @@ func (s *OrderedMap) String() string {
 	if s == nil || s.m == nil || s.l == nil {
 		return ""
 	}
-	res := make([]interface{}, 0, len(s.m))
+	res := make([]any, 0, len(s.m))
 	front := s.l.Front()
 	if front == nil {
 		return ""

@@ -179,25 +179,25 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
 		question = utilsw.UserInput("> ", multiLine)
 		tempParser := terminalw.NewParser()
-		tempParser.Bool("x", false, "")
-		tempParser.Bool("c", false, "")
-		tempParser.ParseArgs(fmt.Sprintf("a %s", question), "x", "c")
-		if tempParser.GetFlagValueDefault("f", "") != "" {
-			parsed.SetFlagValue("f", tempParser.GetFlagValueDefault("f", ""))
-		}
-		if tempParser.ContainsFlagStrict("c") {
-			parsed.SetFlagValue("c", "true")
-		}
-		if tempParser.ContainsFlagStrict("s") {
-			parsed.SetFlagValue("s", "true")
-		}
+		// tempParser.Bool("x", false, "")
+		// tempParser.Bool("c", false, "")
+		tempParser.ParseArgs(question)
+		// if tempParser.GetFlagValueDefault("f", "") != "" {
+		// 	parsed.SetFlagValue("f", tempParser.GetFlagValueDefault("f", ""))
+		// }
+		// if tempParser.ContainsFlagStrict("c") {
+		// 	parsed.SetFlagValue("c", "true")
+		// }
+		// if tempParser.ContainsFlagStrict("s") {
+		// 	parsed.SetFlagValue("s", "true")
+		// }
 		question = strings.Join(tempParser.GetPositionalArgs(true), " ")
 		// fmt.Println("getQuestion: ")
 		// fmt.Println(question)
 		// os.Exit(0)
-		if tempParser.GetNumArgs() != -1 {
-			question = fmt.Sprintf("%s -%d", question, tempParser.GetNumArgs())
-		}
+		// if tempParser.GetNumArgs() != -1 {
+		// 	question = fmt.Sprintf("%s -%d", question, tempParser.GetNumArgs())
+		// }
 		nHistory = getNumHistory(tempParser)
 	} else {
 		question = strings.Join(parsed.GetPositionalArgs(true), " ")
@@ -306,6 +306,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 
 		nextModel := internal.GetModelByInput(model, &question)
 		model = nextModel
+		// fmt.Println("here question:", question)
 		question = modifyQuestion(question)
 		// 构建请求体
 		// fmt.Println(internal.SearchEnabled(model), model)

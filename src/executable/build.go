@@ -81,7 +81,7 @@ func main() {
 		}
 
 		fmt.Printf("building %q\n", filename)
-		cmd := fmt.Sprintf(`go build -a -ldflags="-s -w" -o %s`, filepath.Join(outputDir, filepath.Base(executableFilename)))
+		cmd := fmt.Sprintf(`go build -ldflags="-s -w" -o %s`, filepath.Join(outputDir, filepath.Base(executableFilename)))
 		if _, err := utilsw.RunCmd(cmd, nil); err != nil {
 			panic(err)
 		}
