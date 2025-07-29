@@ -16,7 +16,7 @@ const (
 	QWEN_MAX_LASTEST       = "qwen-max-latest"
 	QWEN_PLUS_LATEST       = "qwen-plus-latest"
 	QWEN_MAX               = "qwen-max"
-	QWEN_CODER_PLUS_LATEST = "qwen-coder-plus-latest"
+	QWEN_CODER_PLUS_LATEST = "qwen3-coder-plus"
 	QWEN_LONG              = "qwen-long"
 	QWQ                    = "qwq-plus-latest"
 	QWEN_TURBO_LATEST      = "qwen-turbo-latest"
