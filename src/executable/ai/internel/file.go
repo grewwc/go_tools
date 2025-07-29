@@ -19,11 +19,11 @@ func NewParser(content string) *FileParser {
 	for _, file := range files {
 		file = strings.TrimSpace(file)
 		file = utilsw.ExpandUser(file)
-		// if utilsw.IsTextFile(file) {
-		// ret.textFiles = append(ret.textFiles, file)
-		// } else {
-		ret.nonTextfiles = append(ret.nonTextfiles, file)
-		// }
+		if utilsw.IsTextFile(file) {
+			ret.textFiles = append(ret.textFiles, file)
+		} else {
+			ret.nonTextfiles = append(ret.nonTextfiles, file)
+		}
 	}
 	return &ret
 }

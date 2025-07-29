@@ -110,6 +110,9 @@ func handleResponse(resp io.Reader) <-chan string {
 			j, err := utilsw.NewJsonFromByte(b)
 			if err != nil {
 				log.Println("handleResponse error", err)
+				fmt.Println("======> response: ")
+				fmt.Println(string(b))
+				fmt.Println("<======")
 			}
 			ch <- getText(j)
 		}
