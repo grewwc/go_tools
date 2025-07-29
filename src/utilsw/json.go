@@ -3,9 +3,9 @@ package utilsw
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"os"
 	"reflect"
@@ -34,23 +34,22 @@ func WithComment(j *Json) {
 
 var jsonType = reflect.TypeOf(new(Json))
 
-func NewJsonFromFile(filename string, options ...JsonOption) *Json {
+func NewJsonFromFile(filename string, options ...JsonOption) (*Json, error) {
 	filename = ExpandUser(filename)
 	b, err := os.Open(filename)
+	defer b.Close()
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 	options = append(options, WithComment)
-	res := NewJsonFromReader(b, options...)
-	b.Close()
-	return res
+	return NewJsonFromReader(b, options...)
 }
 
-func NewJsonFromByte(data []byte) *Json {
+func NewJsonFromByte(data []byte) (*Json, error) {
 	return NewJsonFromReader(strings.NewReader(typesw.BytesToStr(data)))
 }
 
-func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
+func NewJsonFromReader(r io.Reader, options ...JsonOption) (*Json, error) {
 	options = append(options, WithComment)
 	res := NewJson(nil)
 	for _, option := range options {
@@ -68,7 +67,7 @@ func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
 	for {
 		_, err := rr.Read(b)
 		if err != nil && err != io.EOF {
-			panic(err)
+			return nil, err
 		}
 		if unicode.IsSpace(rune(b[0])) {
 			continue
@@ -80,24 +79,27 @@ func NewJsonFromReader(r io.Reader, options ...JsonOption) *Json {
 		var buf strings.Builder
 		buf.WriteString(fmt.Sprintf(`{"_arr": %c`, b[0]))
 		newReader := io.MultiReader(strings.NewReader(buf.String()), rr, strings.NewReader("}"))
-		j := NewJsonFromReader(newReader)
-		return j.GetJson("_arr")
+		j, err := NewJsonFromReader(newReader)
+		if err != nil {
+			return nil, err
+		}
+		return j.GetJson("_arr"), nil
 	case '{':
 		m := cw.NewOrderedMapT[string, any]()
 		decoder := json.NewDecoder(io.MultiReader(bytes.NewReader(b), rr))
 		decoder.UseNumber()
 		err := decoder.Decode(&m)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		res.data = m
-		return res
+		return res, nil
 	default:
-		panic(b)
+		return nil, errors.New("failed to parse json")
 	}
 }
 
-func NewJsonFromString(content string, options ...JsonOption) *Json {
+func NewJsonFromString(content string, options ...JsonOption) (*Json, error) {
 	return NewJsonFromReader(strings.NewReader(content), options...)
 }
 

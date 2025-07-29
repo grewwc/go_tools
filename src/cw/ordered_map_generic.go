@@ -1,7 +1,7 @@
 package cw
 
 import (
-	"container/list"
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,14 +11,17 @@ import (
 )
 
 // OrderedMapT is a map that maintains the order of insertion.
-type OrderedMapT[Key comparable, Val any] struct {
-	m map[Key]*list.Element
-	l *list.List
+type OrderedMapT[K comparable, V any] struct {
+	m map[K]*ListNode[*MapEntry[K, V]]
+	l *LinkedList[*MapEntry[K, V]]
 }
 
-func NewOrderedMapT[Key comparable, Val any]() *OrderedMapT[Key, Val] {
-	l := list.New()
-	res := &OrderedMapT[Key, Val]{make(map[Key]*list.Element, cap), l}
+func NewOrderedMapT[K comparable, V any]() *OrderedMapT[K, V] {
+	l := NewLinkedList[*MapEntry[K, V]]()
+	res := &OrderedMapT[K, V]{
+		l: l,
+		m: make(map[K]*ListNode[*MapEntry[K, V]]),
+	}
 	return res
 }
 
@@ -27,7 +30,7 @@ func (s *OrderedMapT[Key, Val]) Put(k Key, v Val) {
 		e := s.l.PushBack(&MapEntry[Key, Val]{k, v})
 		s.m[k] = e
 	} else {
-		val := node.Value.(*MapEntry[Key, Val])
+		val := node.Value()
 		val.k = k
 		val.v = v
 	}
@@ -44,12 +47,12 @@ func (s *OrderedMapT[Key, Val]) Get(k Key) Val {
 	if s.m[k] == nil {
 		return *new(Val)
 	}
-	return s.m[k].Value.(*MapEntry[Key, Val]).v
+	return s.m[k].Value().v
 }
 
 func (s *OrderedMapT[Key, Val]) GetOrDefault(k Key, defaultVal Val) Val {
 	if val, ok := s.m[k]; ok {
-		return val.Value.(*MapEntry[Key, Val]).v
+		return val.Value().v
 	}
 	return defaultVal
 }
@@ -63,10 +66,16 @@ func (s *OrderedMapT[Key, Val]) Keys() []Key {
 }
 
 func (s OrderedMapT[Key, Val]) Iter() typesw.IterableT[*MapEntry[Key, Val]] {
-	return &listIterator[*MapEntry[Key, Val]]{
-		data:    s.l,
-		reverse: false,
-	}
+	return typesw.FuncToIterable(func() chan *MapEntry[Key, Val] {
+		ch := make(chan *MapEntry[Key, Val])
+		go func() {
+			defer close(ch)
+			for curr := s.l.Front(); curr != nil; curr = curr.Next() {
+				ch <- curr.Value()
+			}
+		}()
+		return ch
+	})
 }
 
 func (s *OrderedMapT[Key, Val]) Contains(k Key) bool {
@@ -100,8 +109,8 @@ func (s *OrderedMapT[Key, Val]) Size() int {
 }
 
 func (s *OrderedMapT[Key, Val]) Clear() {
-	s.m = make(map[Key]*list.Element, cap)
-	s.l.Init()
+	s.m = make(map[Key]*ListNode[*MapEntry[Key, Val]], cap)
+	s.l.Clear()
 }
 
 func (om *OrderedMapT[Key, Val]) parseobject(dec *json.Decoder) (err error) {
@@ -210,14 +219,15 @@ func encodeV2[Key comparable, Val any](w io.Writer, om *OrderedMapT[Key, Val]) e
 	buf.WriteString("{")
 	i := 0
 	for e := om.l.Front(); e != nil; e = e.Next() {
-		item := e.Value.(*MapEntry[Key, any])
+		item := e.Value()
 		// 写入键名
 		buf.WriteByte('"')
 		fmt.Fprintf(buf, "%v", item.Key())
 		buf.WriteByte('"')
 		buf.WriteByte(':')
+		var iItem any = item.Val()
 		// fmt.Println(",,", item.Key(), item.Val(), reflect.TypeOf(item.Val()))
-		switch v := item.Val().(type) {
+		switch v := iItem.(type) {
 		case *OrderedMapT[Key, Val]:
 			subBuf := pool.Get().(*strings.Builder)
 			subBuf.Reset()
@@ -281,7 +291,7 @@ func (om *OrderedMapT[Key, Val]) MarshalJSON() (res []byte, err error) {
 
 // this implements type json.Unmarshaler interface, so can be called in json.Unmarshal(data, om)
 func (om *OrderedMapT[Key, Val]) UnmarshalJSON(data []byte) error {
-	dec := json.NewDecoder(strings.NewReader(typesw.BytesToStr(data)))
+	dec := json.NewDecoder(bufio.NewReader(strings.NewReader(typesw.BytesToStr(data))))
 	dec.UseNumber()
 
 	// must open with a delim token '{'
@@ -316,7 +326,7 @@ func (s *OrderedMapT[Key, Val]) String() string {
 		return ""
 	}
 	for i := 0; i < s.Size(); i++ {
-		k := front.Value.(*MapEntry[Key, Val]).k
+		k := front.Value().k
 		res = append(res, fmt.Sprintf("%v: %v", k, s.Get(k)))
 		front = front.Next()
 	}
@@ -331,7 +341,7 @@ func (s OrderedMapT[Key, Val]) ShallowCopy() *OrderedMapT[Key, Val] {
 		return result
 	}
 	for i := 0; i < s.Size(); i++ {
-		k := front.Value.(*MapEntry[Key, Val]).k
+		k := front.Value().k
 		result.Put(k, s.Get(k))
 		front = front.Next()
 	}
