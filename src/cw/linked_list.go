@@ -170,6 +170,9 @@ func (l *LinkedList[T]) Remove(node *ListNode[T]) T {
 	if l.head == nil {
 		return node.value
 	}
+	if node == nil {
+		return *new(T)
+	}
 	dummy := &ListNode[T]{next: l.head}
 	curr := dummy
 	for ; curr != nil && curr.next != node; curr = curr.next {
