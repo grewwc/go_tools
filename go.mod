@@ -12,6 +12,7 @@ require (
 	go.mongodb.org/mongo-driver v1.9.1
 	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
 	golang.org/x/sys v0.30.0
+	golang.org/x/text v0.21.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 )
 
@@ -42,7 +43,6 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/text v0.21.0
 	golang.org/x/time v0.0.0-20220922220347-f3bd1da661af // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
