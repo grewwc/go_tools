@@ -191,15 +191,15 @@ func (g *UndirectedGraph[T]) bfsMark(u T) {
 	// marked := g.markdedMap.GetOrDefault(u, NewSet())
 	// g.markdedMap.PutIfAbsent(u, marked)
 	parent := NewMap[T, T]()
-	q := NewQueue()
+	q := NewQueue[T]()
 	q.Enqueue(u)
 	for !q.Empty() {
-		curr := q.Dequeue().(T)
+		curr := q.Dequeue()
 		g.marked.Add(curr)
 		g.groupId.PutIfAbsent(curr, g.groupCnt)
 		for adj := range g.Adj(curr).Iter().Iterate() {
 			if !g.marked.Contains(adj) {
-				q.Enqueue(adj)
+				q.Enqueue(adj.(T))
 				g.edgeTo.Put(adj.(T), curr)
 				g.edgeTo.Put(curr, adj.(T))
 				parent.Put(adj.(T), curr)

@@ -85,8 +85,8 @@ func calcWithOp(first, second string, op byte) string {
 
 func calc(expr []byte) string {
 	state := INIT
-	opSt := cw.NewStack(4)
-	numSt := cw.NewStack(8)
+	opSt := cw.NewStack[byte]()
+	numSt := cw.NewStack[string]()
 	var buf bytes.Buffer
 	for i := 0; i < len(expr); {
 		ch := expr[i]
@@ -148,11 +148,11 @@ func calc(expr []byte) string {
 					buf.Reset()
 				}
 				if numSt.Size() >= 2 && opSt.Size() >= 1 {
-					next := opSt.Top().(byte)
+					next := opSt.Top()
 					if next == '^' || next == '*' || next == '/' {
-						second := numSt.Pop().(string)
-						first := numSt.Pop().(string)
-						val := calcWithOp(first, second, opSt.Pop().(byte))
+						second := numSt.Pop()
+						first := numSt.Pop()
+						val := calcWithOp(first, second, opSt.Pop())
 						if val == "" {
 							reportErr(expr)
 							return ""
@@ -180,9 +180,9 @@ func calc(expr []byte) string {
 					buf.Reset()
 				}
 				if numSt.Size() >= 2 && opSt.Size() >= 1 {
-					second := numSt.Pop().(string)
-					first := numSt.Pop().(string)
-					val := calcWithOp(first, second, opSt.Pop().(byte))
+					second := numSt.Pop()
+					first := numSt.Pop()
+					val := calcWithOp(first, second, opSt.Pop())
 					if val == "" {
 						reportErr(expr)
 						return ""
@@ -212,18 +212,18 @@ func calc(expr []byte) string {
 	// do calculationg
 	// fmt.Println("all", numSt)
 	for numSt.Size() >= 2 {
-		second := numSt.Pop().(string)
-		first := numSt.Pop().(string)
+		second := numSt.Pop()
+		first := numSt.Pop()
 		if opSt.Empty() {
 			reportErr(expr)
 			return ""
 		}
-		op := opSt.Pop().(byte)
+		op := opSt.Pop()
 		val := calcWithOp(first, second, op)
 		// fmt.Printf("calc: |%s|, |%s|, |%s|, op: %s\n", first, second, val, string(op))
 		numSt.Push(val)
 	}
-	return numSt.Pop().(string)
+	return numSt.Pop()
 }
 
 func test() {

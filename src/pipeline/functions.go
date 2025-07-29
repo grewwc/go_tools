@@ -28,7 +28,7 @@ func Take(
 	n int,
 ) <-chan interface{} {
 	outStream := make(chan interface{})
-	inStreamOrDone := orDone(done, inStream)
+	inStreamOrDone := OrDone(done, inStream)
 	go func() {
 		defer close(outStream)
 		for i := 0; i < n; i++ {

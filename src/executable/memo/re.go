@@ -807,8 +807,8 @@ func coloringRecord(r *record, p *regexp.Regexp) {
 	if p != nil {
 		all := bytes.NewBufferString("")
 		indices := p.FindAllStringIndex(r.Title, -1)
-		beg := cw.NewQueue()
-		end := cw.NewQueue()
+		beg := cw.NewQueue[int]()
+		end := cw.NewQueue[int]()
 		bt := []byte(r.Title)
 		for _, idx := range indices {
 			i, j := idx[0], idx[1]
@@ -817,8 +817,8 @@ func coloringRecord(r *record, p *regexp.Regexp) {
 		}
 		idx := 0
 		for !beg.Empty() {
-			i := beg.Dequeue().(int)
-			j := end.Dequeue().(int)
+			i := beg.Dequeue()
+			j := end.Dequeue()
 			all.WriteString(color.HiWhiteString(string(bt[idx:i])))
 			all.WriteString(color.RedString(string(bt[i:j])))
 			idx = j
@@ -1222,8 +1222,8 @@ func main() {
 		return
 	}
 
-	if parser.ContainsFlagStrict("u") || positional.Contains("u") {
-		positional.Delete("u")
+	if parser.ContainsFlagStrict("u") || positional.Contains("u", nil) {
+		positional.Delete("u", nil)
 		var id string
 		tags := positional.ToStringSlice()
 		isObjectID := false
@@ -1292,7 +1292,7 @@ func main() {
 		return
 	}
 	// list tags, i stands for 'information'
-	if listTagsAndOrderByTime || parser.ContainsFlagStrict("tags") || positional.Contains("tags") || positional.Contains("i") || positional.Contains("t") {
+	if listTagsAndOrderByTime || parser.ContainsFlagStrict("tags") || positional.Contains("tags", nil) || positional.Contains("i", nil) || positional.Contains("t", nil) {
 		all = parser.ContainsAnyFlagStrict("a", "all")
 		var tags []tag
 		var w int
@@ -1443,9 +1443,9 @@ func main() {
 		}
 		return
 	}
-	if positional.Contains("open") || positional.Contains("o") {
-		positional.Delete("open")
-		positional.Delete("o")
+	if positional.Contains("open", nil) || positional.Contains("o", nil) {
+		positional.Delete("open", nil)
+		positional.Delete("o", nil)
 		listSpecial = true
 		tags := positional.ToStringSlice()
 		isObjectID := false
@@ -1471,8 +1471,8 @@ func main() {
 	}
 
 	// log everyday work
-	if positional.Contains("log") {
-		positional.Delete("log")
+	if positional.Contains("log", nil) {
+		positional.Delete("log", nil)
 		nextDay := 0
 		var err error
 		if positional.Len() == 1 {
@@ -1496,7 +1496,7 @@ func main() {
 	}
 
 	// log week work
-	if positional.Contains("week") {
+	if positional.Contains("week", nil) {
 		// merge from log.yyyy-MM-dd
 		firstDay := utilsw.GetFirstDayOfThisWeek()
 		now := time.Now()
@@ -1535,7 +1535,7 @@ func main() {
 	}
 
 	// clean (move) images
-	if positional.Contains("move") {
+	if positional.Contains("move", nil) {
 		s := positional.ToStringSlice()
 		if len(s) != 3 {
 			fmt.Println(">> re move absFileName type")

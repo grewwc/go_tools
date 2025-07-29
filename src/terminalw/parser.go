@@ -24,7 +24,7 @@ const (
 
 type Parser struct {
 	Optional      *cw.OrderedMapT[string, string] // key is prefix with '-'
-	Positional    typesw.IList
+	Positional    *cw.LinkedList[string]
 	defaultValMap *cw.TreeMap[string, string] // key is prefix with '-'
 
 	groups        *cw.OrderedMapT[string, *Parser]
@@ -37,7 +37,7 @@ type Parser struct {
 func NewParser() *Parser {
 	return &Parser{
 		Optional:      cw.NewOrderedMapT[string, string](),
-		Positional:    cw.NewArrayList(),
+		Positional:    cw.NewLinkedList[string](),
 		defaultValMap: cw.NewTreeMap[string, string](nil),
 		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
 
@@ -124,9 +124,10 @@ func (r *Parser) GetIntFlagValOrDefault(flagName string, val int) int {
 func (r *Parser) GetPositionalArgs(excludeNumArg bool) []string {
 	if excludeNumArg {
 		remove := fmt.Sprintf("-%d", r.GetNumArgs())
-		copy := r.Positional.ShallowCopy()
-		copy.Delete(remove)
-		return copy.ToStringSlice()
+		slice := r.Positional.ToStringSlice()
+		tempSet := cw.NewOrderedSetT(slice...)
+		tempSet.Delete(remove)
+		return tempSet.ToStringSlice()
 	}
 	return r.Positional.ToStringSlice()
 }
@@ -321,7 +322,7 @@ func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
 	return false
 }
 
-func classifyArguments(cmd string, boolOptionals ...string) (*cw.ArrayList, []string, []string, []string) {
+func classifyArguments(cmd string, boolOptionals ...string) (*cw.LinkedList[string], []string, []string, []string) {
 	// fmt.Println("here", strings.ReplaceAll(cmd, "sep", "|"))
 	const (
 		positionalMode = iota
@@ -335,7 +336,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*cw.ArrayList, []st
 	prev := startMode
 
 	mode := spaceMode
-	var positionals = cw.NewArrayList()
+	var positionals = cw.NewLinkedList[string]()
 	var keys []string
 	var boolKeys []string
 	var vals []string
@@ -370,7 +371,7 @@ func classifyArguments(cmd string, boolOptionals ...string) (*cw.ArrayList, []st
 		case positionalMode:
 			if ch == sep {
 				mode = spaceMode
-				positionals.Add(pBuf.String())
+				positionals.PushBack(pBuf.String())
 				pBuf.Reset()
 				prev = positionalMode
 				continue
@@ -442,9 +443,9 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	for i, key := range keys {
 		if !supportedOptions.Contains(key) {
 			if i < len(vals) {
-				r.Positional.Add(fmt.Sprintf("%s %s", key, vals[i]))
+				r.Positional.PushBack(fmt.Sprintf("%s %s", key, vals[i]))
 			} else {
-				r.Positional.Add(key)
+				r.Positional.PushBack(key)
 			}
 			// put the key back to positionals
 			r.Optional.Delete(key)

@@ -86,12 +86,12 @@ func showPrefixHelper(t *Trie, prefix string, n int, isEnd bool) []string {
 	if n == 0 {
 		return nil
 	}
-	s := NewQueue()
+	s := NewQueue[*Tuple]()
 	curr := prefix
 	currTrie := t
 	s.Enqueue(NewTuple(currTrie, curr, isEnd))
 	for !s.Empty() {
-		currTuple := s.Dequeue().(*Tuple)
+		currTuple := s.Dequeue()
 		currTrie, curr, isEnd = currTuple.Get(0).(*Trie), currTuple.Get(1).(string), currTuple.Get(2).(bool)
 		if curr != "" && isEnd {
 			res = append(res, curr)

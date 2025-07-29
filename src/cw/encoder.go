@@ -28,7 +28,7 @@ func NewHuffmanEncoder() *HuffmanEncoder {
 // build byte table
 func buildTable(root *_huffman_node) *Map[byte, string] {
 	table := NewMap[byte, string]()
-	stack := NewStack(8)
+	stack := NewStack[*Tuple]()
 	curr := NewTuple(root, "")
 	for !stack.Empty() || curr.Get(0).(*_huffman_node) != nil {
 		for curr.Get(0).(*_huffman_node) != nil {
@@ -36,7 +36,7 @@ func buildTable(root *_huffman_node) *Map[byte, string] {
 			t := NewTuple(curr.Get(0).(*_huffman_node).left, curr.Get(1).(string)+"0")
 			curr = t
 		}
-		curr = stack.Pop().(*Tuple)
+		curr = stack.Pop()
 		b := curr.Get(0).(*_huffman_node).b
 		path := curr.Get(1).(string)
 		if b.len > 0 {
@@ -126,7 +126,7 @@ func (encoder *HuffmanEncoder) Encode(data []byte) []byte {
 	for _, b := range data {
 		res.WriteString(m.Get(b))
 	}
-    // fmt.Println("original", res.String()[:20])
+	// fmt.Println("original", res.String()[:20])
 	return encoder.strToBytes(res.String())
 }
 
@@ -137,7 +137,7 @@ func (encoder *HuffmanEncoder) Decode(encoded []byte) []byte {
 
 	var res []byte
 	encodedString := encoder.bytesToStr(encoded)
-    // fmt.Println("after", encodedString[:20])
+	// fmt.Println("after", encodedString[:20])
 	for i := 0; i < len(encodedString); i++ {
 		curr.WriteByte(encodedString[i])
 		if m.Contains(curr.String()) {

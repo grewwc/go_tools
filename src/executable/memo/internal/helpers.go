@@ -221,7 +221,7 @@ func OrderByTime(parsed *terminalw.Parser) bool {
 	if parsed.ContainsAnyFlagStrict("ti", "it") {
 		return true
 	}
-	if parsed.Positional.Contains("it") || parsed.Positional.Contains("ti") {
+	if parsed.Positional.Contains("it", nil) || parsed.Positional.Contains("ti", nil) {
 		return true
 	}
 	return false

@@ -55,13 +55,14 @@ func ReverseFloat32(arr []float64) {
 }
 
 func ReverseString(s string) string {
-	stack := cw.NewStack(len(s))
+	stack := cw.NewStack[rune]()
 	for _, r := range s {
 		stack.Push(r)
 	}
 	buf := bytes.Buffer{}
+	buf.Grow(len(s))
 	for !stack.Empty() {
-		buf.WriteRune(stack.Pop().(rune))
+		buf.WriteRune(stack.Pop())
 	}
 	return buf.String()
 }

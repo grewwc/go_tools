@@ -1,49 +1,54 @@
 package cw
 
-import "github.com/grewwc/go_tools/src/typesw"
+import (
+	"github.com/grewwc/go_tools/src/typesw"
+)
 
 /*Stack is not thread safe*/
-type Stack struct {
-	data []interface{}
+type Stack[T any] struct {
+	data *LinkedList[T]
 }
 
-func NewStack(capacity int) *Stack {
-	data := make([]interface{}, 0, capacity)
-	return &Stack{data}
+func NewStack[T any]() *Stack[T] {
+	data := NewLinkedList[T]()
+	return &Stack[T]{data}
 }
 
-func (s *Stack) Push(item interface{}) {
-	s.data = append(s.data, item)
+func (s *Stack[T]) Push(item T) {
+	s.data.PushFront(item)
 }
 
-func (s *Stack) Pop() interface{} {
+func (s *Stack[T]) Pop() T {
 	result := s.Top()
-	s.data = s.data[:len(s.data)-1]
 	return result
 }
-func (s *Stack) Top() interface{} {
-	size := len(s.data)
-	if size == 0 {
-		panic("stack is empty")
+func (s *Stack[T]) Top() T {
+	if s.Empty() {
+		return *new(T)
 	}
-	return s.data[len(s.data)-1]
+	return s.data.Front().Value()
 }
 
-func (s *Stack) Empty() bool {
+func (s *Stack[T]) Empty() bool {
 	return s.Size() == 0
 }
 
-func (s *Stack) Size() int {
-	return len(s.data)
+func (s *Stack[T]) Size() int {
+	return s.data.Len()
 }
 
-func (s *Stack) Resize() {
-	s.data = s.data[:0]
-}
-
-func (s *Stack) Iter() typesw.Iterable {
-	return &sliceIterator[interface{}]{
-		data:    s.data,
-		reverse: true,
-	}
+func (s *Stack[T]) Iter() typesw.IterableT[T] {
+	return typesw.FuncToIterable(func() chan T {
+		ch := make(chan T)
+		go func() {
+			defer close(ch)
+			if s.Empty() {
+				return
+			}
+			for curr := s.data.Front(); curr != nil; curr = curr.Next() {
+				ch <- curr.Value()
+			}
+		}()
+		return ch
+	})
 }

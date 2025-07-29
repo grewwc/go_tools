@@ -15,7 +15,7 @@ type DirectedGraph[T any] struct {
 	cycle   []T
 
 	groupId      *Map[T, int]
-	reversePost  *Stack
+	reversePost  *Stack[T]
 	reverseGraph *DirectedGraph[T]
 
 	cmp        typesw.CompareFunc[T]
@@ -38,7 +38,7 @@ func NewDirectedGraph[T any](cmp typesw.CompareFunc[T]) *DirectedGraph[T] {
 
 		onStack: NewOrderedSet(),
 
-		reversePost: NewStack(8),
+		reversePost: NewStack[T](),
 
 		cmp:        cmp,
 		needRemark: true,
@@ -121,7 +121,7 @@ func (g *DirectedGraph[T]) Sorted() typesw.IterableT[T] {
 	if g.hasCycle {
 		return nil
 	}
-	return typesw.ToIterable[T](g.reversePost.Iter())
+	return g.reversePost.Iter()
 }
 
 func (g *DirectedGraph[T]) Nodes() []T {
@@ -177,14 +177,14 @@ func (g *DirectedGraph[T]) dfsMark(root, u T) {
 			g.dfsMark(root, w)
 		} else if g.onStack.Contains(u) && len(g.cycle) == 0 {
 			g.hasCycle = true
-			s := NewStack(g.onStack.Size())
+			s := NewStack[T]()
 			for node := u; g.cmp(node, w) != 0; node = g.edgeTo.Get(node) {
 				s.Push(node)
 			}
-			s.Push(adj)
+			s.Push(w)
 			s.Push(u)
 			for val := range s.Iter().Iterate() {
-				g.cycle = append(g.cycle, val.(T))
+				g.cycle = append(g.cycle, val)
 			}
 		}
 	}
@@ -199,14 +199,14 @@ func (g *DirectedGraph[T]) bfsMark(u T) {
 	marked := NewSet()
 	g.markdedMap.Put(u, marked)
 	g.edgeTo.Clear()
-	q := NewQueue()
+	q := NewQueue[T]()
 	q.Enqueue(u)
 	for !q.Empty() {
-		curr := q.Dequeue().(T)
+		curr := q.Dequeue()
 		marked.Add(curr)
 		for adj := range g.Adj(curr).Iter().Iterate() {
 			if !marked.Contains(adj) {
-				q.Enqueue(adj)
+				q.Enqueue(adj.(T))
 				g.edgeTo.Put(adj.(T), curr)
 			}
 		}
@@ -265,7 +265,7 @@ func (g *DirectedGraph[T]) mark(needPath bool, needReverseMark bool) {
 		cp := g.reverseGraph.reverse()
 		for v := range g.reversePost.Iter().Iterate() {
 			if !cp.marked.Contains(v) {
-				cp.dfsMark(v.(T), v.(T))
+				cp.dfsMark(v, v)
 				cp.componentCnt++
 			}
 		}

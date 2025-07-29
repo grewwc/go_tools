@@ -17,8 +17,8 @@ func calcMd5(filename string) string {
 	return fmt.Sprintf("%x", md5.Sum(b))
 }
 
-func newFileSet(rootDir string, parser *terminalw.Parser) *cw.OrderedSet {
-	s := cw.NewOrderedSet()
+func newFileSet(rootDir string, parser *terminalw.Parser) *cw.OrderedSetT[string] {
+	s := cw.NewOrderedSetT[string]()
 	files := utilsw.LsDir(rootDir, nil, nil)
 	chooseExt := parser.GetFlagValueDefault("ext", "") != ""
 	printMd5 := parser.ContainsFlagStrict("md5")
@@ -60,9 +60,9 @@ func main() {
 	s1 := newFileSet(d1, parser)
 	s2 := newFileSet(d2, parser)
 
-	i := s1.Intersect(*s2)
-	s1.Subtract(*i)
-	s2.Subtract(*i)
+	i := s1.Intersect(s2)
+	s1.Subtract(i)
+	s2.Subtract(i)
 	sep := ", "
 	if printLine {
 		sep = "\n"

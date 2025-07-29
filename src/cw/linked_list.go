@@ -1,6 +1,8 @@
 package cw
 
 import (
+	"fmt"
+
 	"github.com/grewwc/go_tools/src/typesw"
 )
 
@@ -17,6 +19,7 @@ func (n *ListNode[T]) Value() T {
 	return n.value
 }
 
+// LinkedList is single LinkedList, so some operations are not supported.
 type LinkedList[T any] struct {
 	head, tail *ListNode[T]
 	size       int
@@ -135,6 +138,33 @@ func (l *LinkedList[T]) Iter() typesw.IterableT[*ListNode[T]] {
 	})
 }
 
+func (l *LinkedList[T]) Delete(val T, cmp typesw.CompareFunc[T]) bool {
+	if l.Empty() {
+		return false
+	}
+	if cmp == nil {
+		cmp = typesw.CreateDefaultCmp[T]()
+	}
+	dummy := &ListNode[T]{
+		next: l.head,
+	}
+	curr := dummy
+	for ; curr != nil && curr.Next() != nil && cmp(curr.Next().Value(), val) != 0; curr = curr.Next() {
+	}
+	if curr == nil || curr.Next() == nil {
+		return false
+	}
+	d := curr.next
+	curr.next = d.next
+	if d == l.tail {
+		l.tail = curr
+	}
+	if d == l.head {
+		l.head = d.next
+	}
+	return true
+}
+
 func (l *LinkedList[T]) Remove(node *ListNode[T]) T {
 	// empty
 	if l.head == nil {
@@ -150,14 +180,16 @@ func (l *LinkedList[T]) Remove(node *ListNode[T]) T {
 	if curr == nil {
 		return node.value
 	}
-	next := curr.next
+	d := curr.next
 	curr.next = curr.next.next
-	next.next = nil
-	if node == l.tail {
+	if d == l.tail {
 		l.tail = curr
 	}
+	if d == l.head {
+		l.head = curr.next
+	}
 	l.size--
-	return next.value
+	return d.value
 }
 
 func (l *LinkedList[T]) Front() *ListNode[T] {
@@ -174,8 +206,63 @@ func (l *LinkedList[T]) Back() *ListNode[T] {
 	return l.tail
 }
 
+func (l *LinkedList[T]) ShallowCopy() *LinkedList[T] {
+	if l == nil {
+		return nil
+	}
+	res := NewLinkedList[T]()
+	for node := range l.Iter().Iterate() {
+		res.PushBack(node.Value())
+	}
+	return res
+}
+
 func (l *LinkedList[T]) Clear() {
 	l.size = 0
 	l.head = nil
 	l.tail = nil
+}
+
+func (l *LinkedList[T]) Equals(other *LinkedList[T], cmp typesw.CompareFunc[T]) bool {
+	if l.Len() != other.Len() {
+		return false
+	}
+	if cmp == nil {
+		cmp = typesw.CreateDefaultCmp[T]()
+	}
+	if cmp == nil {
+		return false
+	}
+	for t := range Zip(l.Iter(), other.Iter()).Iterate() {
+		if cmp(t.Get(0).(*ListNode[T]).Value(), t.Get(1).(*ListNode[T]).Value()) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func (l *LinkedList[T]) Contains(val T, cmp typesw.CompareFunc[T]) bool {
+	if l.Empty() {
+		return false
+	}
+	for node := range l.Iter().Iterate() {
+		if cmp(node.Value(), val) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (l *LinkedList[T]) ToStringSlice() []string {
+	if l == nil {
+		return nil
+	}
+	res := make([]string, 0, l.Len())
+	if l.Empty() {
+		return res
+	}
+	for node := range l.Iter().Iterate() {
+		res = append(res, fmt.Sprintf("%v", node.Value()))
+	}
+	return res
 }

@@ -1,10 +1,10 @@
 package pipeline
 
-func orDone(
-	done <-chan interface{},
-	in <-chan interface{},
-) <-chan interface{} {
-	out := make(chan interface{})
+func OrDone[T any](
+	done <-chan T,
+	in <-chan T,
+) <-chan T {
+	out := make(chan T)
 	go func() {
 		defer close(out)
 		for {

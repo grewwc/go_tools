@@ -32,8 +32,7 @@ func main() {
 	var force bool = parser.ContainsFlag("f") || parser.ContainsFlag("force")
 	var all bool = parser.ContainsFlagStrict("a")
 	for fname := range parser.Positional.Iter().Iterate() {
-		fnameStr := fname.(string)
-		forceRebuildName.Add(fnameStr + ".go")
+		forceRebuildName.Add(fname.Value() + ".go")
 	}
 
 	subdirs := utilsw.LsDir(utilsw.GetDirOfTheFile(), nil, nil)

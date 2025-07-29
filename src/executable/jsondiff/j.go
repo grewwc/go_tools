@@ -13,9 +13,9 @@ import (
 
 var diff = utilsw.NewJson(nil)
 
-var diffKeys = cw.NewOrderedSet()
+var diffKeys = cw.NewOrderedSetT[string]()
 
-func buildJson(key string, old, new interface{}) *utilsw.Json {
+func buildJson(key string, old, new any) *utilsw.Json {
 	res := utilsw.NewJson(nil)
 	if old == nil {
 		key += "  [new]"
@@ -75,7 +75,7 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 			compareJson(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2))
 			continue
 		}
-		if _, ok := v1.([]interface{}); ok {
+		if _, ok := v1.([]any); ok {
 			compareJson(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2))
 			continue
 		}

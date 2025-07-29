@@ -85,7 +85,7 @@ func getCmd(parser *terminalw.Parser) string {
 	}
 	branch := ""
 	if !parser.Positional.Empty() {
-		branch = parser.Positional.Get(0).(string)
+		branch = parser.Positional.Front().Value()
 	}
 	return strings.ReplaceAll(logHistoryCmd, `$branch$`, branch)
 }

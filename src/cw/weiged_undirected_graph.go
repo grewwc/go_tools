@@ -209,7 +209,7 @@ func (g *WeightedUndirectedGraph[T]) ShortestPath(from, to T) typesw.IterableT[*
 	}
 	// fmt.Println(g.edgeTo)
 	// fmt.Println(g.distTo)
-	s := NewStack(8)
+	s := NewStack[*Edge[T]]()
 	for curr := to; g.cmp(curr, from) != 0; {
 		edge := g.edgeTo.Get(curr)
 		s.Push(edge)
@@ -217,5 +217,5 @@ func (g *WeightedUndirectedGraph[T]) ShortestPath(from, to T) typesw.IterableT[*
 		curr = edge.Other(curr, g.cmp)
 	}
 	// res = append(res, from)
-	return typesw.ToIterable[*Edge[T]](s.Iter())
+	return s.Iter()
 }
