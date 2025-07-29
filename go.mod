@@ -10,7 +10,7 @@ require (
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
 	github.com/shirou/gopsutil v2.21.11+incompatible
 	go.mongodb.org/mongo-driver v1.9.1
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
 	golang.org/x/sys v0.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 )

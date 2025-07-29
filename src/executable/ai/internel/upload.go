@@ -56,7 +56,10 @@ func uploadSingleQwenlongFile(apiKey, filename string) (string, error) {
 		log.Println(err)
 		return "", err
 	}
-	j := utilsw.NewJsonFromByte(b)
+	j, err := utilsw.NewJsonFromByte(b)
+	if err != nil {
+		return "", err
+	}
 	fileid := j.GetString("id")
 	fmt.Println("Finished upload. Fileid: ", fileid)
 	return fileid, nil

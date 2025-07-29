@@ -109,7 +109,11 @@ func main() {
 		} else {
 			text = utilsw.ReadString(fname)
 		}
-		formated := utilsw.NewJsonFromString(text).StringWithIndent("", "  ")
+		formatedJ, err := utilsw.NewJsonFromString(text)
+		if err != nil {
+			panic(err)
+		}
+		formated := formatedJ.StringWithIndent("", "  ")
 		if len(text) < 1024*16 {
 			fmt.Println(formated)
 		} else {
@@ -125,8 +129,14 @@ func main() {
 		return
 	}
 
-	oldJson := utilsw.NewJsonFromFile(os.Args[1])
-	newJson := utilsw.NewJsonFromFile(os.Args[2])
+	oldJson, err := utilsw.NewJsonFromFile(os.Args[1])
+	if err != nil {
+		panic(err)
+	}
+	newJson, err := utilsw.NewJsonFromFile(os.Args[2])
+	if err != nil {
+		panic(err)
+	}
 	compareJson("", oldJson, newJson)
 	fname := "./_s.json"
 	diff.ToFile(fname)

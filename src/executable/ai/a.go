@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -106,7 +107,10 @@ func handleResponse(resp io.Reader) <-chan string {
 			// fmt.Println(string(b))
 			// fmt.Println("===")
 			// os.Exit(0)
-			j := utilsw.NewJsonFromByte(b)
+			j, err := utilsw.NewJsonFromByte(b)
+			if err != nil {
+				log.Println("handleResponse error", err)
+			}
 			ch <- getText(j)
 		}
 	}()
