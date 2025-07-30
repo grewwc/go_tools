@@ -248,6 +248,9 @@ func (l *LinkedList[T]) Contains(val T, cmp typesw.CompareFunc[T]) bool {
 	if l.Empty() {
 		return false
 	}
+	if cmp == nil {
+		cmp = typesw.CreateDefaultCmp[T]()
+	}
 	for node := range l.Iter().Iterate() {
 		if cmp(node.Value(), val) == 0 {
 			return true
