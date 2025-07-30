@@ -32,7 +32,7 @@ type BytesFilter interface {
 // 返回值:
 //
 //	io.Reader: 返回一个经过数据过滤的 io.Reader，通常用于按特定条件过滤数据。
-func FilterReader(src io.Reader, filter BytesFilter) io.Reader {
+func FilterReader(src io.Reader, filter BytesFilter) io.ReadCloser {
 	// 创建一个管道，用于后续返回过滤后的数据读取端。
 	pr, pw := io.Pipe()
 
@@ -40,7 +40,7 @@ func FilterReader(src io.Reader, filter BytesFilter) io.Reader {
 	go func() {
 		// 确保在函数退出时关闭管道的写入端。
 		defer pw.Close()
-		defer pr.Close()
+		// defer pr.Close()
 
 		// 创建一个缓冲区用于读取数据。
 		b := make([]byte, 8192*1024)

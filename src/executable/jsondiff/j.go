@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/grewwc/go_tools/src/cw"
+	"github.com/grewwc/go_tools/src/executable/jsondiff/internal"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/typesw"
 	"github.com/grewwc/go_tools/src/utilsw"
@@ -14,6 +15,8 @@ import (
 var diff = utilsw.NewJson(nil)
 
 var diffKeys = cw.NewOrderedSetT[string]()
+
+var sort bool
 
 func buildJson(key string, old, new any) *utilsw.Json {
 	res := utilsw.NewJson(nil)
@@ -48,7 +51,14 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 		diffKeys.Add(k)
 		return
 	}
+
+	if j1.IsArray() && j2.IsArray() && sort {
+		j1.SortArray(internal.SortJson)
+		j2.SortArray(internal.SortJson)
+	}
+
 	keys := append(j1.Keys(), j2.Keys()...)
+	// fmt.Println("here", reflect.TypeOf(j1))
 	for _, key := range keys {
 		k := absKey(currKey, key)
 		if diffKeys.Contains(k) {
@@ -56,7 +66,7 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 		}
 		v1 := j1.GetOrDefault(key, nil)
 		v2 := j2.GetOrDefault(key, nil)
-
+		// fmt.Println("v1, v2", key, reflect.TypeOf(v1), reflect.TypeOf(v2))
 		if !j2.ContainsKey(key) || !j1.ContainsKey(key) {
 			diff.Add(buildJson(k, v1, v2))
 			diffKeys.Add(k)
@@ -71,16 +81,29 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 			continue
 		}
 
-		if _, ok := v1.(*cw.OrderedMap); ok {
-			compareJson(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2))
-			continue
-		}
+		// if _, ok := v1.(*cw.OrderedMapT[string, any]); ok {
+		// 	compareJson(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2))
+		// 	continue
+		// }
 		if _, ok := v1.([]any); ok {
-			compareJson(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2))
+			jv1, jv2 := utilsw.NewJson(v1), utilsw.NewJson(v2)
+			if sort {
+				jv1.SortArray(internal.SortJson)
+				jv2.SortArray(internal.SortJson)
+			}
+			compareJson(absKey(currKey, key), jv1, jv2)
 			continue
 		}
 		if _, ok := v1.(*utilsw.Json); ok {
-			compareJson(absKey(currKey, key), v1.(*utilsw.Json), v2.(*utilsw.Json))
+			// scalar
+			v1J, v2J := v1.(*utilsw.Json), v2.(*utilsw.Json)
+			s1, s2 := v1J.Scalar(), v2J.Scalar()
+			if (s1 != nil || s2 != nil) && (!reflect.DeepEqual(s1, s2)) {
+				diff.Add(buildJson(k, s1, s2))
+				diffKeys.Add(k)
+				continue
+			}
+			compareJson(absKey(currKey, key), v1J, v2J)
 			continue
 		}
 		// normal types
@@ -98,7 +121,8 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 func main() {
 	parser := terminalw.NewParser()
 	parser.String("f", "", "format json file")
-	parser.ParseArgsCmd()
+	parser.Bool("sort", false, "sort slice, ignore slice order")
+	parser.ParseArgsCmd("sort")
 	positional := parser.Positional
 
 	if parser.ContainsFlagStrict("f") {
@@ -129,6 +153,7 @@ func main() {
 		return
 	}
 
+	sort = parser.ContainsFlagStrict("sort")
 	oldJson, err := utilsw.NewJsonFromFile(os.Args[1])
 	if err != nil {
 		panic(err)

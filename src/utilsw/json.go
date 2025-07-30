@@ -15,6 +15,7 @@ import (
 	"unsafe"
 
 	"github.com/grewwc/go_tools/src/cw"
+	"github.com/grewwc/go_tools/src/sortw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/typesw"
 	"golang.org/x/exp/constraints"
@@ -58,7 +59,9 @@ func NewJsonFromReader(r io.Reader, options ...JsonOption) (*Json, error) {
 	var rr io.Reader
 	if res.allowComment {
 		f := &commentsFilter{}
-		rr = FilterReader(r, f)
+		fr := FilterReader(r, f)
+		defer fr.Close()
+		rr = fr
 	} else {
 		rr = r
 	}
@@ -200,6 +203,7 @@ func getT[T type_, U keytype](j *Json, key U) T {
 	if !ok {
 		keyKind := reflect.TypeOf(key).Kind()
 		if keyKind == reflect.Int {
+			// fmt.Println("good", reflect.TypeOf(j.data))
 			return getByIndex[T](j, int(reflect.ValueOf(key).Int()))
 		}
 	}
@@ -567,4 +571,19 @@ func (j *Json) absKeySearch(key string, currPath string) []string {
 		}
 	}
 	return res.ToStringSlice()
+}
+
+func (j *Json) SortArray(cmp typesw.CompareFunc[any]) error {
+	if !j.IsArray() {
+		return errors.New("json is not array")
+	}
+	if cmp == nil {
+		return errors.New("compare functions is nil")
+	}
+	arr, ok := j.data.([]any)
+	if !ok {
+		return errors.New("json is not array")
+	}
+	sortw.StableSort[any](arr, cmp)
+	return nil
 }
