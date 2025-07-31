@@ -1,6 +1,8 @@
 package cw
 
-import "math"
+import (
+	"math"
+)
 
 type Trie struct {
 	data map[rune]*Trie

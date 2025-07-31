@@ -9,9 +9,13 @@ type Stack[T any] struct {
 	data *LinkedList[T]
 }
 
-func NewStack[T any]() *Stack[T] {
+func NewStack[T any](vals ...T) *Stack[T] {
 	data := NewLinkedList[T]()
-	return &Stack[T]{data}
+	res := &Stack[T]{data}
+	for _, val := range vals {
+		res.Push(val)
+	}
+	return res
 }
 
 func (s *Stack[T]) Push(item T) {
@@ -35,6 +39,10 @@ func (s *Stack[T]) Empty() bool {
 
 func (s *Stack[T]) Size() int {
 	return s.data.Len()
+}
+
+func (s *Stack[T]) Len() int {
+	return s.Size()
 }
 
 func (s *Stack[T]) Iter() typesw.IterableT[T] {
