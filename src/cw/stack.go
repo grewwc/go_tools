@@ -19,8 +19,8 @@ func (s *Stack[T]) Push(item T) {
 }
 
 func (s *Stack[T]) Pop() T {
-	result := s.Top()
-	return result
+	result := s.data.PopFront()
+	return result.Value()
 }
 func (s *Stack[T]) Top() T {
 	if s.Empty() {

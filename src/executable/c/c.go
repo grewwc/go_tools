@@ -66,6 +66,7 @@ func calcWithOp(first, second string, op byte) string {
 	case '/':
 		// val = div(first, second)
 		val = strw.Div(first, second, prec)
+		// fmt.Println("here", first, second, val)
 	case '^':
 		secondVal, err := strconv.Atoi(second)
 		if err != nil {
