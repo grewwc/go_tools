@@ -22,6 +22,12 @@ const (
 	dash  = '\x01'
 )
 
+type ParserOption func(*Parser)
+
+func DisableParserNumber(p *Parser) {
+	p.enableParseNum = false
+}
+
 type Parser struct {
 	Optional      *cw.OrderedMapT[string, string] // key is prefix with '-'
 	Positional    *cw.LinkedList[string]
@@ -31,20 +37,27 @@ type Parser struct {
 
 	cmd string
 
-	numArg string
+	enableParseNum bool
+	numArg         string
 
 	*flag.FlagSet
 }
 
-func NewParser() *Parser {
-	return &Parser{
+func NewParser(options ...ParserOption) *Parser {
+	p := &Parser{
 		Optional:      cw.NewOrderedMapT[string, string](),
 		Positional:    cw.NewLinkedList[string](),
 		defaultValMap: cw.NewTreeMap[string, string](nil),
 		FlagSet:       flag.NewFlagSet(os.Args[0], flag.ContinueOnError),
 
 		groups: cw.NewOrderedMapT[string, *Parser](),
+
+		enableParseNum: true,
 	}
+	for _, op := range options {
+		op(p)
+	}
+	return p
 }
 
 func (p *Parser) PrintDefaults() {
@@ -499,13 +512,14 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	// }
 
 	cmd = strings.Join(cmdSlice, string(sep))
-
-	re := regexp.MustCompile(`\-\d+`)
-	numArgs := re.FindString(cmd)
-	if len(numArgs) > 0 {
-		r.numArg = numArgs[1:]
-		// fmt.Println("waht", r.numArgs, []byte(r.numArgs))
-		cmd = strings.Replace(cmd, numArgs, "", 1)
+	if r.enableParseNum {
+		re := regexp.MustCompile(`\-\d+`)
+		numArgs := re.FindString(cmd)
+		if len(numArgs) > 0 {
+			r.numArg = numArgs[1:]
+			// fmt.Println("waht", r.numArgs, []byte(r.numArgs))
+			cmd = strings.Replace(cmd, numArgs, "", 1)
+		}
 	}
 
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)

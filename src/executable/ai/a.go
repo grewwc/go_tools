@@ -185,7 +185,7 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 	if loopMode {
 		multiLine := parsed.ContainsFlagStrict("multi-line") || parsed.ContainsFlagStrict("mul")
 		question = utilsw.UserInput("> ", multiLine)
-		tempParser := terminalw.NewParser()
+		tempParser := terminalw.NewParser(terminalw.DisableParserNumber)
 		// tempParser.Bool("x", false, "")
 		// tempParser.Bool("c", false, "")
 		tempParser.ParseArgs(question)
