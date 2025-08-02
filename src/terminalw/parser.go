@@ -19,7 +19,7 @@ import (
 const (
 	sep   = '\x00'
 	quote = '\x05'
-	dash  = '-'
+	dash  = '\x01'
 )
 
 type Parser struct {
@@ -124,10 +124,7 @@ func (r *Parser) GetIntFlagValOrDefault(flagName string, val int) int {
 func (r *Parser) GetPositionalArgs(excludeNumArg bool) []string {
 	if excludeNumArg {
 		remove := fmt.Sprintf("-%d", r.GetNumArgs())
-		slice := r.Positional.ToStringSlice()
-		tempSet := cw.NewOrderedSetT(slice...)
-		tempSet.Delete(remove)
-		return tempSet.ToStringSlice()
+		r.Positional.Delete(remove, nil)
 	}
 	return r.Positional.ToStringSlice()
 }
@@ -323,7 +320,7 @@ func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
 }
 
 func classifyArguments(cmd string, boolOptionals ...string) (*cw.LinkedList[string], []string, []string, []string) {
-	// fmt.Println("here", strings.ReplaceAll(cmd, "sep", "|"))
+	// fmt.Println("here", strings.ReplaceAll(cmd, string(sep), "|"))
 	const (
 		positionalMode = iota
 		optionalKeyMode
@@ -419,16 +416,20 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	supportedOptions := cw.NewSet()
 	r.VisitAll(func(f *flag.Flag) {
 		supportedOptions.Add(fmt.Sprintf("%c%s", dash, f.Name))
-		key := fmt.Sprintf("-%s%c", f.Name, sep)
+		key := fmt.Sprintf("-%s%c%c", f.Name, quote, sep)
 		// fmt.Println("==>", f.Name, f.DefValue)
-		r.defaultValMap.Put(fmt.Sprintf("-%s", f.Name), f.DefValue)
+		r.defaultValMap.Put(fmt.Sprintf("%v%s", dash, f.Name), f.DefValue)
 		indices := strw.KmpSearch(cmd, key, -1)
+		indicesQuote := strw.KmpSearch(cmd, fmt.Sprintf("%c%s%c", quote, key, quote), -1)
+		indices = append(indices, indicesQuote...)
+		// fmt.Println("=====> ", cmd, []byte(cmd), []byte(key), key, indices)
 		if len(indices) >= 1 {
 			for _, idx := range indices {
 				substr := strw.SubStringQuiet(cmd, idx, idx+len(key)-1)
 				cmd = strings.ReplaceAll(cmd, substr, fmt.Sprintf("%c%s", dash, f.Name))
 			}
 		}
+
 	})
 
 	// fmt.Println(boolOptionals)
@@ -442,6 +443,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	// fmt.Println([]byte(allPositionals.ToStringSlice()[0]))
 	for i, key := range keys {
 		if !supportedOptions.Contains(key) {
+			// fmt.Printf("here |%s|", key)
 			if i < len(vals) {
 				r.Positional.PushBack(fmt.Sprintf("%s %s", key, vals[i]))
 			} else {
@@ -479,7 +481,7 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 	for i, arg := range os.Args[start:] {
 		args[i] = fmt.Sprintf("%c%s%c", quote, arg, quote)
 	}
-	cmd := strings.Join(args, " ")
+	cmd := strings.Join(args, string(sep))
 	// fmt.Println("here", cmd)
 
 	re := regexp.MustCompile(`\-\d+`)

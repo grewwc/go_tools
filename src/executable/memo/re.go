@@ -1008,7 +1008,6 @@ func main() {
 		}
 		return
 	}
-
 	onlyTags = parser.ContainsFlagStrict("s") || parser.CoExists("a", "s")
 
 	positional := parser.Positional
