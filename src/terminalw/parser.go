@@ -27,10 +27,12 @@ type Parser struct {
 	Positional    *cw.LinkedList[string]
 	defaultValMap *cw.TreeMap[string, string] // key is prefix with '-'
 
-	groups        *cw.OrderedMapT[string, *Parser]
-	foundGroupKey bool
+	groups *cw.OrderedMapT[string, *Parser]
 
 	cmd string
+
+	numArg string
+
 	*flag.FlagSet
 }
 
@@ -271,21 +273,11 @@ outer:
 
 // GetNumArgs return -1 to signal "there is NO num args (e.g.: -10)"
 func (r *Parser) GetNumArgs() int {
-	res := -1
-	p := regexp.MustCompile(`-(\d+)`)
-
-	for entry := range r.Optional.Iter().Iterate() {
-		k := entry.Key()
-		if !p.MatchString(k) {
-			continue
-		}
-		k = strings.TrimLeft(k, "-")
-		kInt, err := strconv.ParseInt(k, 10, 64)
-		if err == nil {
-			return int(kInt)
-		}
+	// fmt.Println("numags", r.numArgs)
+	if num, err := strconv.Atoi(r.numArg); err == nil {
+		return num
 	}
-	return res
+	return -1
 }
 
 // GetDefaultValue return default value of key.
@@ -432,7 +424,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 
 	})
 
-	// fmt.Println(boolOptionals)
+	// fmt.Println([]byte(boolOptionals[0]))
 	allPositionals, boolKeys, keys, vals := classifyArguments(cmd, normalizedBoolOptionals...)
 	r.Positional = allPositionals
 
@@ -484,14 +476,14 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 	cmd := strings.Join(args, string(sep))
 	// fmt.Println("here", cmd)
 
-	re := regexp.MustCompile(`\-\d+`)
-	numArgs := re.FindString(cmd)
-	if len(numArgs) > 0 {
-		numArgs = numArgs[1:]
-		cmd = strings.ReplaceAll(cmd, fmt.Sprintf("%c%s%c", quote, numArgs, quote), "")
+	// re := regexp.MustCompile(`\-\d+`)
+	// numArgs := re.FindString(cmd)
+	// if len(numArgs) > 0 {
+	// 	numArgs = numArgs[1:]
+	// 	cmd = strings.ReplaceAll(cmd, fmt.Sprintf("%c%s%c", quote, numArgs, quote), "")
 
-		boolOptionals = append(boolOptionals, numArgs)
-	}
+	// 	boolOptionals = append(boolOptionals, numArgs)
+	// }
 
 	r.ParseArgs(cmd, boolOptionals...)
 }
@@ -505,7 +497,17 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	// if len(cmdSlice) <= 1 {
 	// 	return
 	// }
+
 	cmd = strings.Join(cmdSlice, string(sep))
+
+	re := regexp.MustCompile(`\-\d+`)
+	numArgs := re.FindString(cmd)
+	if len(numArgs) > 0 {
+		r.numArg = numArgs[1:]
+		// fmt.Println("waht", r.numArgs, []byte(r.numArgs))
+		cmd = strings.Replace(cmd, numArgs, "", 1)
+	}
+
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)
 	r.parseArgs(cmd, boolOptionals...)
 }
