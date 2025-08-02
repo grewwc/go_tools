@@ -510,8 +510,12 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	// if len(cmdSlice) <= 1 {
 	// 	return
 	// }
-
-	cmd = strings.Join(cmdSlice, string(sep))
+	args := make([]string, len(cmdSlice))
+	for i, arg := range cmdSlice {
+		args[i] = fmt.Sprintf("%c%s%c", quote, arg, quote)
+	}
+	cmd = strings.Join(args, string(sep))
+	// cmd = strings.Join(cmdSlice, string(sep))
 	if r.enableParseNum {
 		re := regexp.MustCompile(`\-\d+`)
 		numArgs := re.FindString(cmd)
