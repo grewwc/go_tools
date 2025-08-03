@@ -208,7 +208,6 @@ func ReadInfo(isURL bool) string {
 			}
 		}
 	}
-	return ""
 }
 
 func OrderByTime(parsed *terminalw.Parser) bool {
@@ -222,6 +221,9 @@ func OrderByTime(parsed *terminalw.Parser) bool {
 		return true
 	}
 	if parsed.Positional.Contains("it", nil) || parsed.Positional.Contains("ti", nil) {
+		return true
+	}
+	if parsed.ContainsFlagStrict("l") {
 		return true
 	}
 	return false

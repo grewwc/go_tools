@@ -40,6 +40,8 @@ type Parser struct {
 	enableParseNum bool
 	numArg         string
 
+	boolOptionSet *cw.Set
+
 	*flag.FlagSet
 }
 
@@ -53,6 +55,8 @@ func NewParser(options ...ParserOption) *Parser {
 		groups: cw.NewOrderedMapT[string, *Parser](),
 
 		enableParseNum: true,
+
+		boolOptionSet: cw.NewSet(),
 	}
 	for _, op := range options {
 		op(p)
@@ -145,6 +149,9 @@ func (r *Parser) GetPositionalArgs(excludeNumArg bool) []string {
 }
 
 func (r *Parser) Empty() bool {
+	if r == nil {
+		return true
+	}
 	return r.Optional.Empty() && r.Positional.Empty()
 }
 
@@ -433,16 +440,20 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	for i, boolArg := range boolOptionals {
 		normalizedBoolOptionals[i] = strings.TrimLeft(boolArg, string(dash))
 	}
+
 	supportedOptions := cw.NewSet()
 	r.VisitAll(func(f *flag.Flag) {
 		supportedOptions.Add(f.Name)
 		// key := fmt.Sprintf("-%s%c%c", f.Name, quote, sep)
 		key := fmt.Sprintf("-%s", f.Name)
-		// fmt.Println("==>", f.Name, f.DefValue)
 		r.defaultValMap.Put(f.Name, f.DefValue)
+		if !r.boolOptionSet.Contains(f.Name) {
+			return
+		}
+
 		indices := strw.KmpSearch(cmd, key, -1)
-		indicesQuote := strw.KmpSearch(cmd, fmt.Sprintf("%c%s%c", quote, f.Name, quote), -1)
-		indices = append(indices, indicesQuote...)
+		// indicesQuote := strw.KmpSearch(cmd, fmt.Sprintf("%c%s%c", quote, f.Name, quote), -1)
+		// indices = append(indices)
 		// fmt.Println("=====> ", cmd, []byte(cmd), []byte(key), key, indices)
 		for _, idx := range indices {
 			end := idx + len(key)
@@ -506,18 +517,8 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 	for i, arg := range os.Args[start:] {
 		args[i] = fmt.Sprintf("%c%s%c", quote, arg, quote)
 	}
-	cmd := strings.Join(args, string(sep))
+	cmd := strings.Join(args, " ")
 	// fmt.Println("here", cmd)
-
-	// re := regexp.MustCompile(`\-\d+`)
-	// numArgs := re.FindString(cmd)
-	// if len(numArgs) > 0 {
-	// 	numArgs = numArgs[1:]
-	// 	cmd = strings.ReplaceAll(cmd, fmt.Sprintf("%c%s%c", quote, numArgs, quote), "")
-
-	// 	boolOptionals = append(boolOptionals, numArgs)
-	// }
-
 	r.ParseArgs(cmd, boolOptionals...)
 }
 
@@ -525,30 +526,36 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 // cmd contains the Programs itself
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	r.cmd = cmd
-	// cmd = strw.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
 	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', fmt.Sprintf(`"'%c`, quote), false)
-	// if len(cmdSlice) <= 1 {
-	// 	return
-	// }
 	args := make([]string, 0, len(cmdSlice))
+
+	for _, option := range boolOptionals {
+		if len(option) == 0 {
+			continue
+		}
+		if option[0] == '-' {
+			option = option[1:]
+		}
+		r.boolOptionSet.Add(option)
+	}
 
 	trie := cw.NewTrie()
 	r.VisitAll(func(f *flag.Flag) {
-		trie.Insert(f.Name)
+		if r.boolOptionSet.Contains(f.Name) {
+			trie.Insert(f.Name)
+		}
 	})
 
 	for _, arg := range cmdSlice {
-		// fmt.Println([]byte(arg))
+		// fmt.Println([]byte(arg), arg)
 		if len(arg) > 0 && arg[0] == '-' {
 			s := cw.NewOrderedSetT[string]()
 			if test(arg[1:], trie, s) {
-				// fmt.Println("test ", arg[1:], "success")
 				for val := range s.Iter().Iterate() {
-					args = append(args, fmt.Sprintf("%c%s%c", quote, val, quote))
+					args = append(args, fmt.Sprintf("%c%c%s%c", quote, dash, val, quote))
 				}
 			} else {
-				// fmt.Println("test ", arg[1:], "failed")
-				args = append(args, fmt.Sprintf("%c%s%c", quote, arg, quote))
+				args = append(args, fmt.Sprintf("%c%c%s%c", quote, dash, arg[1:], quote))
 			}
 		} else {
 			args = append(args, fmt.Sprintf("%c%s%c", quote, arg, quote))
@@ -556,9 +563,8 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	}
 
 	cmd = strings.Join(args, string(sep))
-	// cmd = strings.Join(cmdSlice, string(sep))
 	if r.enableParseNum {
-		re := regexp.MustCompile(`\-\d+`)
+		re := regexp.MustCompile(fmt.Sprintf(`\%c\d+`, dash))
 		numArgs := re.FindString(cmd)
 		if len(numArgs) > 0 {
 			r.numArg = numArgs[1:]

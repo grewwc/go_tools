@@ -991,10 +991,11 @@ func main() {
 	parser.String("ex", "", "exclude some tag prefix when list tags")
 	parser.Bool("code", false, "if use vscode as input editor (default false)")
 	parser.Bool("s", false, "short format, only print titles")
+	parser.Bool("l", false, "list tags")
 
 	parser.ParseArgsCmd("h", "r", "all", "a",
 		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"sp", "include-held", "onlyhold", "p", "code", "pre", "force", "s", "push", "pull")
+		"sp", "include-held", "onlyhold", "p", "code", "pre", "force", "s", "push", "pull", "l")
 	// fmt.Println(parser.Optional)
 	// default behavior
 	// re

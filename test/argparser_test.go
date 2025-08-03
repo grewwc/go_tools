@@ -17,7 +17,7 @@ func TestParser(t *testing.T) {
 	parser.Bool("v", false, "")
 	parser.String("f", "", "")
 	parser.Bool("a", false, "")
-	parser.ParseArgs(`"program dir" -f file -a something night -v`, "v")
+	parser.ParseArgs(`-f file -a something night -v`, "v", "a")
 	// test contains
 	mustContain(t, parser, "v")
 	mustContain(t, parser, "-v")
@@ -25,7 +25,7 @@ func TestParser(t *testing.T) {
 	mustContain(t, parser, "f")
 
 	// test positional args
-	aim := cw.NewLinkedList(`program dir`, "night")
+	aim := cw.NewLinkedList(`something`, "night")
 	if !aim.Equals(parser.Positional, nil) {
 		t.Log(parser.Positional.ToStringSlice(), parser.Positional.Len())
 		t.Log(aim.ToStringSlice(), aim.Len())
