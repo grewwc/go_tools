@@ -32,7 +32,7 @@ func (t *Trie) Insert(word string) {
 /** Returns if the word is in the trie. */
 func (t *Trie) Contains(word string) bool {
 	if len(word) == 0 {
-		return false
+		return true
 	}
 	cur := t
 	for cnt, ch := range word {
@@ -50,7 +50,7 @@ func (t *Trie) Contains(word string) bool {
 /** Returns if the word is in the trie. */
 func (t *Trie) HasPrefix(word string) bool {
 	if len(word) == 0 {
-		return false
+		return true
 	}
 	cur := t
 	for _, ch := range word {

@@ -266,22 +266,18 @@ func (r *Parser) ContainsAllFlagStrict(flagNames ...string) bool {
 // CoExists “-lrt”， args = ["l", "r", "t"]，return true
 // args 的顺序无关
 func (r *Parser) CoExists(args ...string) bool {
-outer:
-	for entry := range r.Optional.Iter().Iterate() {
-		optional := entry.Key()
-		optional = strings.TrimPrefix(optional, "-")
-		for _, arg := range args {
-			newOptional := strings.Replace(optional, arg, "", 1)
-			if newOptional == optional {
-				continue outer
-			}
-			optional = newOptional
+	for _, arg := range args {
+		if len(arg) == 0 {
+			continue
 		}
-		if optional == "" {
-			return true
+		if arg[0] != '-' {
+			arg = fmt.Sprintf("-%s", arg)
+		}
+		if !r.Optional.Contains(arg) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // GetNumArgs return -1 to signal "there is NO num args (e.g.: -10)"
@@ -302,7 +298,7 @@ func (r *Parser) GetDefaultValue(key string) string {
 	if key[0] != '-' {
 		key = fmt.Sprintf("-%s", key)
 	}
-	return r.defaultValMap.GetOrDefault(key, "")
+	return r.defaultValMap.GetOrDefault(key[1:], "")
 }
 
 func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {
@@ -412,6 +408,25 @@ func classifyArguments(cmd string, boolOptionals ...string) (*cw.LinkedList[stri
 	return positionals, boolKeys, keys, vals
 }
 
+func test(cmd string, trie *cw.Trie, s *cw.OrderedSetT[string]) bool {
+	// fmt.Println("test", []byte(cmd))
+	if cmd == "" {
+		return true
+	}
+	if trie.Contains(cmd) {
+		s.Add(cmd)
+		return true
+	}
+	for i := 1; i < len(cmd); i++ {
+		curr := cmd[:i]
+		if trie.Contains(curr) && test(cmd[i:len(cmd)], trie, s) {
+			s.Add(curr)
+			return true
+		}
+	}
+	return false
+}
+
 func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	// flag.Parse()
 	normalizedBoolOptionals := make([]string, len(boolOptionals))
@@ -420,22 +435,25 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	}
 	supportedOptions := cw.NewSet()
 	r.VisitAll(func(f *flag.Flag) {
-		supportedOptions.Add(fmt.Sprintf("%c%s", dash, f.Name))
-		key := fmt.Sprintf("-%s%c%c", f.Name, quote, sep)
+		supportedOptions.Add(f.Name)
+		// key := fmt.Sprintf("-%s%c%c", f.Name, quote, sep)
+		key := fmt.Sprintf("-%s", f.Name)
 		// fmt.Println("==>", f.Name, f.DefValue)
-		r.defaultValMap.Put(fmt.Sprintf("%v%s", dash, f.Name), f.DefValue)
+		r.defaultValMap.Put(f.Name, f.DefValue)
 		indices := strw.KmpSearch(cmd, key, -1)
-		indicesQuote := strw.KmpSearch(cmd, fmt.Sprintf("%c%s%c", quote, key, quote), -1)
+		indicesQuote := strw.KmpSearch(cmd, fmt.Sprintf("%c%s%c", quote, f.Name, quote), -1)
 		indices = append(indices, indicesQuote...)
 		// fmt.Println("=====> ", cmd, []byte(cmd), []byte(key), key, indices)
-		if len(indices) >= 1 {
-			for _, idx := range indices {
-				substr := strw.SubStringQuiet(cmd, idx, idx+len(key)-1)
-				cmd = strings.ReplaceAll(cmd, substr, fmt.Sprintf("%c%s", dash, f.Name))
-			}
-		}
+		for _, idx := range indices {
+			end := idx + len(key)
+			substr := strw.SubStringQuiet(cmd, idx, end)
 
+			cmd = strings.ReplaceAll(cmd, substr, fmt.Sprintf("%c%s%c", dash, f.Name, sep))
+		}
 	})
+
+	// fmt.Println(strings.ReplaceAll(strings.ReplaceAll(cmd, string(dash), "-"), string(sep), " "))
+	// fmt.Println([]byte(cmd))
 
 	// fmt.Println([]byte(boolOptionals[0]))
 	allPositionals, boolKeys, keys, vals := classifyArguments(cmd, normalizedBoolOptionals...)
@@ -447,7 +465,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	// fmt.Println("boolKeys", boolKeys)
 	// fmt.Println([]byte(allPositionals.ToStringSlice()[0]))
 	for i, key := range keys {
-		if !supportedOptions.Contains(key) {
+		if !supportedOptions.Contains(key[1:]) {
 			// fmt.Printf("here |%s|", key)
 			if i < len(vals) {
 				r.Positional.PushBack(fmt.Sprintf("%s %s", key, vals[i]))
@@ -462,16 +480,18 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 		if i < len(vals) {
 			r.Optional.Put(key, vals[i])
 		} else {
-			r.Optional.Put(key, r.defaultValMap.GetOrDefault(key, ""))
+			r.Optional.Put(key, r.defaultValMap.GetOrDefault(key[1:], ""))
 		}
 	}
+	// fmt.Println(boolKeys)
 	for _, key := range boolKeys {
 		key = strings.ReplaceAll(key, string(dash), "-")
-		defaultVal := r.defaultValMap.GetOrDefault(key, "")
+		defaultVal := r.defaultValMap.GetOrDefault(key[1:], "")
+		// fmt.Println(key, defaultVal)
 		if defaultVal == "false" {
 			r.Optional.Put(key, "true")
 		} else {
-			r.Optional.Put(key, "false")
+			r.Optional.Put(key, defaultVal)
 		}
 	}
 }
@@ -506,14 +526,35 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	r.cmd = cmd
 	// cmd = strw.ReplaceAllInQuoteUnchange(cmd, '=', ' ')
-	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', fmt.Sprintf(`"'%c`, quote), true)
+	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', fmt.Sprintf(`"'%c`, quote), false)
 	// if len(cmdSlice) <= 1 {
 	// 	return
 	// }
-	args := make([]string, len(cmdSlice))
-	for i, arg := range cmdSlice {
-		args[i] = fmt.Sprintf("%c%s%c", quote, arg, quote)
+	args := make([]string, 0, len(cmdSlice))
+
+	trie := cw.NewTrie()
+	r.VisitAll(func(f *flag.Flag) {
+		trie.Insert(f.Name)
+	})
+
+	for _, arg := range cmdSlice {
+		// fmt.Println([]byte(arg))
+		if len(arg) > 0 && arg[0] == '-' {
+			s := cw.NewOrderedSetT[string]()
+			if test(arg[1:], trie, s) {
+				// fmt.Println("test ", arg[1:], "success")
+				for val := range s.Iter().Iterate() {
+					args = append(args, fmt.Sprintf("%c%s%c", quote, val, quote))
+				}
+			} else {
+				// fmt.Println("test ", arg[1:], "failed")
+				args = append(args, fmt.Sprintf("%c%s%c", quote, arg, quote))
+			}
+		} else {
+			args = append(args, fmt.Sprintf("%c%s%c", quote, arg, quote))
+		}
 	}
+
 	cmd = strings.Join(args, string(sep))
 	// cmd = strings.Join(cmdSlice, string(sep))
 	if r.enableParseNum {
@@ -521,7 +562,6 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 		numArgs := re.FindString(cmd)
 		if len(numArgs) > 0 {
 			r.numArg = numArgs[1:]
-			// fmt.Println("waht", r.numArgs, []byte(r.numArgs))
 			cmd = strings.Replace(cmd, numArgs, "", 1)
 		}
 	}

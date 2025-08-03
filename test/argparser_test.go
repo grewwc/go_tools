@@ -25,7 +25,7 @@ func TestParser(t *testing.T) {
 	mustContain(t, parser, "f")
 
 	// test positional args
-	aim := cw.NewLinkedList(`"program dir"`, "night")
+	aim := cw.NewLinkedList(`program dir`, "night")
 	if !aim.Equals(parser.Positional, nil) {
 		t.Log(parser.Positional.ToStringSlice(), parser.Positional.Len())
 		t.Log(aim.ToStringSlice(), aim.Len())
