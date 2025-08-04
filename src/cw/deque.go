@@ -57,6 +57,10 @@ func (dq *Deque) Size() int {
 	return dq.data.Len()
 }
 
+func (dq *Deque) Len() int {
+	return dq.Size()
+}
+
 func (dq *Deque) ToSlice() []interface{} {
 	l := dq.data.Front()
 	res := make([]interface{}, 0, dq.Size())

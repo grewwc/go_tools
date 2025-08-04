@@ -1,32 +1,44 @@
 package cw
 
 import (
+	"fmt"
 	"math"
+	"unicode/utf8"
 )
 
 type Trie struct {
-	data map[rune]*Trie
-	end  map[rune]bool
+	children map[rune]*Trie
+	// end  map[rune]bool
+	cnt   int
+	isEnd bool
 }
 
 /** Initialize your data structure here. */
 func NewTrie() *Trie {
-	return &Trie{end: make(map[rune]bool), data: make(map[rune]*Trie)}
+	return &Trie{children: make(map[rune]*Trie)}
 }
 
 /** Inserts a word into the trie. */
-func (t *Trie) Insert(word string) {
+func (t *Trie) Insert(word string) error {
 	cur := t
 	for cnt, ch := range word {
-		if _, exists := cur.data[ch]; !exists {
-			newTrie := NewTrie()
-			cur.data[ch] = newTrie
+		var child *Trie
+		var exists bool
+		if child, exists = cur.children[ch]; !exists {
+			child = NewTrie()
+			cur.children[ch] = child
 		}
-		if cnt+len(string(ch)) == len(word) {
-			cur.end[ch] = true
+		chLen := utf8.RuneLen(ch)
+		if chLen == -1 {
+			return fmt.Errorf("failed to insert word: %s (invalid utf8 rune)", word)
 		}
-		cur = cur.data[ch]
+		child.cnt++
+		if cnt+chLen == len(word) {
+			child.isEnd = true
+		}
+		cur = cur.children[ch]
 	}
+	return nil
 }
 
 /** Returns if the word is in the trie. */
@@ -36,13 +48,19 @@ func (t *Trie) Contains(word string) bool {
 	}
 	cur := t
 	for cnt, ch := range word {
-		if _, exists := cur.data[ch]; !exists {
+		var child *Trie
+		var exists bool
+		if child, exists = cur.children[ch]; !exists {
 			return false
 		}
-		if cnt+len(string(ch)) == len(word) {
-			return cur.end[ch]
+		chLen := utf8.RuneLen(ch)
+		if chLen == -1 {
+			return false
 		}
-		cur = cur.data[ch]
+		if cnt+chLen == len(word) {
+			return child.isEnd
+		}
+		cur = child
 	}
 	return true
 }
@@ -54,28 +72,36 @@ func (t *Trie) HasPrefix(word string) bool {
 	}
 	cur := t
 	for _, ch := range word {
-		if _, exists := cur.data[ch]; !exists {
+		var child *Trie
+		var exists bool
+		if child, exists = cur.children[ch]; !exists {
 			return false
 		}
-		cur = cur.data[ch]
+		cur = child
 	}
 	return true
 }
 
 func (t *Trie) Delete(word string) bool {
-	// if !t.Contains(word) {
-	// 	return false
-	// }
 	cur := t
 	for cnt, ch := range word {
-		if _, ok := cur.data[ch]; !ok {
+		var child *Trie
+		var exists bool
+		if child, exists = cur.children[ch]; !exists {
 			return false
 		}
-		if cnt+len(string(ch)) == len(word) {
-			delete(cur.end, ch)
-			delete(cur.data, ch)
+		chLen := utf8.RuneLen(ch)
+		if chLen == -1 {
+			return false
 		}
-		cur = cur.data[ch]
+		if cnt+chLen == len(word) {
+			if child.cnt <= 1 {
+				delete(cur.children, ch)
+			}
+			child.isEnd = false
+			break
+		}
+		cur = child
 	}
 	return true
 }
@@ -102,9 +128,9 @@ func showPrefixHelper(t *Trie, prefix string, n int, isEnd bool) []string {
 				goto end
 			}
 		}
-		for ch, subT := range currTrie.data {
+		for ch, subT := range currTrie.children {
 			if n > 0 {
-				s.Enqueue(NewTuple(subT, curr+string(ch), currTrie.end[ch]))
+				s.Enqueue(NewTuple(subT, curr+string(ch), subT.isEnd))
 			} else {
 				goto end
 			}
@@ -126,10 +152,10 @@ func (t *Trie) ShowPrefix(prefix string, totalNum int) []string {
 	var prefixInDict bool
 	// find next prefix
 	for _, ch = range prefix {
-		if t, exists = t.data[ch]; !exists {
+		if t, exists = t.children[ch]; !exists {
 			return nil
 		}
-		prefixInDict = t.end[ch]
+		prefixInDict = t.isEnd
 	}
 	return showPrefixHelper(t, prefix, totalNum, prefixInDict)
 }
