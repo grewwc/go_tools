@@ -175,7 +175,7 @@ func main() {
 
 	verbose := parser.ContainsFlagStrict("v")
 	showProgress := parser.MustGetFlagVal("prog")
-	excludeSet := cw.NewSet()
+	excludeSet := cw.NewSetT[string]()
 
 	for _, ex := range excludes {
 		filepath.Walk(ex, func(path string, info os.FileInfo, err error) error {

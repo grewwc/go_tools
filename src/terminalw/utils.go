@@ -30,11 +30,11 @@ func MapToString(m map[string]string) string {
 }
 
 // support "," and " " split
-func FormatFileExtensions(extensions string) *cw.Set {
+func FormatFileExtensions(extensions string) *cw.SetT[string] {
 	extensions = strings.ReplaceAll(extensions, ",", " ")
 	bySpace := strw.SplitNoEmpty(extensions, " ")
 
-	var res = cw.NewSet()
+	var res = cw.NewSetT[string]()
 	for _, ext := range bySpace {
 		if !strings.HasPrefix(ext, ".") {
 			res.Add("." + ext)

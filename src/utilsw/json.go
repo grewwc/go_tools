@@ -544,7 +544,7 @@ func (j *Json) AbsKey(key string) []string {
 
 func (j *Json) absKeySearch(key string, currPath string) []string {
 	sep := "->"
-	res := cw.NewSet()
+	res := cw.NewSetT[string]()
 	if j.IsArray() {
 		for i := 0; i < j.Len(); i++ {
 			sub := j.GetIndex(i)

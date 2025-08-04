@@ -83,6 +83,11 @@ func parseFileSize(size int64) string {
 	}
 }
 
+func highlightMatch(pathStr, matchBase string) string {
+	normalized := strings.ReplaceAll(pathStr, "\\", "/")
+	return strings.ReplaceAll(normalized, matchBase, color.GreenString(matchBase))
+}
+
 func findFile(rootDir string, numPrint int, allIgnores []string) {
 	numThreads <- struct{}{}
 	defer func() { <-numThreads }()
@@ -150,48 +155,52 @@ OUTER:
 			}
 		}
 		matchBase := filepath.Base(match)
-		if int(atomicCount.Load()) < numPrint {
-			if utilsw.IsDir(abs) && !strings.HasSuffix(abs, "/") {
-				abs += "/"
+		// Atomically increment and check if within limit
+		// curCount := atomic.AddInt32(&atomicCount, 1)
+		curCount := atomicCount.Add(1)
+		if int(curCount) > numPrint {
+			atomicCount.Add(-1) // revert increment if over limit
+			break
+		}
+		if utilsw.IsDir(abs) && abs == filepath.Clean(abs) {
+			abs = filepath.Join(abs, string(os.PathSeparator))
+		}
+		var toPrint string
+		if !relativePath {
+			toPrint = highlightMatch(abs, matchBase)
+		} else {
+			absStripped := strings.TrimPrefix(abs, wd)
+			if absStripped != abs {
+				absStripped = strings.TrimPrefix(absStripped, string(os.PathSeparator))
 			}
-			var toPrint string
-			if !relativePath {
-				toPrint = strings.ReplaceAll(strings.ReplaceAll(abs, "\\", "/"), matchBase, color.GreenString(matchBase))
-			} else {
-				absStripped := strw.StripPrefix(abs, wd)
-				if absStripped != abs {
-					absStripped = strw.StripPrefix(absStripped, "/")
-				}
-				abs = absStripped
-				toPrint = strings.ReplaceAll(strings.ReplaceAll(absStripped, "\\", "/"), matchBase, color.GreenString(matchBase))
+			abs = absStripped
+			toPrint = highlightMatch(absStripped, matchBase)
+		}
+		if verbose {
+			info, err := os.Stat(match)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
+				continue
 			}
-			if verbose {
-				info, err := os.Stat(match)
-				if err != nil {
+			fileSize := info.Size()
+			toPrint += "  " + parseFileSize(fileSize)
+			toPrint += "  " + info.ModTime().Format("2006.01.02/15:04:05")
+		}
+		if printMd5 {
+			b, err := os.ReadFile(abs)
+			if err != nil {
+				if verbose {
 					fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
-					continue
 				}
-				fileSize := info.Size()
-				toPrint += "  " + parseFileSize(fileSize)
-				toPrint += "  " + info.ModTime().Format("2006.01.02/15:04:05")
+				continue
 			}
-			if printMd5 {
-				b, err := os.ReadFile(abs)
-				if err != nil {
-					if verbose {
-						fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
-					}
-					continue
-				}
-				h := md5.Sum(b)
-				val := hex.EncodeToString(h[:])
-				toPrint += "\t" + val
-			}
-			fmt.Fprintf(color.Output, "%s\n", toPrint)
-			atomicCount.Add(1)
-			if absoluteTarget.Load() {
-				os.Exit(0)
-			}
+			h := md5.Sum(b)
+			val := hex.EncodeToString(h[:])
+			toPrint += "\t" + val
+		}
+		fmt.Fprintf(color.Output, "%s\n", toPrint)
+		if absoluteTarget.Load() {
+			os.Exit(0)
 		}
 	}
 
