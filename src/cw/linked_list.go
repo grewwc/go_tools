@@ -162,6 +162,7 @@ func (l *LinkedList[T]) Delete(val T, cmp typesw.CompareFunc[T]) bool {
 	if d == l.head {
 		l.head = d.next
 	}
+	l.size--
 	return true
 }
 
