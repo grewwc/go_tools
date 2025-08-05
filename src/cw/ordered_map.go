@@ -74,8 +74,8 @@ func (s *OrderedMap) GetOrDefault(k, defaultVal any) any {
 
 func (s *OrderedMap) Keys() []any {
 	res := make([]any, 0, len(s.m))
-	for key := range s.m {
-		res = append(res, key)
+	for curr := s.l.Front(); curr != nil; curr = curr.Next() {
+		res = append(res, curr.Value.(*MapEntry[any, any]).k)
 	}
 	return res
 }
