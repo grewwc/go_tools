@@ -78,6 +78,7 @@ func (s *SetT[T]) Intersect(another *SetT[T]) *SetT[T] {
 
 func (s *SetT[T]) Union(another *SetT[T]) *SetT[T] {
 	result := NewSetT[T]()
+	result.data = make(map[T]bool, s.Len())
 	for k := range s.data {
 		result.Add(k)
 	}
@@ -115,6 +116,10 @@ func (s *SetT[T]) Size() int {
 		return 0
 	}
 	return len(s.data)
+}
+
+func (s *SetT[T]) Len() int {
+	return s.Size()
 }
 
 func (s *SetT[T]) Clear() {
@@ -167,8 +172,20 @@ func (s *SetT[T]) Equals(another *SetT[T]) bool {
 	return s.IsSubSet(another) && another.IsSubSet(s)
 }
 
+func (s *SetT[T]) Data() map[T]bool {
+	return s.data
+}
+
 func NewSetT[T comparable](items ...T) *SetT[T] {
 	s := SetT[T]{data: make(map[T]bool, len(items))}
 	s.AddAll(items...)
 	return &s
+}
+
+func (s *SetT[T]) Reserve(size int) {
+	original := s.data
+	s.data = make(map[T]bool, size)
+	for key := range original {
+		s.data[key] = true
+	}
 }

@@ -4,13 +4,13 @@ import (
 	"sync"
 )
 
-type MutexSet[T any] struct {
-	data *Set
+type MutexSet[T comparable] struct {
+	data *SetT[T]
 	mu   *sync.RWMutex
 }
 
-func NewMutexSet[T any](items ...T) *MutexSet[T] {
-	s := NewSet()
+func NewMutexSet[T comparable](items ...T) *MutexSet[T] {
+	s := NewSetT[T]()
 	for _, item := range items {
 		s.Add(item)
 	}
@@ -22,16 +22,16 @@ func NewMutexSet[T any](items ...T) *MutexSet[T] {
 
 func (s *MutexSet[T]) Add(item T) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.data.Add(item)
+	s.mu.Unlock()
 }
 
 func (s *MutexSet[T]) AddAll(items ...T) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	for _, item := range items {
 		s.data.Add(item)
 	}
+	s.mu.Unlock()
 }
 
 func (s *MutexSet[T]) Contains(item T) bool {
@@ -47,7 +47,7 @@ func (s *MutexSet[T]) Iterate() <-chan T {
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 		for val := range s.data.data {
-			ret <- val.(T)
+			ret <- val
 		}
 	}()
 	return ret
@@ -89,7 +89,7 @@ func (s *MutexSet[T]) Intersect(another *MutexSet[T]) *MutexSet[T] {
 	defer another.mu.RUnlock()
 	for k := range s.data.data {
 		if another.data.Contains(k) {
-			result.Add(k.(T))
+			result.Add(k)
 		}
 	}
 	return result
@@ -99,7 +99,7 @@ func (s *MutexSet[T]) Union(another *MutexSet[T]) *MutexSet[T] {
 	result := NewMutexSet[T]()
 	s.mu.RLock()
 	for k := range s.data.data {
-		result.Add(k.(T))
+		result.Add(k)
 	}
 	s.mu.RUnlock()
 	if another == nil {
@@ -108,7 +108,7 @@ func (s *MutexSet[T]) Union(another *MutexSet[T]) *MutexSet[T] {
 	another.mu.RLock()
 	defer another.mu.RUnlock()
 	for k := range another.data.data {
-		result.Add(k.(T))
+		result.Add(k)
 	}
 	return result
 }
@@ -150,7 +150,7 @@ func (s *MutexSet[T]) Size() int {
 
 func (s *MutexSet[T]) Clear() {
 	s.mu.Lock()
-	s.data.data = make(map[interface{}]bool, 8)
+	s.data.data = make(map[T]bool, 8)
 	s.mu.Unlock()
 }
 
@@ -159,7 +159,7 @@ func (s *MutexSet[T]) ToSlice() []T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for k := range s.data.data {
-		res = append(res, k.(T))
+		res = append(res, k)
 	}
 	return res
 }

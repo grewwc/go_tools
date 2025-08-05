@@ -15,14 +15,16 @@ import (
 
 var diff = utilsw.NewJson(nil)
 var mu sync.Mutex
-var diffKeys = cw.NewConcurrentHashSet[string](nil, nil)
+
+// var diffKeys = cw.NewConcurrentHashSet(typesw.CreateDefaultHash[string](), typesw.CreateDefaultCmp[string]())
+var diffKeys = cw.NewMutexSet[string]()
 
 var sort bool
 
 func addDiff(d *utilsw.Json) {
 	mu.Lock()
 	diff.Add(d)
-	defer mu.Unlock()
+	mu.Unlock()
 }
 
 func buildJson(key string, old, new any) *utilsw.Json {
@@ -49,6 +51,9 @@ func absKey(prefix string, key string) string {
 }
 
 func compareJson(currKey string, j1, j2 *utilsw.Json) {
+	if j1 == nil && j2 == nil {
+		return
+	}
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go compareJsonHelper(currKey, j1, j2, wg)
@@ -56,14 +61,7 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 }
 
 func compareJsonHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) {
-	// parallenCh <- struct{}{}
-	defer func() {
-		wg.Done()
-		// <-parallenCh
-	}()
-	if j1 == nil && j2 == nil {
-		return
-	}
+	defer wg.Done()
 	if j1 == nil || j2 == nil {
 		k := absKey(currKey, "")
 		addDiff(buildJson(k, j1, j2))
@@ -76,9 +74,9 @@ func compareJsonHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) 
 		j2.SortArray(internal.SortJson)
 	}
 
-	keys := append(j1.Keys(), j2.Keys()...)
-	// fmt.Println("here", reflect.TypeOf(j1))
-	for _, key := range keys {
+	s := cw.NewSetT(j1.Keys()...)
+	s.AddAll(j2.Keys()...)
+	for key := range s.Data() {
 		k := absKey(currKey, key)
 		if diffKeys.Contains(k) {
 			continue
@@ -138,7 +136,6 @@ func compareJsonHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) 
 	}
 	if j1.Scalar() != j2.Scalar() {
 		addDiff(buildJson(currKey, j1.Scalar(), j2.Scalar()))
-		// diff.Add(buildJson(currKey, j1.Scalar(), j2.Scalar()))
 	}
 }
 

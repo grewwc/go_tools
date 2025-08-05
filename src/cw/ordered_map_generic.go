@@ -78,6 +78,12 @@ func (s *OrderedMapT[Key, Val]) Iter() typesw.IterableT[*MapEntry[Key, Val]] {
 	})
 }
 
+func (s *OrderedMapT[K, V]) ForEach(f func(e *MapEntry[K, V])) {
+	for curr := s.l.Front(); curr != nil; curr = curr.Next() {
+		f(curr.Value())
+	}
+}
+
 func (s *OrderedMapT[Key, Val]) Contains(k Key) bool {
 	if _, exist := s.m[k]; exist {
 		return true

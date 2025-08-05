@@ -469,9 +469,9 @@ func (j *Json) Len() int {
 func (j *Json) Keys() []string {
 	result := make([]string, 0, j.Len())
 	if mResult, ok := j.data.(*cw.OrderedMapT[string, any]); ok {
-		for k := range mResult.Iter().Iterate() {
-			result = append(result, k.Key())
-		}
+		mResult.ForEach(func(e *cw.MapEntry[string, any]) {
+			result = append(result, e.Key())
+		})
 		return result
 	}
 	if reflect.TypeOf(j.data).Kind() == reflect.Slice {
@@ -482,6 +482,21 @@ func (j *Json) Keys() []string {
 	}
 
 	return nil
+}
+
+func (j *Json) ForEachKey(f func(key string)) {
+	if mResult, ok := j.data.(*cw.OrderedMapT[string, any]); ok {
+		mResult.ForEach(func(e *cw.MapEntry[string, any]) {
+			f(e.Key())
+		})
+		return
+	}
+	if reflect.TypeOf(j.data).Kind() == reflect.Slice {
+		for idx := 0; idx < reflect.ValueOf(j.data).Len(); idx++ {
+			f(strconv.Itoa(idx))
+		}
+		return
+	}
 }
 
 func (j *Json) ContainsKey(key string) bool {
