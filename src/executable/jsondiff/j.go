@@ -81,10 +81,10 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 			continue
 		}
 
-		// if _, ok := v1.(*cw.OrderedMapT[string, any]); ok {
-		// 	compareJson(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2))
-		// 	continue
-		// }
+		if _, ok := v1.(*cw.OrderedMapT[string, any]); ok {
+			compareJson(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2))
+			continue
+		}
 		if _, ok := v1.([]any); ok {
 			jv1, jv2 := utilsw.NewJson(v1), utilsw.NewJson(v2)
 			if sort {
