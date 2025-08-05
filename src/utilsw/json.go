@@ -584,6 +584,6 @@ func (j *Json) SortArray(cmp typesw.CompareFunc[any]) error {
 	if !ok {
 		return errors.New("json is not array")
 	}
-	sortw.StableSort[any](arr, cmp)
+	sortw.StableSort(arr, cmp)
 	return nil
 }

@@ -62,7 +62,7 @@ func main() {
 		filenames := utilsw.LsDir(".", nil, nil)
 		// find the first go file to build as binary
 		for _, name := range filenames {
-			if filepath.Ext(name) != ".go" {
+			if filepath.Ext(name) != ".go" || strings.HasSuffix(name, "_test.go") {
 				continue
 			}
 			filename = name

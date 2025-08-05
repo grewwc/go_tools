@@ -65,7 +65,7 @@ func (s *OrderedMapT[Key, Val]) Keys() []Key {
 	return res
 }
 
-func (s OrderedMapT[Key, Val]) Iter() typesw.IterableT[*MapEntry[Key, Val]] {
+func (s *OrderedMapT[Key, Val]) Iter() typesw.IterableT[*MapEntry[Key, Val]] {
 	return typesw.FuncToIterable(func() chan *MapEntry[Key, Val] {
 		ch := make(chan *MapEntry[Key, Val])
 		go func() {

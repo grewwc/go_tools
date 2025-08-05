@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sync"
 
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/executable/jsondiff/internal"
@@ -13,10 +14,16 @@ import (
 )
 
 var diff = utilsw.NewJson(nil)
-
-var diffKeys = cw.NewOrderedSetT[string]()
+var mu sync.Mutex
+var diffKeys = cw.NewConcurrentHashSet[string](nil, nil)
 
 var sort bool
+
+func addDiff(d *utilsw.Json) {
+	mu.Lock()
+	diff.Add(d)
+	defer mu.Unlock()
+}
 
 func buildJson(key string, old, new any) *utilsw.Json {
 	res := utilsw.NewJson(nil)
@@ -42,12 +49,24 @@ func absKey(prefix string, key string) string {
 }
 
 func compareJson(currKey string, j1, j2 *utilsw.Json) {
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go compareJsonHelper(currKey, j1, j2, wg)
+	wg.Wait()
+}
+
+func compareJsonHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) {
+	// parallenCh <- struct{}{}
+	defer func() {
+		wg.Done()
+		// <-parallenCh
+	}()
 	if j1 == nil && j2 == nil {
 		return
 	}
 	if j1 == nil || j2 == nil {
 		k := absKey(currKey, "")
-		diff.Add(buildJson(k, j1, j2))
+		addDiff(buildJson(k, j1, j2))
 		diffKeys.Add(k)
 		return
 	}
@@ -68,7 +87,8 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 		v2 := j2.GetOrDefault(key, nil)
 		// fmt.Println("v1, v2", key, reflect.TypeOf(v1), reflect.TypeOf(v2))
 		if !j2.ContainsKey(key) || !j1.ContainsKey(key) {
-			diff.Add(buildJson(k, v1, v2))
+			// diff.Add(buildJson(k, v1, v2))
+			addDiff(buildJson(k, v1, v2))
 			diffKeys.Add(k)
 			continue
 		}
@@ -76,13 +96,14 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 		t1 := reflect.TypeOf(v1)
 		t2 := reflect.TypeOf(v2)
 		if t1 != t2 {
-			diff.Add(buildJson(k, v1, v2))
+			addDiff(buildJson(k, v1, v2))
 			diffKeys.Add(k)
 			continue
 		}
 
 		if _, ok := v1.(*cw.OrderedMapT[string, any]); ok {
-			compareJson(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2))
+			wg.Add(1)
+			go compareJsonHelper(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2), wg)
 			continue
 		}
 		if _, ok := v1.([]any); ok {
@@ -91,7 +112,8 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 				jv1.SortArray(internal.SortJson)
 				jv2.SortArray(internal.SortJson)
 			}
-			compareJson(absKey(currKey, key), jv1, jv2)
+			wg.Add(1)
+			go compareJsonHelper(absKey(currKey, key), jv1, jv2, wg)
 			continue
 		}
 		if _, ok := v1.(*utilsw.Json); ok {
@@ -99,22 +121,24 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 			v1J, v2J := v1.(*utilsw.Json), v2.(*utilsw.Json)
 			s1, s2 := v1J.Scalar(), v2J.Scalar()
 			if (s1 != nil || s2 != nil) && (!reflect.DeepEqual(s1, s2)) {
-				diff.Add(buildJson(k, s1, s2))
+				addDiff(buildJson(k, s1, s2))
 				diffKeys.Add(k)
 				continue
 			}
-			compareJson(absKey(currKey, key), v1J, v2J)
+			wg.Add(1)
+			go compareJsonHelper(absKey(currKey, key), v1J, v2J, wg)
 			continue
 		}
 		// normal types
 		if v1 != v2 {
-			diff.Add(buildJson(k, v1, v2))
+			addDiff(buildJson(k, v1, v2))
 			diffKeys.Add(k)
 			continue
 		}
 	}
 	if j1.Scalar() != j2.Scalar() {
-		diff.Add(buildJson(currKey, j1.Scalar(), j2.Scalar()))
+		addDiff(buildJson(currKey, j1.Scalar(), j2.Scalar()))
+		// diff.Add(buildJson(currKey, j1.Scalar(), j2.Scalar()))
 	}
 }
 

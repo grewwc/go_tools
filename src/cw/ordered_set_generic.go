@@ -30,7 +30,7 @@ func (s *OrderedSetT[T]) AddAll(vs ...T) {
 	}
 }
 
-func (s OrderedSetT[T]) Iter() typesw.IterableT[T] {
+func (s *OrderedSetT[T]) Iter() typesw.IterableT[T] {
 	return typesw.FuncToIterable(func() chan T {
 		ch := make(chan T)
 		go func() {
