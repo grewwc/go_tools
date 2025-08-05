@@ -43,6 +43,10 @@ func (s *OrderedSetT[T]) Iter() typesw.IterableT[T] {
 	})
 }
 
+func (s *OrderedSetT[T]) Data() *OrderedMapT[T, bool] {
+	return s.data
+}
+
 func (s *OrderedSetT[T]) Contains(v T) bool {
 	return s.data.Contains(v)
 }

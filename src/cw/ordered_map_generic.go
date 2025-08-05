@@ -59,8 +59,8 @@ func (s *OrderedMapT[Key, Val]) GetOrDefault(k Key, defaultVal Val) Val {
 
 func (s *OrderedMapT[Key, Val]) Keys() []Key {
 	res := make([]Key, 0, len(s.m))
-	for key := range s.m {
-		res = append(res, key)
+	for curr := s.l.Front(); curr != nil; curr = curr.Next() {
+		res = append(res, curr.Value().Key())
 	}
 	return res
 }

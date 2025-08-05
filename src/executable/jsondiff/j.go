@@ -20,6 +20,7 @@ var mu sync.Mutex
 var diffKeys = cw.NewMutexSet[string]()
 
 var sort bool
+var mt bool
 
 func addDiff(d *utilsw.Json) {
 	mu.Lock()
@@ -54,13 +55,17 @@ func compareJson(currKey string, j1, j2 *utilsw.Json) {
 	if j1 == nil && j2 == nil {
 		return
 	}
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go compareJsonHelper(currKey, j1, j2, wg)
-	wg.Wait()
+	if mt {
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+		go compareJsonMtHelper(currKey, j1, j2, wg)
+		wg.Wait()
+	} else {
+		compareJsonHelper(currKey, j1, j2)
+	}
 }
 
-func compareJsonHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) {
+func compareJsonMtHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if j1 == nil || j2 == nil {
 		k := absKey(currKey, "")
@@ -74,9 +79,9 @@ func compareJsonHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) 
 		j2.SortArray(internal.SortJson)
 	}
 
-	s := cw.NewSetT(j1.Keys()...)
+	s := cw.NewOrderedSetT(j1.Keys()...)
 	s.AddAll(j2.Keys()...)
-	for key := range s.Data() {
+	for _, key := range s.Data().Keys() {
 		k := absKey(currKey, key)
 		if diffKeys.Contains(k) {
 			continue
@@ -101,7 +106,7 @@ func compareJsonHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) 
 
 		if _, ok := v1.(*cw.OrderedMapT[string, any]); ok {
 			wg.Add(1)
-			go compareJsonHelper(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2), wg)
+			go compareJsonMtHelper(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2), wg)
 			continue
 		}
 		if _, ok := v1.([]any); ok {
@@ -111,7 +116,7 @@ func compareJsonHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) 
 				jv2.SortArray(internal.SortJson)
 			}
 			wg.Add(1)
-			go compareJsonHelper(absKey(currKey, key), jv1, jv2, wg)
+			go compareJsonMtHelper(absKey(currKey, key), jv1, jv2, wg)
 			continue
 		}
 		if _, ok := v1.(*utilsw.Json); ok {
@@ -124,7 +129,84 @@ func compareJsonHelper(currKey string, j1, j2 *utilsw.Json, wg *sync.WaitGroup) 
 				continue
 			}
 			wg.Add(1)
-			go compareJsonHelper(absKey(currKey, key), v1J, v2J, wg)
+			go compareJsonMtHelper(absKey(currKey, key), v1J, v2J, wg)
+			continue
+		}
+		// normal types
+		if v1 != v2 {
+			addDiff(buildJson(k, v1, v2))
+			diffKeys.Add(k)
+			continue
+		}
+	}
+	if j1.Scalar() != j2.Scalar() {
+		addDiff(buildJson(currKey, j1.Scalar(), j2.Scalar()))
+	}
+}
+
+func compareJsonHelper(currKey string, j1, j2 *utilsw.Json) {
+	if j1 == nil || j2 == nil {
+		k := absKey(currKey, "")
+		addDiff(buildJson(k, j1, j2))
+		diffKeys.Add(k)
+		return
+	}
+
+	if j1.IsArray() && j2.IsArray() && sort {
+		j1.SortArray(internal.SortJson)
+		j2.SortArray(internal.SortJson)
+	}
+
+	s := cw.NewOrderedSetT(j1.Keys()...)
+	s.AddAll(j2.Keys()...)
+	for _, key := range s.Data().Keys() {
+		k := absKey(currKey, key)
+		// fmt.Println("=====>", k)
+		if diffKeys.Contains(k) {
+			continue
+		}
+		v1 := j1.GetOrDefault(key, nil)
+		v2 := j2.GetOrDefault(key, nil)
+		// fmt.Println("v1, v2", key, reflect.TypeOf(v1), reflect.TypeOf(v2))
+		if !j2.ContainsKey(key) || !j1.ContainsKey(key) {
+			// diff.Add(buildJson(k, v1, v2))
+			addDiff(buildJson(k, v1, v2))
+			diffKeys.Add(k)
+			continue
+		}
+
+		t1 := reflect.TypeOf(v1)
+		t2 := reflect.TypeOf(v2)
+		if t1 != t2 {
+			addDiff(buildJson(k, v1, v2))
+			diffKeys.Add(k)
+			continue
+		}
+
+		if _, ok := v1.(*cw.OrderedMapT[string, any]); ok {
+			compareJsonHelper(absKey(currKey, key), utilsw.NewJson(v1), utilsw.NewJson(v2))
+			continue
+		}
+		if _, ok := v1.([]any); ok {
+			jv1, jv2 := utilsw.NewJson(v1), utilsw.NewJson(v2)
+			if sort {
+				jv1.SortArray(internal.SortJson)
+				jv2.SortArray(internal.SortJson)
+			}
+			compareJsonHelper(absKey(currKey, key), jv1, jv2)
+			continue
+		}
+		if _, ok := v1.(*utilsw.Json); ok {
+			// scalar
+			v1J, v2J := v1.(*utilsw.Json), v2.(*utilsw.Json)
+			s1, s2 := v1J.Scalar(), v2J.Scalar()
+			if (s1 != nil || s2 != nil) && (!reflect.DeepEqual(s1, s2)) {
+				addDiff(buildJson(k, s1, s2))
+				diffKeys.Add(k)
+				continue
+			}
+
+			compareJsonHelper(absKey(currKey, key), v1J, v2J)
 			continue
 		}
 		// normal types
@@ -143,7 +225,8 @@ func main() {
 	parser := terminalw.NewParser()
 	parser.String("f", "", "format json file")
 	parser.Bool("sort", false, "sort slice, ignore slice order")
-	parser.ParseArgsCmd("sort")
+	parser.Bool("mt", false, "")
+	parser.ParseArgsCmd("sort", "mt")
 	positional := parser.Positional
 
 	if parser.ContainsFlagStrict("f") {
@@ -175,6 +258,7 @@ func main() {
 	}
 
 	sort = parser.ContainsFlagStrict("sort")
+	mt = parser.ContainsFlagStrict("mt")
 	oldJson, err := utilsw.NewJsonFromFile(os.Args[1])
 	if err != nil {
 		panic(err)
