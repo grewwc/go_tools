@@ -226,7 +226,7 @@ func main() {
 	parser := terminalw.NewParser()
 	parser.String("f", "", "format json file")
 	parser.Bool("sort", false, "sort slice, ignore slice order")
-	parser.Bool("mt", false, "")
+	parser.Bool("mt", false, "multi-thread, result is not ordered.")
 	parser.ParseArgsCmd("sort", "mt")
 	positional := parser.Positional
 
