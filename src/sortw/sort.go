@@ -267,7 +267,7 @@ func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
 
 func AreSorted[T constraints.Ordered](arr []T) bool {
 	for i := 0; i < len(arr)-1; i++ {
-		if arr[i] < arr[i+1] {
+		if arr[i] > arr[i+1] {
 			return false
 		}
 	}
