@@ -24,9 +24,11 @@ import (
 )
 
 func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
+	if obj == nil {
+		return ""
+	}
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
-
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 		v = v.Elem()
@@ -37,10 +39,7 @@ func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
 	copyV := reflect.New(v.Type()).Elem()
 	copyV.Set(v)
 	structName := fmt.Sprintf("%v {", t)
-	s := cw.NewSet()
-	for _, ignore := range ignoresFieldName {
-		s.Add(ignore)
-	}
+	s := cw.NewSetT[string](ignoresFieldName...)
 	first := true
 	buf := bytes.NewBufferString(structName)
 	for i := 0; i < t.NumField(); i++ {

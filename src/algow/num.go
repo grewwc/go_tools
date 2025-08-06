@@ -93,21 +93,53 @@ func Combinations[T any](arr []T, k int) [][]T {
 	if k == 0 {
 		return result
 	}
-	var curr []T
-	combinations(arr, curr, k, 0, &result)
+	curr := make([]T, 0)
+	var backtrack func(int)
+	backtrack = func(start int) {
+		if len(curr) == k {
+			cp := make([]T, len(curr))
+			copy(cp, curr)
+			result = append(result, cp)
+			return
+		}
+		for i := start; i < len(arr); i++ {
+			curr = append(curr, arr[i])
+			backtrack(i + 1)
+			curr = curr[:len(curr)-1]
+		}
+	}
+	backtrack(0)
 	return result
 }
 
-func combinations[T any](arr, curr []T, k, start int, result *[][]T) {
-	if k == len(curr) {
-		currCopy := make([]T, len(curr))
-		copy(currCopy, curr)
-		*result = append(*result, currCopy)
-		return
+func Permutatation[T any](arr []T, k int) [][]T {
+	result := make([][]T, 0)
+	if k < 1 {
+		return result
 	}
-	for i := start; i < len(arr); i++ {
-		curr = append(curr, arr[i])
-		combinations(arr, curr, k, i+1, result)
-		curr = curr[:len(curr)-1]
+	curr := make([]T, 0)
+	used := make([]bool, len(arr))
+
+	var permutation func()
+	permutation = func() {
+		if k == len(curr) {
+			cp := make([]T, len(arr))
+			copy(cp, arr)
+			result = append(result, cp)
+			return
+		}
+
+		for i := 0; i < len(arr); i++ {
+			if used[i] {
+				continue
+			}
+			used[i] = true
+			curr = append(curr, arr[i])
+			permutation()
+			used[i] = false
+			curr = curr[:len(curr)-1]
+		}
 	}
+	permutation()
+	return result
 }
