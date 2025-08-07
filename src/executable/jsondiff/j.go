@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"sync"
 
@@ -225,8 +224,9 @@ func compareJsonHelper(currKey string, j1, j2 *utilsw.Json) {
 
 func main() {
 	parser := terminalw.NewParser()
-	parser.String("f", "", "format json file")
-	parser.Bool("sort", false, "sort slice, ignore slice order")
+	parser.String("f", "", "format json file.")
+	parser.String("o", "", "save diff result to this file.")
+	parser.Bool("sort", false, "sort slice, ignore slice order.")
 	parser.Bool("mt", false, "multi-thread, result is not ordered.")
 	parser.Bool("p", false, "print to console.")
 	parser.ParseArgsCmd("sort", "mt", "p")
@@ -263,11 +263,13 @@ func main() {
 	sort = parser.ContainsFlagStrict("sort")
 	mt = parser.ContainsFlagStrict("mt")
 	print = parser.ContainsFlagStrict("p")
-	oldJson, err := utilsw.NewJsonFromFile(os.Args[1])
+	fname := parser.GetFlagValueDefault("o", "_s.json")
+	args := positional.ToStringSlice()
+	oldJson, err := utilsw.NewJsonFromFile(args[0])
 	if err != nil {
 		panic(err)
 	}
-	newJson, err := utilsw.NewJsonFromFile(os.Args[2])
+	newJson, err := utilsw.NewJsonFromFile(args[1])
 	if err != nil {
 		panic(err)
 	}
@@ -275,7 +277,6 @@ func main() {
 	if print {
 		fmt.Println(diff.StringWithIndent("", "  "))
 	}
-	fname := "./_s.json"
 	diff.ToFile(fname)
 	fmt.Println("write to " + fname)
 }
