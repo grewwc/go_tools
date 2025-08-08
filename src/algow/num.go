@@ -25,14 +25,34 @@ func Max[T constraints.Ordered](args ...T) T {
 }
 
 func Min[T constraints.Ordered](args ...T) T {
+	var res T
 	if len(args) == 0 {
-		return *new(T)
+		return res
 	}
-	res := args[0]
+	res = args[0]
 	for _, val := range args[1:] {
 		if val < res {
 			res = val
 		}
+	}
+	return res
+}
+
+func Sum[T number](nums ...T) T {
+	var res T
+	for _, num := range nums {
+		res += num
+	}
+	return res
+}
+
+func Accumulate[T any](arr []T, f func(t1, t2 T) T) T {
+	var res T
+	if len(arr) == 0 {
+		return res
+	}
+	for _, e := range arr {
+		res = f(res, e)
 	}
 	return res
 }

@@ -39,7 +39,7 @@ func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
 	copyV := reflect.New(v.Type()).Elem()
 	copyV.Set(v)
 	structName := fmt.Sprintf("%v {", t)
-	s := cw.NewSetT[string](ignoresFieldName...)
+	s := cw.NewSetT(ignoresFieldName...)
 	first := true
 	buf := bytes.NewBufferString(structName)
 	for i := 0; i < t.NumField(); i++ {
@@ -286,4 +286,10 @@ func (f *commentsFilter) Accept(b []byte) ([]byte, bool) {
 		buf.WriteString(parts[0])
 	}
 	return buf.Bytes(), needHold
+}
+
+func Assert(condition bool, msg any) {
+	if !condition {
+		panic(msg)
+	}
 }
