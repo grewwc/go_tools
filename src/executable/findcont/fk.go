@@ -15,10 +15,14 @@ import (
 	"sync/atomic"
 
 	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/utilsw"
 )
+
+var defaultExtensions = cw.NewSetT(".py", ".cpp", ".js", ".txt", ".h", ".hpp", ".c",
+	".tex", ".html", ".css", ".java", ".go", ".cc", ".htm", ".ts", ".xml",
+	".php", ".sc", "")
 
 var target string
 var wg sync.WaitGroup
@@ -312,7 +316,7 @@ func main() {
 		terminalw.Extensions = terminalw.FormatFileExtensions(ext)
 		terminalw.CheckExtension = true
 	} else {
-		terminalw.Extensions = utilsw.DefaultExtensions.ShallowCopy()
+		terminalw.Extensions = defaultExtensions.ShallowCopy()
 		terminalw.CheckExtension = false
 	}
 	if extExclude != "" {

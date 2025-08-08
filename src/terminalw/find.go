@@ -19,7 +19,7 @@ var Once sync.Once
 var FileNamesToCheck = cw.NewSet()
 var FileNamesNOTCheck = cw.NewSet()
 
-var Extensions = cw.NewSet()
+var Extensions = cw.NewSetT[string]()
 var CheckExtension bool
 var Exclude bool
 

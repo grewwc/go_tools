@@ -14,13 +14,9 @@ import (
 	"github.com/grewwc/go_tools/src/cw"
 )
 
-var DefaultExtensions = cw.NewSet()
-
-func init() {
-	DefaultExtensions.AddAll(".py", ".cpp", ".js", ".txt", ".h", ".hpp", ".c",
-		".tex", ".html", ".css", ".java", ".go", ".cc", ".htm", ".ts", ".xml",
-		".php", ".sc", "")
-}
+var defaultExtensions = cw.NewSetT(".py", ".cpp", ".js", ".txt", ".h", ".hpp", ".c",
+	".tex", ".html", ".css", ".java", ".go", ".cc", ".htm", ".ts", ".xml",
+	".php", ".sc", "")
 
 // LsDir returns slices containing contents of a directory
 // if fname is a file, not a directory, return empty slice
@@ -191,7 +187,7 @@ func IsTextFile(filename string) bool {
 	}
 	ext := filepath.Ext(filename)
 
-	if ext != "" && DefaultExtensions.Contains(ext) {
+	if ext != "" && defaultExtensions.Contains(ext) {
 		return true
 	}
 
