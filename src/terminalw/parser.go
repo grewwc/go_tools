@@ -443,14 +443,24 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 
 	supportedOptions := cw.NewSet()
 	r.VisitAll(func(f *flag.Flag) {
+		// fmt.Println("f.Name", f.Name)
 		supportedOptions.Add(f.Name)
 		// key := fmt.Sprintf("-%s%c%c", f.Name, quote, sep)
-		key := fmt.Sprintf("-%s", f.Name)
 		r.defaultValMap.Put(f.Name, f.DefValue)
+		// string options
 		if !r.boolOptionSet.Contains(f.Name) {
+			key := fmt.Sprintf("%c-%s%c", quote, f.Name, quote)
+			indices := strw.KmpSearch(cmd, key, -1)
+			for _, idx := range indices {
+				end := idx + len(key)
+				substr := strw.SubStringQuiet(cmd, idx, end)
+				cmd = strings.ReplaceAll(cmd, substr, fmt.Sprintf("%c%s%c", dash, f.Name, sep))
+			}
 			return
 		}
 
+		// bool options
+		key := fmt.Sprintf("-%s", f.Name)
 		indices := strw.KmpSearch(cmd, key, -1)
 		// indicesQuote := strw.KmpSearch(cmd, fmt.Sprintf("%c%s%c", quote, f.Name, quote), -1)
 		// indices = append(indices)
