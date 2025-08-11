@@ -34,7 +34,7 @@ func SplitNoEmptyPreserveQuote(str string, sep rune, symbols string, keepSymbol 
 	if str == "" {
 		return res
 	}
-	s := cw.NewSet()
+	s := cw.NewSetT[rune]()
 	for _, symbol := range symbols {
 		s.Add(symbol)
 	}

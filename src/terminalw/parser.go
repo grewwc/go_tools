@@ -464,7 +464,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	})
 
 	// fmt.Println(strings.ReplaceAll(strings.ReplaceAll(cmd, string(dash), "-"), string(sep), " "))
-	// fmt.Println([]byte(cmd))
+	// fmt.Println([]byte(cmd), cmd)
 
 	// fmt.Println([]byte(boolOptionals[0]))
 	allPositionals, boolKeys, keys, vals := classifyArguments(cmd, normalizedBoolOptionals...)
@@ -515,7 +515,8 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 	}
 	args := make([]string, len(os.Args)-start)
 	for i, arg := range os.Args[start:] {
-		args[i] = fmt.Sprintf("%c%s%c", quote, arg, quote)
+		// args[i] = fmt.Sprintf("%c%s%c", quote, arg, quote)
+		args[i] = strings.Trim(arg, `"'`)
 	}
 	cmd := strings.Join(args, " ")
 	// fmt.Println("here", cmd)
@@ -526,7 +527,7 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 // cmd contains the Programs itself
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	r.cmd = cmd
-	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', fmt.Sprintf(`"'%c`, quote), false)
+	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', fmt.Sprintf(`"'%c`, quote), true)
 	args := make([]string, 0, len(cmdSlice))
 
 	for _, option := range boolOptionals {
@@ -555,7 +556,7 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 					args = append(args, fmt.Sprintf("%c%c%s%c", quote, dash, val, quote))
 				}
 			} else {
-				args = append(args, fmt.Sprintf("%c%c%s%c", quote, dash, arg[1:], quote))
+				args = append(args, fmt.Sprintf("%c%s%c", quote, arg, quote))
 			}
 		} else {
 			args = append(args, fmt.Sprintf("%c%s%c", quote, arg, quote))
