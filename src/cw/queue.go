@@ -75,3 +75,7 @@ func (q *Queue[T]) ShallowCopy() *Queue[T] {
 	}
 	return res
 }
+
+func (g *Queue[T]) Clear() {
+	g.data = NewLinkedList[T]()
+}

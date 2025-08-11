@@ -31,6 +31,8 @@ var excludes = cw.NewConcurrentHashSet[string](nil, nil)
 
 var types = cw.NewConcurrentHashSet[string](nil, nil)
 
+var verbose = false
+
 func listFile(path string) ([]os.DirEntry, error) {
 	threadControl <- struct{}{}
 	defer func() { <-threadControl }()
@@ -42,7 +44,7 @@ func listFile(path string) ([]os.DirEntry, error) {
 	return fileInfos, nil
 }
 
-func walkDir(root string, fileSize chan<- int64, wg *sync.WaitGroup) {
+func walkDir(root string, fileSize chan<- os.FileInfo, wg *sync.WaitGroup) {
 	defer wg.Done()
 	files, err := listFile(root)
 	if err != nil {
@@ -61,7 +63,7 @@ func walkDir(root string, fileSize chan<- int64, wg *sync.WaitGroup) {
 			if err != nil {
 				return
 			}
-			fileSize <- fileInfo.Size()
+			fileSize <- fileInfo
 		}
 	}
 }
@@ -100,24 +102,34 @@ func checkOneDirectory(root string) {
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
-	filesizeChan := make(chan int64)
-	go walkDir(root, filesizeChan, &wg)
+	fileInfoCh := make(chan os.FileInfo)
+	go walkDir(root, fileInfoCh, &wg)
 	go func() {
 		wg.Wait()
-		close(filesizeChan)
+		close(fileInfoCh)
 	}()
 
 	var totalSize int64
 	var nFiles int64
-	for s := range filesizeChan {
+	subFiles := cw.NewLinkedList[os.FileInfo]()
+	for s := range fileInfoCh {
 		nFiles++
-		totalSize += s
+		totalSize += s.Size()
+		subFiles.PushBack(s)
 	}
 	if !strings.HasSuffix(root, "/") {
 		root += "/"
 	}
 
-	if totalSize > int64(lowerSizeBound) {
+	if verbose {
+		for subFile := range subFiles.Iter().Iterate() {
+			if subFile.Value().Size() > int64(lowerSizeBound) {
+				// fmt.Println(color.HiBlueString("%s", filepath.Join(root, subFile.Value().Name())))
+				size := formatFileSize(subFile.Value().Size())
+				fmt.Printf("%s%s  \t%s\n", root, color.HiYellowString(subFile.Value().Name()), size)
+			}
+		}
+	} else {
 		fmt.Println(color.HiBlueString("%s", root))
 		printInfo(nFiles, totalSize, 4)
 	}
@@ -244,7 +256,7 @@ func main() {
 	parser.ParseArgsCmd("v", "d", "f", "h")
 
 	args := make([]string, 0)
-	verbose := false
+
 	onlyFile := false
 	onlyDir := false
 
@@ -275,7 +287,7 @@ func main() {
 	if parser.ContainsFlagStrict("gt") {
 		lowerSizeBound = parseSize(parser.GetFlagValueDefault("gt", "10000g"))
 	}
-	if len(parser.Positional.ToStringSlice()) == 0 {
+	if len(parser.Positional.ToStringSlice()) == 0 && !verbose {
 		args = append(args, ".")
 	}
 	for _, file := range parser.Positional.ToStringSlice() {
