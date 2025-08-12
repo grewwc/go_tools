@@ -69,7 +69,7 @@ func (s *OrderedSet) DeleteAll(vs ...interface{}) {
 	}
 }
 
-func (s OrderedSet) Intersect(another OrderedSet) *OrderedSet {
+func (s *OrderedSet) Intersect(another *OrderedSet) *OrderedSet {
 	result := NewOrderedSet()
 	for k := range s.m {
 		if another.Contains(k) {
@@ -79,7 +79,7 @@ func (s OrderedSet) Intersect(another OrderedSet) *OrderedSet {
 	return result
 }
 
-func (s OrderedSet) MutualExclude(another OrderedSet) bool {
+func (s *OrderedSet) MutualExclude(another *OrderedSet) bool {
 	for k := range s.m {
 		if another.Contains(k) {
 			return false
@@ -88,7 +88,7 @@ func (s OrderedSet) MutualExclude(another OrderedSet) bool {
 	return true
 }
 
-func (s OrderedSet) Union(another OrderedSet) *OrderedSet {
+func (s *OrderedSet) Union(another *OrderedSet) *OrderedSet {
 	result := NewOrderedSet()
 	for k := range s.m {
 		result.Add(k)
@@ -99,7 +99,7 @@ func (s OrderedSet) Union(another OrderedSet) *OrderedSet {
 	return result
 }
 
-func (s OrderedSet) IsSuperSet(another OrderedSet) bool {
+func (s *OrderedSet) IsSuperSet(another *OrderedSet) bool {
 	for k := range another.m {
 		if !s.Contains(k) {
 			return false
@@ -108,7 +108,7 @@ func (s OrderedSet) IsSuperSet(another OrderedSet) bool {
 	return true
 }
 
-func (s OrderedSet) IsSubSet(another OrderedSet) bool {
+func (s *OrderedSet) IsSubSet(another *OrderedSet) bool {
 	return another.IsSuperSet(s)
 }
 
@@ -139,7 +139,7 @@ func (s *OrderedSet) String() string {
 	return fmt.Sprintf("%v", res)
 }
 
-func (s OrderedSet) ShallowCopy() *OrderedSet {
+func (s *OrderedSet) ShallowCopy() *OrderedSet {
 	result := NewOrderedSet()
 	front := s.l.Front()
 	if front == nil {
@@ -152,13 +152,13 @@ func (s OrderedSet) ShallowCopy() *OrderedSet {
 	return result
 }
 
-func (s *OrderedSet) Subtract(another OrderedSet) {
+func (s *OrderedSet) Subtract(another *OrderedSet) {
 	for k := range another.m {
 		s.Delete(k)
 	}
 }
 
-func (s OrderedSet) ToSlice() []interface{} {
+func (s *OrderedSet) ToSlice() []interface{} {
 	res := make([]interface{}, 0, s.Size())
 	for v := range s.Iter().Iterate() {
 		res = append(res, v)
@@ -167,7 +167,7 @@ func (s OrderedSet) ToSlice() []interface{} {
 }
 
 // ToStringSlice is not type safe
-func (s OrderedSet) ToStringSlice() []string {
+func (s *OrderedSet) ToStringSlice() []string {
 	l := s.Size()
 	res := make([]string, 0, l)
 	cur := s.l.Front()
@@ -179,6 +179,6 @@ func (s OrderedSet) ToStringSlice() []string {
 	return res
 }
 
-func (s OrderedSet) Equals(another OrderedSet) bool {
+func (s *OrderedSet) Equals(another *OrderedSet) bool {
 	return s.IsSubSet(another) && another.IsSubSet(s)
 }

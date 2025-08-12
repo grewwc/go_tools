@@ -331,3 +331,26 @@ func (cm *ConcurrentHashMap[K, V]) IterEntry() typesw.IterableT[typesw.IMapEntry
 	}
 	return typesw.FuncToIterable(f)
 }
+
+
+func (cm *ConcurrentHashMap[K, V]) ForEachEntry(f func(entry typesw.IMapEntry[K, V])) {
+	for _, bucket := range cm.buckets {
+		bucket.mu.RLock()
+		defer bucket.mu.RUnlock()
+		bucket.data.ForEachEntry(func(entry *MapEntry[K, V]) {
+			f(entry)
+		})
+
+	}
+}
+
+func (cm *ConcurrentHashMap[K, V]) ForEach(f func(k K)) {
+	for _, bucket := range cm.buckets {
+		bucket.mu.RLock()
+		defer bucket.mu.RUnlock()
+		bucket.data.ForEach(func(k K) {
+			f(k)
+		})
+
+	}
+}

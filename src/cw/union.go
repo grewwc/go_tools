@@ -29,11 +29,11 @@ func (uf *UF[T]) Union(i, j T) bool {
 	sz1, sz2 := uf.root.Get(pid).Size(), uf.root.Get(qid).Size()
 	if sz1 < sz2 {
 		uf.id.Put(pid, qid)
-		uf.root.Get(qid).Union(uf.root.Get(pid))
+		uf.root.Get(qid).UnionInplace(uf.root.Get(pid))
 		uf.root.Delete(pid)
 	} else {
 		uf.id.Put(qid, pid)
-		uf.root.Get(pid).Union(uf.root.Get(qid))
+		uf.root.Get(pid).UnionInplace(uf.root.Get(qid))
 		uf.root.Delete(qid)
 	}
 	return true
@@ -86,3 +86,16 @@ func (uf *UF[T]) NumGroups() int {
 func (uf *UF[T]) Contains(node T) bool {
 	return uf.id.Contains(node)
 }
+
+func (uf *UF[T]) GetGroup(node T) typesw.IterableT[T] {
+	groupSet := uf.root.GetOrDefault(node, nil)
+	if groupSet == nil {
+		return typesw.EmptyIterable[T]()
+	}
+	return groupSet.data.Iter()
+}
+
+func (uf *UF[T]) Roots() []T {
+	return uf.root.Keys()
+}
+

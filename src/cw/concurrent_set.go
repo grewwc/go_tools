@@ -43,6 +43,10 @@ func (s *ConcurrentHashSet[T]) Iter() typesw.IterableT[T] {
 	return typesw.FuncToIterable(f)
 }
 
+func (s *ConcurrentHashSet[T]) ForEach(f func(val T)) {
+	s.data.ForEach(f)
+}
+
 func (s *ConcurrentHashSet[T]) IsMutualExclude(another *ConcurrentHashSet[T]) bool {
 	if another == nil {
 		return true

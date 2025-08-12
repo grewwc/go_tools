@@ -40,6 +40,12 @@ func (s *SetT[T]) Iter() typesw.IterableT[T] {
 	})
 }
 
+func (s *SetT[T]) ForEach(f func(val T)) {
+	for k := range s.data {
+		f(k)
+	}
+}
+
 func (s *SetT[T]) MutualExclude(another *SetT[T]) bool {
 	for k := range s.data {
 		if another.Contains(k) {

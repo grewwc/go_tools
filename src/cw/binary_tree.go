@@ -414,13 +414,13 @@ func (t *RbTree[T]) SearchRange(lower, upper T) typesw.IterableT[T] {
 		go func() {
 			defer close(ch)
 			curr := t.root
-			st := NewDeque()
+            st := NewStack[*treeNode[T]]()
 			for !st.Empty() || curr != nil {
 				for curr != nil {
-					st.PushBack(curr)
+                    st.Push(curr)
 					curr = curr.left
 				}
-				curr = st.PopBack().(*treeNode[T])
+				curr = st.Pop()
 				tmp := t.cmp(curr.val, lower)
 				if tmp >= 0 {
 					if t.cmp(curr.val, upper) <= 0 {

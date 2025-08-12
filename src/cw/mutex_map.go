@@ -111,10 +111,6 @@ func (m *MutexMap[K, V]) DeleteAll(keys ...K) {
 
 func (m *MutexMap[K, V]) Iter() typesw.IterableT[K] {
 	f := func() chan K {
-		sz := m.Size()
-		if sz > 32 {
-			sz = 32
-		}
 		ch := make(chan K)
 		go func() {
 			defer close(ch)
@@ -131,10 +127,6 @@ func (m *MutexMap[K, V]) Iter() typesw.IterableT[K] {
 
 func (m *MutexMap[K, V]) IterEntry() typesw.IterableT[typesw.IMapEntry[K, V]] {
 	f := func() chan typesw.IMapEntry[K, V] {
-		sz := m.Size()
-		if sz > 32 {
-			sz = 32
-		}
 		ch := make(chan typesw.IMapEntry[K, V])
 		go func() {
 			defer close(ch)
@@ -147,6 +139,22 @@ func (m *MutexMap[K, V]) IterEntry() typesw.IterableT[typesw.IMapEntry[K, V]] {
 		return ch
 	}
 	return typesw.FuncToIterable(f)
+}
+
+func (m *MutexMap[K, V]) ForEachEntry(f func(typesw.IMapEntry[K, V])) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for k, v := range m.data {
+		f(&MapEntry[K, V]{k.(K), v.(V)})
+	}
+}
+
+func (m *MutexMap[K, V]) ForEach(f func(k K)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for k := range m.data {
+		f(k.(K))
+	}
 }
 
 func (m *MutexMap[K, V]) Clear() {

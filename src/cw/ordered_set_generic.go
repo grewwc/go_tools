@@ -43,6 +43,10 @@ func (s *OrderedSetT[T]) Iter() typesw.IterableT[T] {
 	})
 }
 
+func (s *OrderedSetT[T]) ForEach(f func(val T)) {
+	s.data.ForEach(f)
+}
+
 func (s *OrderedSetT[T]) Data() *OrderedMapT[T, bool] {
 	return s.data
 }

@@ -85,6 +85,16 @@ func (s *TreeSet[T]) Union(another *TreeSet[T]) *TreeSet[T] {
 	return result
 }
 
+func (s *TreeSet[T]) UnionInplace(another *TreeSet[T]) *TreeSet[T] {
+	if another == nil {
+		return s
+	}
+	another.data.ForEach(func(val T) {
+		s.Add(val)
+	})
+	return s
+}
+
 func (s *TreeSet[T]) IsSuperSet(another *TreeSet[T]) bool {
 	for k := range another.data.Iter().Iterate() {
 		if !s.Contains(k) {

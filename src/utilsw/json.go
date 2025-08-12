@@ -469,7 +469,7 @@ func (j *Json) Len() int {
 func (j *Json) Keys() []string {
 	result := make([]string, 0, j.Len())
 	if mResult, ok := j.data.(*cw.OrderedMapT[string, any]); ok {
-		mResult.ForEach(func(e *cw.MapEntry[string, any]) {
+		mResult.ForEachEntry(func(e *cw.MapEntry[string, any]) {
 			result = append(result, e.Key())
 		})
 		return result
@@ -486,7 +486,7 @@ func (j *Json) Keys() []string {
 
 func (j *Json) ForEachKey(f func(key string)) {
 	if mResult, ok := j.data.(*cw.OrderedMapT[string, any]); ok {
-		mResult.ForEach(func(e *cw.MapEntry[string, any]) {
+		mResult.ForEachEntry(func(e *cw.MapEntry[string, any]) {
 			f(e.Key())
 		})
 		return

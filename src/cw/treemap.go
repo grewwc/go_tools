@@ -131,6 +131,18 @@ func (m *TreeMap[K, V]) IterEntry() typesw.IterableT[*MapEntry[K, V]] {
 	return typesw.FuncToIterable(f)
 }
 
+func (m *TreeMap[K, V]) ForEachEntry(f func(*MapEntry[K, V])) {
+	for entry := range m.rbTree.Iter().Iterate() {
+		f(entry)
+	}
+}
+
+func (m *TreeMap[K, V]) ForEach(f func(k K)) {
+	for entry := range m.rbTree.Iter().Iterate() {
+		f(entry.k)
+	}
+}
+
 func (m *TreeMap[K, V]) Clear() {
 	m.rbTree.Clear()
 }

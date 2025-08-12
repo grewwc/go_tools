@@ -53,6 +53,11 @@ func (s *MutexSet[T]) Iterate() <-chan T {
 	return ret
 }
 
+func (s *MutexSet[T]) ForEach(f func(val T)) {
+	s.data.ForEach(f)
+}
+
+
 func (s *MutexSet[T]) IsMutualExclude(another *MutexSet[T]) bool {
 	if another == nil {
 		return true
