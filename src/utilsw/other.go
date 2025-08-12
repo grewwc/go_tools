@@ -24,6 +24,9 @@ import (
 )
 
 func toString(numTab int, obj interface{}, ignoresFieldName ...string) string {
+	defer func() {
+		recover()
+	}()
 	if obj == nil {
 		return ""
 	}
