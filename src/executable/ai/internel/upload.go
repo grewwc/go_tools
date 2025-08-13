@@ -18,7 +18,9 @@ import (
 
 func uploadSingleQwenlongFile(apiKey, filename string) (string, error) {
 	defer func() {
-		recover()
+		if err := recover(); err != nil {
+			log.Println(err)
+		}
 	}()
 	client := &http.Client{}
 	baseUrl := "https://dashscope.aliyuncs.com/compatible-mode/v1/files"
