@@ -15,9 +15,6 @@ func Reverse[T any](arr []T) {
 }
 
 func BisectLeft[T any](arr []T, target T, cmp typesw.CompareFunc[T]) int {
-	if len(arr) == 0 {
-		return -1
-	}
 	if cmp == nil {
 		cmp = typesw.CreateDefaultCmp[T]()
 	}
@@ -35,9 +32,6 @@ func BisectLeft[T any](arr []T, target T, cmp typesw.CompareFunc[T]) int {
 }
 
 func BisectRight[T any](arr []T, target T, cmp typesw.CompareFunc[T]) int {
-	if len(arr) == 0 {
-		return -1
-	}
 	if cmp == nil {
 		cmp = typesw.CreateDefaultCmp[T]()
 	}
