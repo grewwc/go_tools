@@ -123,6 +123,8 @@ func findFile(rootDir string, numPrint int, allIgnores []string) {
 				abs := filepath.Join(rootDir, file)
 				if abs == target {
 					matches = append(matches, abs)
+				} else if file == target {
+					matches = append(matches, file)
 				}
 			}
 		}
@@ -303,7 +305,7 @@ func main() {
 	// fmt.Println("allIgnores", allIgnores, parser)
 	verbose = verboseFlag
 	targets = parser.GetPositionalArgs(false)
-	// fmt.Println("rootDir", *rootDir)
+	// fmt.Println("rootDir", rootDir, targets)
 	allRootDirs, err := filepath.Glob(rootDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
