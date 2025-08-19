@@ -38,10 +38,10 @@ var jsonType = reflect.TypeOf(new(Json))
 func NewJsonFromFile(filename string, options ...JsonOption) (*Json, error) {
 	filename = ExpandUser(filename)
 	b, err := os.Open(filename)
-	defer b.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer b.Close()
 	options = append(options, WithComment)
 	return NewJsonFromReader(b, options...)
 }

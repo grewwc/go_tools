@@ -248,8 +248,9 @@ func main() {
 		if len(text) < 1024*16 {
 			fmt.Println(formated)
 		} else {
-			fmt.Println("write file to _f.json")
-			utilsw.WriteToFile(fname, typesw.StrToBytes(formated))
+			outputFname := fmt.Sprintf("%s_f.json", utilsw.BaseNoExt(fname))
+			fmt.Printf("write file to %s\n", outputFname)
+			utilsw.WriteToFile(outputFname, typesw.StrToBytes(formated))
 		}
 		return
 	}

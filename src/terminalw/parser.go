@@ -575,7 +575,7 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 
 	cmd = strings.Join(args, string(sep))
 	if r.enableParseNum {
-		re := regexp.MustCompile(fmt.Sprintf(`\%c\d+`, dash))
+		re := regexp.MustCompile(`-\d+`)
 		numArgs := re.FindString(cmd)
 		if len(numArgs) > 0 {
 			r.numArg = numArgs[1:]
