@@ -175,7 +175,7 @@ func (g *DirectedGraph[T]) dfsMark(root, u T) {
 		if !marked.Contains(adj) {
 			g.edgeTo.Put(w, u)
 			g.dfsMark(root, w)
-		} else if g.onStack.Contains(u) && len(g.cycle) == 0 {
+		} else if g.onStack.Contains(w) && len(g.cycle) == 0 {
 			g.hasCycle = true
 			s := NewStack[T]()
 			for node := u; g.cmp(node, w) != 0; node = g.edgeTo.Get(node) {
