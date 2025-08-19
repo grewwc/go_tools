@@ -100,3 +100,66 @@ func FilterReader(src io.Reader, filter BytesFilter) io.ReadCloser {
 	// 返回管道的读取端。
 	return pr
 }
+
+func MultiFilterReader(src io.Reader, filters ...BytesFilter) io.ReadCloser {
+	if len(filters) == 0 {
+		return nil
+	}
+	pr, pw := io.Pipe()
+
+	go func() {
+		defer pw.Close()
+
+		b := make([]byte, 8192*1024)
+		var buf bytes.Buffer
+		for {
+			n, err := src.Read(b)
+			if n > 0 {
+				curr := b[:n]
+
+				total := curr
+				if buf.Len() > 0 {
+					total = append(buf.Bytes(), curr...)
+				}
+				var accept []byte = total
+				var needHold bool
+				for _, filter := range filters {
+					accept, needHold = filter.Accept(accept)
+					if needHold {
+						break
+					}
+				}
+
+				if needHold {
+					buf.Write(curr)
+					continue
+				} else {
+					if buf.Len() > 0 {
+						buf.Reset()
+					}
+
+					pw.Write(accept)
+				}
+			}
+
+			if err == io.EOF {
+				break
+			}
+
+			if err != nil {
+				pw.CloseWithError(err)
+				break
+			}
+		}
+
+		if buf.Len() > 0 {
+			for _, filter := range filters {
+				accept, _ := filter.Accept(buf.Bytes())
+				// fmt.Println("final", buf.String())
+				pw.Write(accept)
+			}
+		}
+	}()
+
+	return pr
+}

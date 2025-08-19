@@ -18,19 +18,25 @@ import (
 	"github.com/grewwc/go_tools/src/sortw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/typesw"
+	"github.com/grewwc/go_tools/src/utilsw/internal"
 	"golang.org/x/exp/constraints"
 )
 
 type Json struct {
 	data any
 
-	allowComment bool
+	allowComment       bool
+	removeSpecialChars bool
 }
 
 type JsonOption func(*Json)
 
 func WithComment(j *Json) {
 	j.allowComment = true
+}
+
+func WithRemoveSpecialChars(j *Json) {
+	j.removeSpecialChars = true
 }
 
 var jsonType = reflect.TypeOf(new(Json))
@@ -42,7 +48,6 @@ func NewJsonFromFile(filename string, options ...JsonOption) (*Json, error) {
 		return nil, err
 	}
 	defer b.Close()
-	options = append(options, WithComment)
 	return NewJsonFromReader(b, options...)
 }
 
@@ -51,19 +56,20 @@ func NewJsonFromByte(data []byte) (*Json, error) {
 }
 
 func NewJsonFromReader(r io.Reader, options ...JsonOption) (*Json, error) {
-	options = append(options, WithComment)
+	if len(options) == 0 {
+		options = append(options, WithComment, WithRemoveSpecialChars)
+	}
 	res := NewJson(nil)
 	for _, option := range options {
 		option(res)
 	}
 	var rr io.Reader
-	if res.allowComment {
-		f := &commentsFilter{}
-		fr := FilterReader(r, f)
+	filters := getFilters(res)
+	// fmt.Println("filters", len(filters))
+	fr := MultiFilterReader(r, filters...)
+	if fr != nil {
 		defer fr.Close()
 		rr = fr
-	} else {
-		rr = r
 	}
 
 	b := make([]byte, 1)
@@ -601,4 +607,15 @@ func (j *Json) SortArray(cmp typesw.CompareFunc[any]) error {
 	}
 	sortw.StableSort(arr, cmp)
 	return nil
+}
+
+func getFilters(j *Json) []BytesFilter {
+	result := make([]BytesFilter, 0)
+	if j.removeSpecialChars {
+		result = append(result, &internal.SpecialCharsFilter{})
+	}
+	if j.allowComment {
+		result = append(result, &internal.CommentsFilter{})
+	}
+	return result
 }
