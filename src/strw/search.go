@@ -38,18 +38,16 @@ func KmpSearch(text, pattern string, n int) []int {
 	}
 	matches := make([]int, 0, 2)
 	next := kmpNext(pattern)
+	i := 0
 	j := 0
-	// return []int{}
-	for i := 0; i < len(text); {
+	for i < len(text) {
 		if text[i] == pattern[j] {
 			i++
 			j++
+		} else if j == 0 {
+			i++
 		} else {
-			if j == 0 {
-				i++
-			} else {
-				j = next[j-1]
-			}
+			j = next[j-1]
 		}
 		if j == len(pattern) {
 			matches = append(matches, i-j)
@@ -166,23 +164,20 @@ func AllHasPrefix(str string, sub ...string) bool {
 }
 
 func kmpNext(pattern string) []int {
-	n := len(pattern)
-	next := make([]int, n) // 初始化 next 数组
-	j := 0                 // j 指针指向当前最长前缀后缀匹配的位置
-
-	for i := 1; i < n; i++ {
-		// 当前字符不匹配时，回退到上一个匹配位置
-		for j > 0 && pattern[i] != pattern[j] {
-			j = next[j-1]
+	next := make([]int, len(pattern))
+	prefixLen := 0
+	i := 1
+	for i < len(pattern) {
+		if pattern[i] == pattern[prefixLen] {
+			prefixLen++
+			next[i] = prefixLen
+			i++
+		} else if prefixLen == 0 {
+			next[i] = 0
+			i++
+		} else {
+			prefixLen = next[prefixLen-1]
 		}
-
-		// 如果字符匹配，则继续扩展匹配长度
-		if pattern[i] == pattern[j] {
-			j++
-		}
-
-		// 更新 next 数组
-		next[i] = j
 	}
 	return next
 }
