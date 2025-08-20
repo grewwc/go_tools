@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/grewwc/go_tools/src/cw"
@@ -222,6 +223,10 @@ func compareJsonHelper(currKey string, j1, j2 *utilsw.Json) {
 	}
 }
 
+func getOutputFilename(inputFname string) string {
+	return strings.ReplaceAll(utilsw.BaseNoExt(inputFname), " ", "")
+}
+
 func main() {
 	parser := terminalw.NewParser()
 	parser.String("f", "", "format json file.")
@@ -232,6 +237,7 @@ func main() {
 	parser.ParseArgsCmd("sort", "mt", "p")
 	positional := parser.Positional
 
+	// format json file
 	if parser.ContainsFlagStrict("f") {
 		fname := parser.MustGetFlagVal("f")
 		var text string
@@ -247,11 +253,13 @@ func main() {
 		formated := formatedJ.StringWithIndent("", "  ")
 		if len(text) < 1024*16 {
 			fmt.Println(formated)
-		} else {
-			outputFname := fmt.Sprintf("%s_f.json", utilsw.BaseNoExt(fname))
-			fmt.Printf("write file to %s\n", outputFname)
-			utilsw.WriteToFile(outputFname, typesw.StrToBytes(formated))
 		}
+		outputFname := fname
+		if outputFname == "" {
+			outputFname = "_f.json"
+			fmt.Printf("write file to %s\n", outputFname)
+		}
+		utilsw.WriteToFile(outputFname, typesw.StrToBytes(formated))
 		return
 	}
 
@@ -264,8 +272,8 @@ func main() {
 	sort = parser.ContainsFlagStrict("sort")
 	mt = parser.ContainsFlagStrict("mt")
 	print = parser.ContainsFlagStrict("p")
-	fname := parser.GetFlagValueDefault("o", "_s.json")
 	args := positional.ToStringSlice()
+	fname := parser.GetFlagValueDefault("o", fmt.Sprintf("%s_%s_diff.json", getOutputFilename(args[0]), getOutputFilename(args[1])))
 	oldJson, err := utilsw.NewJsonFromFile(args[0])
 	if err != nil {
 		panic(err)
