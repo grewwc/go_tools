@@ -121,18 +121,7 @@ func checkOneDirectory(root string) {
 	if !strings.HasSuffix(root, "/") {
 		root += "/"
 	}
-
-	if verbose {
-		for t := range subFiles.Iter().Iterate() {
-			subFile := t.Value().Get(1).(os.FileInfo)
-			if subFile.Size() > int64(lowerSizeBound) {
-				// fmt.Println(color.HiBlueString("%s", filepath.Join(root, subFile.Value().Name())))
-				size := formatFileSize(subFile.Size())
-				root := t.Value().Get(0)
-				fmt.Printf("%s/%s  \t%s\n", root, color.HiYellowString(subFile.Name()), size)
-			}
-		}
-	} else {
+	if lowerSizeBound > 0 && totalSize >= int64(lowerSizeBound) {
 		fmt.Println(color.HiBlueString("%s", root))
 		printInfo(nFiles, totalSize, 4)
 	}
