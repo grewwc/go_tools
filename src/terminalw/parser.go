@@ -152,7 +152,7 @@ func (r *Parser) Empty() bool {
 	if r == nil {
 		return true
 	}
-	return r.Optional.Empty() && r.Positional.Empty()
+	return r.Optional.Empty() && r.Positional.Empty() && r.numArg == ""
 }
 
 func (r *Parser) MustGetFlagValAsInt64(flagName string) (res int64) {
