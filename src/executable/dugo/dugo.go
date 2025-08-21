@@ -44,7 +44,7 @@ func listFile(path string) ([]os.DirEntry, error) {
 	return fileInfos, nil
 }
 
-func walkDir(root string, fileSize chan<- os.FileInfo, wg *sync.WaitGroup) {
+func walkDir(root string, fileInfoChan chan<- *cw.Tuple, wg *sync.WaitGroup) {
 	defer wg.Done()
 	files, err := listFile(root)
 	if err != nil {
@@ -54,7 +54,7 @@ func walkDir(root string, fileSize chan<- os.FileInfo, wg *sync.WaitGroup) {
 		if file.IsDir() {
 			subDir := path.Join(root, file.Name())
 			wg.Add(1)
-			go walkDir(subDir, fileSize, wg)
+			go walkDir(subDir, fileInfoChan, wg)
 		} else {
 			if !valid(file.Name()) {
 				continue
@@ -63,7 +63,7 @@ func walkDir(root string, fileSize chan<- os.FileInfo, wg *sync.WaitGroup) {
 			if err != nil {
 				return
 			}
-			fileSize <- fileInfo
+			fileInfoChan <- cw.NewTuple(root, fileInfo)
 		}
 	}
 }
@@ -102,7 +102,7 @@ func checkOneDirectory(root string) {
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
-	fileInfoCh := make(chan os.FileInfo)
+	fileInfoCh := make(chan *cw.Tuple)
 	go walkDir(root, fileInfoCh, &wg)
 	go func() {
 		wg.Wait()
@@ -111,22 +111,25 @@ func checkOneDirectory(root string) {
 
 	var totalSize int64
 	var nFiles int64
-	subFiles := cw.NewLinkedList[os.FileInfo]()
-	for s := range fileInfoCh {
+	subFiles := cw.NewLinkedList[*cw.Tuple]()
+	for t := range fileInfoCh {
+		s := t.Get(1).(os.FileInfo)
 		nFiles++
 		totalSize += s.Size()
-		subFiles.PushBack(s)
+		subFiles.PushBack(t)
 	}
 	if !strings.HasSuffix(root, "/") {
 		root += "/"
 	}
 
 	if verbose {
-		for subFile := range subFiles.Iter().Iterate() {
-			if subFile.Value().Size() > int64(lowerSizeBound) {
+		for t := range subFiles.Iter().Iterate() {
+			subFile := t.Value().Get(1).(os.FileInfo)
+			if subFile.Size() > int64(lowerSizeBound) {
 				// fmt.Println(color.HiBlueString("%s", filepath.Join(root, subFile.Value().Name())))
-				size := formatFileSize(subFile.Value().Size())
-				fmt.Printf("%s%s  \t%s\n", root, color.HiYellowString(subFile.Value().Name()), size)
+				size := formatFileSize(subFile.Size())
+				root := t.Value().Get(0)
+				fmt.Printf("%s/%s  \t%s\n", root, color.HiYellowString(subFile.Name()), size)
 			}
 		}
 	} else {
