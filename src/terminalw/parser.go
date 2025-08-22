@@ -575,11 +575,14 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 
 	cmd = strings.Join(args, string(sep))
 	if r.enableParseNum {
-		re := regexp.MustCompile(`-\d+`)
-		numArgs := re.FindString(cmd)
-		if len(numArgs) > 0 {
-			r.numArg = numArgs[1:]
-			cmd = strings.Replace(cmd, numArgs, "", 1)
+		re := regexp.MustCompile(`\s+(-\d+)`)
+		matches := re.FindStringSubmatch(cmd)
+		if len(matches) >= 2 {
+			numArgs := matches[1]
+			if len(numArgs) > 0 {
+				r.numArg = numArgs[1:]
+				cmd = strings.Replace(cmd, numArgs, "", 1)
+			}
 		}
 	}
 
