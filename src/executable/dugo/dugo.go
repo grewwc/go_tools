@@ -121,7 +121,7 @@ func checkOneDirectory(root string) {
 	if !strings.HasSuffix(root, "/") {
 		root += "/"
 	}
-	if lowerSizeBound > 0 && totalSize >= int64(lowerSizeBound) {
+	if (lowerSizeBound < 0) || (lowerSizeBound > 0 && totalSize >= int64(lowerSizeBound)) {
 		fmt.Println(color.HiBlueString("%s", root))
 		printInfo(nFiles, totalSize, 4)
 	}
