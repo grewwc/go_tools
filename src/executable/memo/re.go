@@ -1237,7 +1237,7 @@ func main() {
 		}
 
 		if len(tags) > 0 {
-			if r, _ := listRecords(-1, true, false, false, tags, false, "", true, onlyHold, prefix); len(r) < 1 {
+			if r, _ := listRecords(-1, true, includeFinished, includeHeld, tags, false, "", false, onlyHold, prefix); len(r) < 1 {
 				fmt.Println(color.YellowString("no records associated with the tags (%v: prefix: %v) found", tags, prefix))
 				return
 			}
