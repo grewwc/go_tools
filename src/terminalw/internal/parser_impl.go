@@ -132,6 +132,7 @@ func (r *Parser) GetIntFlagValOrDefault(flagName string, val int) int {
 func (r *Parser) GetPositionalArgs(excludeNumArg bool) []string {
 	if excludeNumArg {
 		remove := fmt.Sprintf("-%d", r.GetNumArgs())
+		// fmt.Println([]byte(remove), []byte(r.Positional.ToStringSlice()[0]), remove, r.Positional.ToStringSlice()[0])
 		r.Positional.Delete(remove, nil)
 	}
 	return r.Positional.ToStringSlice()
@@ -510,7 +511,8 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 
 	cmd = strings.Join(args, string(sep))
 	if r.enableParseNum {
-		re := regexp.MustCompile(`\s+(-\d+)`)
+		// fmt.Println("here", []byte(cmd), cmd)
+		re := regexp.MustCompile(fmt.Sprintf(`%s+(-\d+)`, string(quote)))
 		matches := re.FindStringSubmatch(cmd)
 		if len(matches) >= 2 {
 			numArgs := matches[1]
