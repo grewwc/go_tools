@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -61,7 +60,7 @@ func CollectionExists(db *mongo.Database, ctx context.Context, collectionName st
 }
 
 func WritePreviousOpration(op string) {
-	if err := ioutil.WriteFile(filepath.Join(homeDir, opFileName), []byte(op), 0666); err != nil {
+	if err := os.WriteFile(filepath.Join(homeDir, opFileName), []byte(op), 0666); err != nil {
 		panic(err)
 	}
 }

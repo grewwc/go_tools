@@ -659,6 +659,15 @@ func deleteRecord(id string, prev bool) {
 	r.delete()
 }
 
+func deleteRecordByTag(tag string) bool {
+	records, _ := listRecords(-1, false, true, true, []string{tag}, false, "", false, false, true)
+	for _, record := range records {
+		fmt.Printf("deleting record. id:%s, tag:%v\n", record.ID.String(), record.Tags)
+		record.delete()
+	}
+	return len(records) > 0
+}
+
 func changeTitle(fromFile, fromEditor bool, id string, prev bool) {
 	var err error
 	id = strings.TrimSpace(id)
@@ -1237,12 +1246,13 @@ func main() {
 		}
 
 		if len(tags) > 0 {
-			if r, _ := listRecords(-1, true, includeFinished, includeHeld, tags, false, "", false, onlyHold, prefix); len(r) < 1 {
+			if r, _ := listRecords(-1, true, false, false, tags, false, "", true, onlyHold, prefix); len(r) < 1 {
 				fmt.Println(color.YellowString("no records associated with the tags (%v: prefix: %v) found", tags, prefix))
 				return
 			}
 		}
 		id = internal.ReadInfo(false)
+
 	tagIsId:
 		parser.Optional.Put("-u", id)
 		if id != "" {
@@ -1265,7 +1275,10 @@ func main() {
 	}
 
 	if parser.ContainsFlagStrict("d") {
-		deleteRecord(parser.GetFlagValueDefault("d", ""), parser.ContainsFlagStrict("prev"))
+		arg := parser.GetFlagValueDefault("d", "")
+		if !deleteRecordByTag(arg) {
+			deleteRecord(arg, parser.ContainsFlagStrict("prev"))
+		}
 		return
 	}
 
