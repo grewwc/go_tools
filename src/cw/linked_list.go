@@ -23,6 +23,8 @@ func (n *ListNode[T]) Value() T {
 type LinkedList[T any] struct {
 	head, tail *ListNode[T]
 	size       int
+
+	normFunc func(val T) T
 }
 
 func NewLinkedList[T any](vals ...T) *LinkedList[T] {
@@ -33,9 +35,16 @@ func NewLinkedList[T any](vals ...T) *LinkedList[T] {
 	return res
 }
 
+func (l *LinkedList[T]) WithNormalization(f func(val T) T) {
+	l.normFunc = f
+}
+
 func (l *LinkedList[T]) PushFront(val T) *ListNode[T] {
 	if l == nil {
 		return nil
+	}
+	if l.normFunc != nil {
+		val = l.normFunc(val)
 	}
 	node := &ListNode[T]{value: val}
 	l.size++
@@ -52,6 +61,9 @@ func (l *LinkedList[T]) PushFront(val T) *ListNode[T] {
 func (l *LinkedList[T]) PushBack(val T) *ListNode[T] {
 	if l == nil {
 		return nil
+	}
+	if l.normFunc != nil {
+		val = l.normFunc(val)
 	}
 	node := &ListNode[T]{value: val}
 	l.size++
@@ -142,14 +154,22 @@ func (l *LinkedList[T]) Delete(val T, cmp typesw.CompareFunc[T]) bool {
 	if l.Empty() {
 		return false
 	}
+	var f typesw.CompareFunc[T]
 	if cmp == nil {
 		cmp = typesw.CreateDefaultCmp[T]()
+		f = cmp
+	}
+	if l.normFunc != nil {
+		val = l.normFunc(val)
+		f = func(a, b T) int {
+			return cmp(l.normFunc(a), l.normFunc(b))
+		}
 	}
 	dummy := &ListNode[T]{
 		next: l.head,
 	}
 	curr := dummy
-	for ; curr != nil && curr.Next() != nil && cmp(curr.Next().Value(), val) != 0; curr = curr.Next() {
+	for ; curr != nil && curr.Next() != nil && f(curr.Next().Value(), val) != 0; curr = curr.Next() {
 	}
 	if curr == nil || curr.Next() == nil {
 		return false

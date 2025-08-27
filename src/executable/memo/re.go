@@ -1002,9 +1002,7 @@ func main() {
 	parser.Bool("s", false, "short format, only print titles")
 	parser.Bool("l", false, "list tags")
 
-	parser.ParseArgsCmd("h", "r", "all", "a",
-		"i", "include-finished", "tags", "and", "v", "e", "my", "remote", "prev", "count", "prefix", "binary", "b",
-		"sp", "include-held", "onlyhold", "p", "code", "pre", "force", "s", "push", "pull", "l")
+	parser.ParseArgsCmd()
 	// fmt.Println(parser.Optional)
 	// default behavior
 	// re
