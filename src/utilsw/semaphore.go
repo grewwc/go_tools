@@ -7,34 +7,34 @@ import (
 )
 
 type Semaphore struct {
-	cond  *sync.Cond
-	mu    *sync.Mutex
-	Count int
+	cond *sync.Cond
+	mu   *sync.Mutex
+	cnt  int
 }
 
-func NewSemaphore(cnt int) *Semaphore {
+func NewSemaphore(initPermit int) *Semaphore {
 	mu := &sync.Mutex{}
 	sem := &Semaphore{
-		mu:    mu,
-		cond:  sync.NewCond(mu),
-		Count: cnt,
+		mu:   mu,
+		cond: sync.NewCond(mu),
+		cnt:  initPermit,
 	}
 	return sem
 }
 
 func (s *Semaphore) Acquire() {
 	s.mu.Lock()
-	for s.Count <= 0 {
+	for s.cnt <= 0 {
 		s.cond.Wait()
 	}
-	s.Count--
+	s.cnt--
 	s.mu.Unlock()
 }
 
 func (s *Semaphore) AcquireTimeout(timeout time.Duration) bool {
 	s.mu.Lock()
-	if s.Count > 0 {
-		s.Count--
+	if s.cnt > 0 {
+		s.cnt--
 		s.mu.Unlock()
 		return true
 	}
@@ -47,10 +47,10 @@ func (s *Semaphore) AcquireTimeout(timeout time.Duration) bool {
 	timeoutCh <- struct{}{}
 	go func() {
 		s.mu.Lock()
-		for s.Count <= 0 {
+		for s.cnt <= 0 {
 			s.cond.Wait()
 		}
-		s.Count--
+		s.cnt--
 		if _, ok := <-timeoutCh; !ok {
 			s.cond.Signal()
 		}
@@ -71,9 +71,7 @@ func (s *Semaphore) AcquireTimeout(timeout time.Duration) bool {
 
 func (s *Semaphore) Release() {
 	s.mu.Lock()
-	// fmt.Println("before,", s.Count)
-	s.Count++
-	// fmt.Println("after,", s.Count)
+	s.cnt++
 	s.cond.Signal()
 	s.mu.Unlock()
 }
