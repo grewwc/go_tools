@@ -35,8 +35,9 @@ func NewLinkedList[T any](vals ...T) *LinkedList[T] {
 	return res
 }
 
-func (l *LinkedList[T]) WithNormalization(f func(val T) T) {
+func (l *LinkedList[T]) WithNormalization(f func(val T) T) *LinkedList[T] {
 	l.normFunc = f
+	return l
 }
 
 func (l *LinkedList[T]) PushFront(val T) *ListNode[T] {
