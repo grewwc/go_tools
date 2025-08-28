@@ -237,7 +237,7 @@ func main() {
 	parser.Bool("abs", false, fmt.Sprintf("print absolute path. (%s in ~/.configW)", absName))
 	parser.Bool("rel", false, "print relative path.")
 	parser.Bool("glob", false, "use filepath.Glob to match")
-	parser.ParseArgsCmd("v", "a", "dir", "h", "md5", "abs", "i", "rel", "glob")
+	parser.ParseArgsCmd()
 
 	if parser.Empty() {
 		parser.PrintDefaults()
@@ -249,33 +249,24 @@ func main() {
 		return
 	}
 
-	if parser.ContainsFlagStrict("md5") {
-		printMd5 = true
-	}
-	if parser.ContainsFlagStrict("glob") {
-		glob = true
-	}
-
+	printMd5 = parser.ContainsFlagStrict("md5")
+	glob = parser.ContainsFlagStrict("glob")
 	verboseFlag := parser.ContainsFlagStrict("v")
-
 	rootDir := parser.GetFlagValueDefault("d", ".")
+	caseInsensitive = parser.ContainsFlag("i")
+	onlyDir = parser.ContainsFlagStrict("dir")
+	ignores := parser.GetFlagValueDefault("ex", "")
+	relativePath = !parser.ContainsFlagStrict("abs") && !globalConfig.defaultAbs
+	relativePath = relativePath || parser.ContainsFlagStrict("rel")
+	numPrint := parser.GetNumArgs()
+
 	if rootDir == "~" {
 		rootDir = expandTilda()
 		if rootDir == "" {
 			log.Fatalln("HOME is not set")
 		}
 	}
-	ignores := parser.GetFlagValueDefault("ex", "")
-	caseInsensitive = parser.ContainsFlag("i")
 
-	if parser.ContainsFlagStrict("dir") {
-		onlyDir = true
-	}
-
-	relativePath = !parser.ContainsFlagStrict("abs") && !globalConfig.defaultAbs
-	relativePath = relativePath || parser.ContainsFlagStrict("rel")
-
-	numPrint := parser.GetNumArgs()
 	if numPrint == -1 {
 		numPrint, err = strconv.Atoi(parser.GetFlagValueDefault("n", "10"))
 
