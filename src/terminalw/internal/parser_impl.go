@@ -466,8 +466,6 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', fmt.Sprintf(`"'%c`, quote), true)
 	args := make([]string, 0, len(cmdSlice))
 
-	s := cw.NewSetT[string]()
-
 	for _, option := range boolOptionals {
 		if len(option) == 0 {
 			continue
@@ -476,15 +474,13 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 			option = option[1:]
 		}
 		r.boolOptionSet.Add(option)
-		s.Add(option)
 	}
 
 	if len(boolOptionals) == 0 {
-		s.ForEach(func(val string) {
-			boolOptionals = append(boolOptionals, val)
-		})
+		for val := range r.boolOptionSet.Iter().Iterate() {
+			boolOptionals = append(boolOptionals, val.(string))
+		}
 	}
-	s.Clear()
 
 	trie := cw.NewTrie()
 	r.VisitAll(func(f *flag.Flag) {
