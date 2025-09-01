@@ -198,7 +198,7 @@ func main() {
 
 	fmt.Println()
 
-	parser.ParseArgsCmd("re", "v", "ignore", "strict", "all", "w", "i", "a", "h")
+	parser.ParseArgsCmd()
 	// fmt.Println("here", parser)
 	if parser.Empty() || parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
@@ -243,7 +243,7 @@ func main() {
 		isReg = true
 	}
 
-	if parser.ContainsFlagStrict("word") {
+	if parser.ContainsFlagStrict("w") {
 		isReg = true
 		wordPattern := regexp.MustCompile(`\w+`)
 		if !wordPattern.MatchString(target) {
