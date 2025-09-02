@@ -172,14 +172,15 @@ func SplitByToken(reader io.Reader, token string, keepToken bool) <-chan string 
 				buf.Reset()
 			}
 			d, err := r.ReadBytes(token[0])
+			var end bool
 			if len(d) == 0 {
-				break
+				end = true
 			}
 			if err != nil && err != io.EOF {
 				// log.Fatalln(err)
 				break
 			}
-			end := (err == io.EOF)
+			end = end || (err == io.EOF)
 			// read next len(tokenBytes)-1
 			// n, err := r.Read(rest)
 			buf.Write(d)
