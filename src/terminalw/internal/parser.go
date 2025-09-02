@@ -20,7 +20,8 @@ type Parser struct {
 
 	boolOptionSet *cw.Set
 
-	actions *ActionList
+	actionMap *cw.Map[*ConditionFunc, *ActionList]
+	// actions *ActionList
 
 	*flag.FlagSet
 }

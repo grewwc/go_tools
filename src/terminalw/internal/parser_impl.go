@@ -325,19 +325,32 @@ func (r *Parser) Bool(name string, value bool, usage string) *Parser {
 // }
 
 func (r *Parser) On(condition ConditionFunc) *ActionList {
-	if r.actions == nil {
-		r.actions = newActionList(r)
+	if r.actionMap == nil {
+		r.actionMap = cw.NewMap[*ConditionFunc, *ActionList]()
+		// r.actions = newActionList(r)
 	}
-	r.actions.conditionSatisfied = condition(r)
-	return r.actions
+	// r.actions.conditionSatisfied = condition(r)
+	// r.actions.f = condition
+	r.actionMap.PutIfAbsent(&condition, newActionList(r))
+	return r.actionMap.Get(&condition)
 }
 
 func (r *Parser) Execute() {
-	if r.actions != nil {
-		for work := range r.actions.actionList.Iter().Iterate() {
-			work.Value()()
+	if r.actionMap != nil {
+		for entry := range r.actionMap.IterEntry().Iterate() {
+			if (*entry.Key())(r) {
+				for work := range entry.Val().actionList.Iter().Iterate() {
+					work.Value()()
+				}
+			}
 		}
 	}
+	// if r.actions != nil {
+	// 	fmt.Println("?", r.actions.actionList)
+	// 	for work := range r.actions.actionList.Iter().Iterate() {
+	// 		work.Value()()
+	// 	}
+	// }
 }
 
 func test(cmd string, trie *cw.Trie, s *cw.OrderedSetT[string]) bool {
@@ -521,6 +534,7 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)
 	r.parseArgs(cmd, boolOptionals...)
+	r.Execute()
 }
 
 func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {

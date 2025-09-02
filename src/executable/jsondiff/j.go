@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -227,6 +228,22 @@ func getOutputFilename(inputFname string) string {
 	return strings.ReplaceAll(utilsw.BaseNoExt(inputFname), " ", "")
 }
 
+func quoteJsonString() {
+	j := utilsw.NewJson(nil)
+	content := utilsw.ReadClipboardText()
+	if content == "" {
+		fmt.Println("input the content (press Ctrl-D to end input):")
+		content = utilsw.UserInput("", true)
+	}
+	key := "_quoted"
+	j.Set(key, content)
+	str := j.String()
+	l := strings.Index(str, ":")
+	r := strings.LastIndex(str, "}")
+	fmt.Println(str[l+1 : r])
+	os.Exit(0)
+}
+
 func main() {
 	parser := terminalw.NewParser()
 	parser.String("f", "", "format json file.")
@@ -234,7 +251,12 @@ func main() {
 	parser.Bool("sort", false, "sort slice, ignore slice order.")
 	parser.Bool("mt", false, "multi-thread, result is not ordered.")
 	parser.Bool("p", false, "print to console.")
-	parser.ParseArgsCmd("sort", "mt", "p")
+	parser.Bool("quote", false, "escape json string")
+
+	parser.On(func(p *terminalw.Parser) bool { return p.ContainsFlagStrict("quote") }).Do(quoteJsonString)
+
+	parser.ParseArgsCmd()
+
 	positional := parser.Positional
 
 	// format json file

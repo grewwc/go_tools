@@ -27,6 +27,7 @@ func DisableParserNumber(p *Parser) {
 	internal.DisableParserNumber(p.Parser)
 }
 
+// On should be called before Parsing, otherwise need to explicitly call Execute
 func (r *Parser) On(condition func(p *Parser) bool) *internal.ActionList {
 	ff := func(*internal.Parser) bool {
 		return condition(r)
