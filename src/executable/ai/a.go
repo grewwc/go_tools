@@ -272,7 +272,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 	parser.Bool("x", false, "ask without history")
 	parser.String("f", "", "input file names. seprated by comma.")
 	parser.String("out", "", "write output to file. default is output.txt")
-	parser.ParseArgsCmd("h", "multi-line", "mul", "code", "s", "d", "-clear", "c", "x")
+	parser.ParseArgsCmd()
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
 		return
@@ -301,6 +301,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		var question string
 		if len(args) >= 1 {
 			question = getQuestion(parser, false)
+			fmt.Println("here", question)
 			args = []string{}
 			shouldQuit = true
 		} else {
