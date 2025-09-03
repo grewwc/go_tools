@@ -146,6 +146,9 @@ func buildMessageArr(n int) []Message {
 			continue
 		}
 		arr := strings.Split(line, "\x00")
+		if len(arr) < 2 {
+			continue
+		}
 		role, content := arr[0], arr[1]
 		result = append(result, Message{
 			Role:    role,
@@ -171,14 +174,6 @@ func appendHistory(content string) {
 }
 
 var sigChan = make(chan os.Signal, 1)
-
-func modifyQuestion(question string) string {
-	if strings.HasSuffix(strings.TrimSpace(question), " -s") {
-		question = strings.TrimSuffix(strings.TrimSpace(question), " -s")
-		question += "\n Please be concise."
-	}
-	return question
-}
 
 func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 	var fileContent string
@@ -207,7 +202,8 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 		// }
 		nHistory = getNumHistory(tempParser)
 	} else {
-		question = strings.Join(parsed.GetPositionalArgs(true), " ")
+		// question = strings.Join(parsed.GetPositionalArgs(true), " ")
+		question = strings.Join(os.Args[1:], " ")
 		nHistory = getNumHistory(parsed)
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {
@@ -222,10 +218,6 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 		parsed.RemoveFlagValue("c")
 	}
 	// short output
-	if parsed.ContainsFlagStrict("s") {
-		question += "\n Please be concise."
-		parsed.RemoveFlagValue("s")
-	}
 	question = fileContent + question
 	return
 }
@@ -265,7 +257,6 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 	parser.Bool("multi-line", false, "input with multline")
 	parser.Bool("mul", false, "same as multi-line")
 	parser.Bool("code", false, "use code model (qwen-coder-plus-latest)")
-	parser.Bool("s", false, "short output")
 	parser.Bool("d", false, "deepseek model")
 	parser.Bool("clear", false, "clear history")
 	parser.Bool("c", false, "prepend content in clipboard")
@@ -284,7 +275,8 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		return
 	}
 
-	args := parser.GetPositionalArgs(true)
+	// args := parser.GetPositionalArgs(true)
+	args := os.Args[1:]
 
 	var model = internal.GetModel(parser)
 	var curr bytes.Buffer
@@ -314,7 +306,6 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		nextModel := internal.GetModelByInput(model, &question)
 		model = nextModel
 		// fmt.Println("here question:", question)
-		question = modifyQuestion(question)
 		// 构建请求体
 		// fmt.Println(internal.SearchEnabled(model), model)
 		requestBody := RequestBody{
