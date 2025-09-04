@@ -284,8 +284,8 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 
 	raw = parser.ContainsFlagStrict("raw")
 
-	// args := parser.GetPositionalArgs(true)
-	args := os.Args[1:]
+	args := parser.GetPositionalArgs(true)
+	// args := os.Args[1:]
 
 	var model = internal.GetModel(parser)
 	var curr bytes.Buffer

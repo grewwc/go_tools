@@ -1,4 +1,4 @@
-package utilsw
+package typesw
 
 import (
 	"context"
