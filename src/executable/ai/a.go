@@ -38,6 +38,8 @@ var (
 
 var (
 	thinking int32 = 0
+
+	raw bool = false
 )
 
 type Message struct {
@@ -202,8 +204,12 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 		// }
 		nHistory = getNumHistory(tempParser)
 	} else {
-		// question = strings.Join(parsed.GetPositionalArgs(true), " ")
-		question = strings.Join(os.Args[1:], " ")
+		if raw {
+			question = strings.Join(os.Args[1:], " ")
+		} else {
+			question = strings.Join(parsed.GetPositionalArgs(true), " ")
+		}
+
 		nHistory = getNumHistory(parsed)
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {
@@ -263,6 +269,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 	parser.Bool("x", false, "ask without history")
 	parser.String("f", "", "input file names. seprated by comma.")
 	parser.String("out", "", "write output to file. default is output.txt")
+	parser.Bool("raw", false, "raw mode: don't use parser to get positional arguments, use raw inputs instead.")
 	parser.ParseArgsCmd()
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
@@ -274,6 +281,8 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		fmt.Println("History cleared.")
 		return
 	}
+
+	raw = parser.ContainsFlagStrict("raw")
 
 	// args := parser.GetPositionalArgs(true)
 	args := os.Args[1:]
