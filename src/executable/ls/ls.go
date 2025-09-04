@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 package main
 
 import (
@@ -26,7 +29,7 @@ var pattern *regexp.Regexp
 var ignores = cw.NewSet()
 var wanted = cw.NewSet()
 
-var errMsgs = cw.NewQueue()
+var errMsgs = cw.NewQueue[string]()
 var fileCnt int64
 
 func init() {
@@ -89,7 +92,7 @@ func printErrors() {
 	fmt.Println("Errors:")
 	count := 1
 	for !errMsgs.Empty() {
-		fmt.Printf("  %d: %s\n", count, color.RedString(errMsgs.Dequeue().(string)))
+		fmt.Printf("  %d: %s\n", count, color.RedString(errMsgs.Dequeue()))
 		count++
 	}
 }

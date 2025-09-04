@@ -76,7 +76,6 @@ func EditDistance[T any](a1, a2 []T, cmp typesw.CompareFunc[T]) int {
 	if m < n {
 		return EditDistance(a2, a1, cmp)
 	}
-
 	prev := make([]int, n+1)
 	for j := 0; j <= n; j++ {
 		prev[j] = j

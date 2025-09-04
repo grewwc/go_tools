@@ -11,7 +11,7 @@ type Queue[T any] struct {
 }
 
 func NewQueue[T any](items ...T) *Queue[T] {
-	res := &Queue[T]{NewLinkedList[T](items...)}
+	res := &Queue[T]{NewLinkedList(items...)}
 	return res
 }
 
