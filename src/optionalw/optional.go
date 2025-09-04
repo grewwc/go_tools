@@ -20,7 +20,10 @@ func (op *Optional[T]) HasValue() bool {
 }
 
 func (op *Optional[T]) ValueOr(defaultVal T) T {
-	if op == nil || op.hasVal {
+	if op == nil {
+		return defaultVal
+	}
+	if op.hasVal {
 		return op.val
 	}
 	return defaultVal
