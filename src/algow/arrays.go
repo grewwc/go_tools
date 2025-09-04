@@ -1,6 +1,8 @@
 package algow
 
-import "github.com/grewwc/go_tools/src/typesw"
+import (
+	"github.com/grewwc/go_tools/src/typesw"
+)
 
 func Fill[T any](arr []T, value T) {
 	for i := 0; i < len(arr); i++ {
@@ -96,4 +98,19 @@ func EditDistance[T any](a1, a2 []T, cmp typesw.CompareFunc[T]) int {
 		prev = curr
 	}
 	return prev[n]
+}
+
+func Equals[T any](a, b []T, cmp typesw.CompareFunc[T]) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	if cmp == nil {
+		cmp = typesw.CreateDefaultCmp[T]()
+	}
+	for i := 0; i < len(a); i++ {
+		if cmp(a[i], b[i]) != 0 {
+			return false
+		}
+	}
+	return true
 }

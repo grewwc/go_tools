@@ -4,16 +4,19 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	optional "github.com/grewwc/go_tools/src/optionalw"
 )
 
 type BlockingQueue[T any] struct {
-	cap        int
-	start, end int
-	len        int
-	data       []T
-	lock       *sync.Mutex
-	notFull    *sync.Cond
-	notEmpty   *sync.Cond
+	cap      int
+	start    int // point to next position (invalid)
+	end      int // point to curr position (valid)
+	len      int
+	data     []T
+	lock     *sync.Mutex
+	notFull  *sync.Cond
+	notEmpty *sync.Cond
 }
 
 func NewBlockingQueue[T any](cap int) *BlockingQueue[T] {
@@ -101,28 +104,28 @@ func (q *BlockingQueue[T]) PopLast() T {
 	return res
 }
 
-func (q *BlockingQueue[T]) PollFirst(timeout time.Duration) (T, bool) {
+func (q *BlockingQueue[T]) PollFirst(timeout time.Duration) *optional.Optional[T] {
 	ch := make(chan T)
 	defer close(ch)
 	waitSuccess := withTimeout(func() {
 		ch <- q.PopFirst()
 	}, timeout)
 	if waitSuccess {
-		return <-ch, true
+		return optional.Of(<-ch)
 	}
-	return *new(T), false
+	return optional.Of(*new(T))
 }
 
-func (q *BlockingQueue[T]) PollLast(timeout time.Duration) (T, bool) {
+func (q *BlockingQueue[T]) PollLast(timeout time.Duration) *optional.Optional[T] {
 	ch := make(chan T)
 	defer close(ch)
 	waitSuccess := withTimeout(func() {
 		ch <- q.PopLast()
 	}, timeout)
 	if waitSuccess {
-		return <-ch, true
+		return optional.Of(<-ch)
 	}
-	return *new(T), false
+	return optional.Of(*new(T))
 }
 
 func (q *BlockingQueue[T]) Snapshot() *Queue[T] {
@@ -143,6 +146,38 @@ func (q *BlockingQueue[T]) IsEmpty() bool {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 	return q.len == q.cap
+}
+
+func (q *BlockingQueue[T]) Len() int {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	return q.len
+}
+
+func (q *BlockingQueue[T]) Size() int {
+	return q.Len()
+}
+
+func (q *BlockingQueue[T]) PeekFirst() *optional.Optional[T] {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.len == 0 {
+		return optional.Of(*new(T))
+	}
+	idx := q.start + 1
+	if idx >= q.cap {
+		idx %= q.cap
+	}
+	return optional.Of(q.data[idx])
+}
+
+func (q *BlockingQueue[T]) PeekLast() *optional.Optional[T] {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.len == q.cap {
+		return optional.Of(*new(T))
+	}
+	return optional.Of(q.data[q.end])
 }
 
 func withTimeout(f func(), timeout time.Duration) bool {
