@@ -284,6 +284,20 @@ func (l *LinkedList[T]) Contains(val T, cmp typesw.CompareFunc[T]) bool {
 	return false
 }
 
+func (l *LinkedList[T]) ToSlice() []T {
+	if l == nil {
+		return nil
+	}
+	res := make([]T, 0, l.Len())
+	if l.Empty() {
+		return res
+	}
+	for node := range l.Iter().Iterate() {
+		res = append(res, node.value)
+	}
+	return res
+}
+
 func (l *LinkedList[T]) ToStringSlice() []string {
 	if l == nil {
 		return nil
