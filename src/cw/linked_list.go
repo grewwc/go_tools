@@ -7,8 +7,8 @@ import (
 )
 
 type ListNode[T any] struct {
-	value T
-	next  *ListNode[T]
+	value      T
+	prev, next *ListNode[T]
 }
 
 func (n *ListNode[T]) Next() *ListNode[T] {
@@ -19,7 +19,6 @@ func (n *ListNode[T]) Value() T {
 	return n.value
 }
 
-// LinkedList is single LinkedList, so some operations are not supported.
 type LinkedList[T any] struct {
 	head, tail *ListNode[T]
 	size       int
@@ -54,6 +53,7 @@ func (l *LinkedList[T]) PushFront(val T) *ListNode[T] {
 		l.tail = node
 		return node
 	}
+	l.head.prev = node
 	node.next = l.head
 	l.head = node
 	return node
@@ -74,6 +74,7 @@ func (l *LinkedList[T]) PushBack(val T) *ListNode[T] {
 		return node
 	}
 	l.tail.next = node
+	node.prev = l.tail
 	l.tail = node
 	return node
 }
@@ -87,8 +88,24 @@ func (l *LinkedList[T]) PopFront() *ListNode[T] {
 	l.head = front.next
 	if l.tail == front {
 		l.tail = nil
+		l.head = nil
 	}
 	return front
+}
+
+func (l *LinkedList[T]) PopBack() *ListNode[T] {
+	if l.Empty() {
+		return nil
+	}
+	l.size--
+	back := l.tail
+	l.tail = back.prev
+	if l.head == back {
+		l.head = nil
+		l.tail = nil
+	}
+	return back
+
 }
 
 func (l *LinkedList[T]) Merge(mergePoint *ListNode[T], other *LinkedList[T]) *LinkedList[T] {
