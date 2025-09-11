@@ -380,6 +380,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	}
 
 	supportedOptions := cw.NewSet()
+	// fmt.Println("booloptionset", r.boolOptionSet.ToStringSlice())
 	r.VisitAll(func(f *flag.Flag) {
 		// fmt.Println("f.Name", f.Name)
 		supportedOptions.Add(f.Name)
@@ -398,7 +399,7 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 		}
 
 		// bool options
-		key := fmt.Sprintf("-%s", f.Name)
+		key := fmt.Sprintf("%c-%s%c", quote, f.Name, quote)
 		indices := strw.KmpSearch(cmd, key, -1)
 		// indicesQuote := strw.KmpSearch(cmd, fmt.Sprintf("%c%s%c", quote, f.Name, quote), -1)
 		// indices = append(indices)
