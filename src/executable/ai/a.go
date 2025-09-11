@@ -315,7 +315,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		if strings.TrimSpace(question) == "" {
 			continue
 		}
-		curr.WriteString(fmt.Sprintf("%s%v%s%v", "user", colon, question, newline))
+		curr.WriteString(fmt.Sprintf("%s%c%s%c", "user", colon, question, newline))
 
 		nextModel := internal.GetModelByInput(model, &question)
 		model = nextModel
@@ -361,7 +361,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		req.Header.Set("Content-Type", "application/json")
 		// 发送请求
 		resp, _ := client.Do(req)
-		curr.WriteString(fmt.Sprintf("assistant%v", colon))
+		curr.WriteString(fmt.Sprintf("assistant%c", colon))
 		ch := handleResponse(resp.Body)
 		search := "true"
 		if !internal.SearchEnabled(model) {
