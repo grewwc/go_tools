@@ -27,6 +27,11 @@ const (
 	defaultNumHistory = 4
 )
 
+const (
+	colon   = '\x00'
+	newline = '\x01'
+)
+
 var (
 	apiKey      string
 	historyFile string
@@ -142,16 +147,16 @@ func buildMessageArr(n int) []Message {
 	}
 	history := utilsw.ReadString(historyFile)
 	result := make([]Message, 0)
-	lines := strw.SplitNoEmptyPreserveQuote(history, '\x01', `"`, true)
+	lines := strw.SplitNoEmptyPreserveQuote(history, newline, `"`, true)
 	for _, line := range lines {
 		if line == "" {
 			continue
 		}
-		arr := strings.Split(line, "\x00")
+		arr := strings.Split(line, string(colon))
 		if len(arr) < 2 {
 			continue
 		}
-		role, content := arr[0], arr[1]
+		role, content := arr[len(arr)-2], arr[len(arr)-1]
 		result = append(result, Message{
 			Role:    role,
 			Content: content,
@@ -251,7 +256,7 @@ func getWriteResultFile(parsed *terminalw.Parser) *os.File {
 	}
 }
 
-func main() {
+func run() {
 	// Notify the sigChan channel for SIGINT (Ctrl+C) and SIGTERM signals
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -310,7 +315,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		if strings.TrimSpace(question) == "" {
 			continue
 		}
-		curr.WriteString(fmt.Sprintf("%s\x00%s\x01", "user", question))
+		curr.WriteString(fmt.Sprintf("%s%v%s%v", "user", colon, question, newline))
 
 		nextModel := internal.GetModelByInput(model, &question)
 		model = nextModel
@@ -356,7 +361,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		req.Header.Set("Content-Type", "application/json")
 		// 发送请求
 		resp, _ := client.Do(req)
-		curr.WriteString("assistant\x00")
+		curr.WriteString(fmt.Sprintf("assistant%v", colon))
 		ch := handleResponse(resp.Body)
 		search := "true"
 		if !internal.SearchEnabled(model) {
@@ -383,7 +388,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		}
 	end:
 		resp.Body.Close()
-		curr.WriteByte('\x01')
+		curr.WriteByte(newline)
 		appendHistory(curr.String())
 		fmt.Println()
 		if shouldQuit {
@@ -391,4 +396,8 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen-max-latest[3], qwen-coder-plus-late
 		}
 		f.WriteString("\n---\n")
 	}
+}
+
+func main() {
+	run()
 }
