@@ -333,8 +333,7 @@ func setValByFielName(r *record, fieldName string, val bool) {
 	fieldVal.SetBool(val)
 }
 
-func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, tags []string, useAnd bool, title string,
-	onlyMyproblem, onlyHold bool, prefix bool) ([]*record, bool) {
+func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool, title string, prefix bool) ([]*record, bool) {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -362,16 +361,6 @@ func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, t
 	// construct search filter
 	if !includeFinished {
 		m["finished"] = false
-	}
-	if !includeHold {
-		m["$or"] = []interface{}{bson.M{"hold": false}, bson.M{"hold": nil}}
-	}
-	if onlyMyproblem {
-		m["my_problem"] = true
-	}
-	if onlyHold {
-		m["hold"] = true
-		delete(m, "$or")
 	}
 
 	if len(tags) > 0 {
@@ -424,6 +413,7 @@ func listRecords(limit int64, reverse, includeFinished bool, includeHold bool, t
 		recordIDs[i] = &res[i].ID
 	}
 	// fmt.Println("here", recordIDs)
+	// os.Exit(0)
 	written := internal.WriteInfo(recordIDs, recordTitles)
 	return res, written
 }
@@ -660,7 +650,7 @@ func deleteRecord(id string, prev bool) {
 }
 
 func deleteRecordByTag(tag string) bool {
-	records, _ := listRecords(-1, false, true, true, []string{tag}, false, "", false, false, true)
+	records, _ := listRecords(-1, false, true, []string{tag}, false, "", true)
 	for _, record := range records {
 		fmt.Printf("deleting record. id:%s, tag:%v\n", record.ID.String(), record.Tags)
 		record.delete()
@@ -899,7 +889,7 @@ func syncByID(id string, push, quiet bool) {
 	// printSeperator()
 }
 
-func getObjectIdByTags(tags []string) string {
+func getObjectIdByTags(tags []string, includeFinished bool) string {
 	// check if the tags are objectid
 	if len(tags) == 1 {
 		tag := tags[0]
@@ -908,7 +898,7 @@ func getObjectIdByTags(tags []string) string {
 		}
 	}
 	if len(tags) > 0 {
-		listRecords(-1, true, false, false, tags, false, "", true, false, false)
+		listRecords(-1, true, includeFinished, tags, false, "", false)
 	}
 	id := internal.ReadInfo(false)
 	return id
@@ -923,7 +913,7 @@ func holdRecordsByTags(tags []string) {
 }
 
 func doRecordsByTagsByAction(tags []string, name string) {
-	rs, _ := listRecords(-1, false, true, true, tags, false, "", false, false, true)
+	rs, _ := listRecords(-1, false, true, tags, false, "", true)
 	for _, r := range rs {
 		// r.Finished = true
 		setValByFielName(r, name, true)
@@ -952,6 +942,312 @@ func filterTags(tags []tag, prefix []string) []tag {
 	return res
 }
 
+func registerNf(parser *terminalw.Parser) {
+	parser.On(func(p *terminalw.Parser) bool {
+		return p.ContainsFlagStrict("nf")
+	}).Do(func() {
+		tags := []string{parser.GetFlagValueDefault("nf", "")}
+		tags = append(tags, parser.GetPositionalArgs(true)...)
+		for _, tag := range tags {
+			toggle(false, getObjectIdByTags([]string{tag}, true), finish, parser.ContainsFlagStrict("prev"))
+		}
+	})
+}
+
+func registerF(parser *terminalw.Parser, prefix bool) {
+	parser.On(func(p *terminalw.Parser) bool {
+		return p.ContainsFlagStrict("f")
+	}).Do(func() {
+		tags := []string{parser.GetFlagValueDefault("f", "")}
+		tags = append(tags, parser.GetPositionalArgs(true)...)
+
+		if prefix {
+			for _, tag := range tags {
+				finishRecordsByTags([]string{tag})
+			}
+			return
+		}
+		for _, tag := range tags {
+			toggle(true, getObjectIdByTags([]string{tag}, false), finish, parser.ContainsFlagStrict("prev"))
+		}
+
+	})
+}
+
+func registerOpen(parser *terminalw.Parser, prefix bool) {
+	positional := parser.Positional
+	parser.On(func(p *terminalw.Parser) bool {
+		return positional.Contains("open", nil) || positional.Contains("o", nil)
+	}).Do(func() {
+		positional.Delete("open", nil)
+		positional.Delete("o", nil)
+		listSpecial = true
+		tags := positional.ToStringSlice()
+		isObjectID := false
+		if !positional.Empty() {
+			isObjectID = internal.IsObjectID(tags[0])
+		}
+		// tags 里面可能是 objectid
+		if len(tags) == 1 && isObjectID {
+			objectID, _ := primitive.ObjectIDFromHex(tags[0])
+			r := &record{ID: objectID}
+			r.loadByID()
+			internal.WriteInfo([]*primitive.ObjectID{&r.ID}, []string{r.Title})
+		}
+		if !isObjectID && len(tags) > 0 {
+			if _, written := listRecords(-1, true, true, tags, false, "", prefix); !written {
+				fmt.Printf("there are NO urls associated with tags: %v (prefix: %v)\n", tags, prefix)
+				return
+			}
+		}
+
+		internal.ReadInfo(true)
+	})
+}
+
+func registerCleanTag(parser *terminalw.Parser) {
+	parser.On(func(p *terminalw.Parser) bool {
+		return p.ContainsFlagStrict("clean-tag")
+	}).Do(func() {
+		t := parser.GetFlagValueDefault("clean-tag", "")
+		t = strings.ReplaceAll(t, ",", " ")
+		tags := strw.SplitNoEmpty(t, " ")
+		coloredTags := make([]string, len(tags))
+		if len(tags) == 0 {
+			fmt.Println("empty tags")
+			return
+		}
+		for i := range tags {
+			coloredTags[i] = color.HiRedString(tags[i])
+		}
+		fmt.Println("cleaning tags:", coloredTags)
+		records, _ := listRecords(-1, false, true, tags, true, "", false)
+		// fmt.Println("here", records)
+		for _, record := range records {
+			record.delete()
+		}
+	})
+}
+
+func registerLog(parser *terminalw.Parser) {
+	positional := parser.Positional
+	parser.On(func(p *terminalw.Parser) bool {
+		return positional.Contains("log", nil)
+	}).Do(func() {
+		positional.Delete("log", nil)
+		nextDay := 0
+		var err error
+		if positional.Len() == 1 {
+			if nextDay, err = strconv.Atoi(positional.ToStringSlice()[0]); err != nil {
+				nextDay = 0
+			}
+		}
+
+		tag := time.Now().Add(time.Duration(nextDay * int(time.Hour) * 24)).Format("log.2006-01-02")
+		rs, _ := listRecords(-1, true, true, []string{tag}, false, "", false)
+		if len(rs) > 1 {
+			panic("log failed: ")
+		}
+		if len(rs) == 0 {
+			insert(true, "", tag)
+		} else {
+			parser.Optional.Put("-u", rs[0].ID.Hex())
+			update(parser, false, true, false)
+		}
+	})
+}
+
+func registerWeek(parser *terminalw.Parser) {
+	positional := parser.Positional
+	parser.On(func(p *terminalw.Parser) bool {
+		return positional.Contains("week", nil)
+	}).Do(func() {
+		firstDay := utilsw.GetFirstDayOfThisWeek()
+		now := time.Now()
+		tag := firstDay.Format(fmt.Sprintf("%s.%s", "week", utilsw.DateFormat))
+		rs, _ := listRecords(-1, true, true, []string{tag}, false, "", false)
+		title := bytes.NewBufferString("")
+		newWeekRecord := false
+		if len(rs) > 1 {
+			panic("too many week tags ")
+		}
+		if len(rs) == 0 {
+			rs = []*record{newRecord("", tag)}
+			newWeekRecord = true
+		}
+		for firstDay.Before(now) {
+			dayTag := firstDay.Format(fmt.Sprintf("%s.%s", "log", utilsw.DateFormat))
+			r, _ := listRecords(-1, true, true, []string{dayTag}, false, "", false)
+			if len(r) > 1 {
+				panic("log failed")
+			}
+			if len(r) == 1 {
+				title.WriteString(fmt.Sprintf("-- %s --", firstDay.Format(utilsw.DateFormat)))
+				title.WriteString("\n")
+				title.WriteString(r[0].Title)
+				title.WriteString("\n\n")
+			}
+			firstDay = firstDay.AddDate(0, 0, 1)
+		}
+		rs[0].Title = title.String()
+		if newWeekRecord {
+			rs[0].save(true)
+		} else {
+			rs[0].update(true)
+		}
+	})
+}
+
+func registerMove(parser *terminalw.Parser) {
+	positional := parser.Positional
+	parser.On(func(p *terminalw.Parser) bool {
+		return positional.Contains("move", nil)
+	}).Do(func() {
+		s := positional.ToStringSlice()
+		if len(s) != 3 {
+			fmt.Println(">> re move absFileName type")
+			return
+		}
+		type_, filename := s[2], s[1]
+		logMsg := internal.LogMoveImages(type_, strings.ReplaceAll(filename, "\\\\", "\\"))
+		tag := "move_" + type_
+		rs, _ := listRecords(-1, true, true, []string{tag}, false, "", false)
+		if len(rs) == 0 {
+			newRecord(logMsg, tag).save(false)
+		} else {
+			s := cw.NewOrderedSet()
+			for _, title := range strings.Split(rs[0].Title, "\n") {
+				s.Add(title)
+			}
+			for _, title := range strings.Split(logMsg, "\n") {
+				s.Add(title)
+			}
+			rs[0].Title = strings.Join(s.ToStringSlice(), "\n")
+			rs[0].update(false)
+		}
+	})
+}
+
+func registerListTags(parser *terminalw.Parser, listTagsAndOrderByTime, reverse, verbose bool) {
+	positional := parser.Positional
+
+	parser.On(func(p *terminalw.Parser) bool {
+		return listTagsAndOrderByTime ||
+			parser.ContainsFlagStrict("tags") ||
+			positional.Contains("tags", nil) ||
+			positional.Contains("i", nil) ||
+			positional.Contains("t", nil)
+	}).Do(func() {
+		all := parser.ContainsAnyFlagStrict("a", "all")
+		var tags []tag
+		var w int
+		var err error
+		buf := bytes.NewBufferString("")
+		var cursor *mongo.Cursor
+		var cli *mongo.Client
+		var sortBy = "name"
+		op1 := options.FindOptions{}
+		var m bson.M = bson.M{}
+		var n int64
+		isWindows := utilsw.WINDOWS == utilsw.GetPlatform()
+
+		if all || listTagsAndOrderByTime {
+			allRecords, _ := listRecords(-1, false, !listTagsAndOrderByTime || all, nil, false, "", false)
+
+			// modified date map
+			mtMap := getAllTagsModifiedDate(allRecords)
+			testTags := cw.NewOrderedMap()
+			for _, r := range allRecords {
+				for _, t := range r.Tags {
+					testTags.Put(t, testTags.GetOrDefault(t, 0).(int)+1)
+				}
+			}
+			for it := range testTags.Iter().Iterate() {
+				v := it.Val().(int)
+				t := tag{Name: it.Key().(string), Count: int64(v), modifiedDate: mtMap[it.Key().(string)]}
+				// fmt.Println("here", it.Key().(string), mtMap[it.Key().(string)])
+				tags = append(tags, t)
+			}
+			if listTagsAndOrderByTime {
+				// sort.Sort(tagSlice(tags))
+				sortw.Sort(tags, func(t1, t2 tag) int {
+					if t1.modifiedDate.Before(t2.modifiedDate) {
+						return -1
+					}
+					if t1.modifiedDate.Equal(t2.modifiedDate) {
+						return 0
+					}
+					return 1
+				})
+			}
+			// fmt.Println("tags", tags)
+			goto print
+		}
+		if parser.GetNumArgs() != -1 {
+			n = int64(parser.GetNumArgs())
+		} else {
+			n = 100
+		}
+		op1.SetLimit(n)
+		if reverse {
+			op1.SetSort(bson.M{sortBy: -1})
+		} else {
+			op1.SetSort(bson.M{sortBy: 1})
+		}
+		cli = client
+		if remote.Get().(bool) {
+			cli = atlasClient
+		}
+		if !listSpecial {
+			m["name"] = bson.M{"$regex": primitive.Regex{Pattern: internal.BuildMongoRegularExpExclude(specialTagPatterns)}}
+		}
+		cursor, err = cli.Database(dbName).Collection(tagCollectionName).Find(ctx, m, &op1)
+		if err != nil {
+			panic(err)
+		}
+		cursor.All(ctx, &tags)
+	print:
+		_, w, err = utilsw.GetTerminalSize()
+		// filter records
+		if parser.GetFlagValueDefault("ex", "") != "" {
+			tags = filterTags(tags, utilsw.GetCommandList(parser.MustGetFlagVal("ex")))
+		}
+		for _, tag := range tags {
+			if verbose {
+				tag.Name = color.HiGreenString(tag.Name)
+				printSeperator()
+				fmt.Println(utilsw.ToString(tag))
+			} else {
+				fmt.Fprintf(buf, `%s[%d]  `, tag.Name, tag.Count)
+			}
+		}
+		if !verbose {
+			if err == nil {
+				terminalIndent := 2
+				delimiter := "   "
+				raw := strw.Wrap(buf.String(), w-terminalIndent, terminalIndent, delimiter)
+				for _, line := range strw.SplitNoEmpty(raw, "\n") {
+					arr := strw.SplitNoEmpty(line, " ")
+					changedArr := make([]string, len(arr))
+					for i := range arr {
+						idx := strings.Index(arr[i], "[")
+						if !isWindows {
+							changedArr[i] = fmt.Sprintf("%s%s", color.HiGreenString(arr[i][:idx]), arr[i][idx:])
+						} else { //windows color不能用
+							changedArr[i] = arr[i]
+						}
+					}
+					fmt.Fprintf(color.Output, "%s%s\n", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, delimiter))
+				}
+			} else {
+				panic(err)
+			}
+		}
+		return
+	})
+
+}
+
 func main() {
 	var n int64 = 100
 	parser := terminalw.NewParser()
@@ -968,10 +1264,6 @@ func main() {
 	parser.Bool("a", false, "shortcut for -all")
 	parser.String("f", "", "finish a record")
 	parser.String("nf", "", "set a record UNFINISHED")
-	parser.String("hold", "", "hold a record for later finish")
-	parser.String("unhold", "", "unhold a record (reverse operation for the -hold)")
-	parser.String("p", "", "set a record my problem")
-	parser.String("np", "", "set a record NOT my problem")
 	parser.String("t", "", "search by tags")
 	parser.Bool("include-finished", false, "include finished record")
 	parser.Bool("include-hold", false, "include held record")
@@ -1003,11 +1295,9 @@ func main() {
 	parser.Bool("l", false, "list tags")
 
 	parser.ParseArgsCmd()
-	// fmt.Println(parser.Optional)
-	// default behavior
-	// re
+
 	if parser.Empty() {
-		records, _ := listRecords(n, false, false, false, []string{"todo", "urgent"}, false, "", true, false, true)
+		records, _ := listRecords(n, false, false, []string{"todo", "urgent"}, false, "", true)
 		for _, record := range records {
 			printSeperator()
 			coloringRecord(record, nil)
@@ -1016,12 +1306,15 @@ func main() {
 		}
 		return
 	}
+
+	prefix := parser.ContainsAnyFlagStrict("prefix", "pre", "all", "a")
 	onlyTags = parser.ContainsFlagStrict("s") || parser.CoExists("a", "s")
 
 	positional := parser.Positional
-	prefix := parser.ContainsAnyFlagStrict("prefix", "pre", "all", "a")
-	isWindows := utilsw.WINDOWS == utilsw.GetPlatform()
-	onlyHold := parser.ContainsAnyFlagStrict("onlyhold", "hold")
+	useVsCode = parser.ContainsAllFlagStrict("code")
+	if parser.GetNumArgs() != -1 {
+		n = int64(parser.GetNumArgs())
+	}
 
 	if parser.ContainsFlagStrict("remote") {
 		initAtlas()
@@ -1031,54 +1324,6 @@ func main() {
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
 		return
-	}
-
-	if parser.ContainsAllFlagStrict("code") {
-		useVsCode = true
-	}
-
-	// finish and unfihish
-	if parser.ContainsFlagStrict("f") {
-		if prefix {
-			finishRecordsByTags([]string{parser.GetFlagValueDefault("f", "")})
-			return
-		}
-		toggle(true, getObjectIdByTags([]string{parser.GetFlagValueDefault("f", "")}), finish, parser.ContainsFlagStrict("prev"))
-		return
-	}
-
-	if parser.ContainsFlagStrict("nf") {
-		toggle(false, getObjectIdByTags([]string{parser.GetFlagValueDefault("nf", "")}), finish, parser.ContainsFlagStrict("prev"))
-		return
-	}
-
-	// hold and unhold
-	if parser.GetFlagValueDefault("hold", "") != "" {
-		if prefix {
-			holdRecordsByTags([]string{parser.GetFlagValueDefault("hold", "")})
-			return
-		}
-		toggle(true, getObjectIdByTags([]string{parser.GetFlagValueDefault("hold", "")}), hold, parser.ContainsFlagStrict("prev"))
-		return
-	}
-
-	if parser.ContainsFlagStrict("unhold") {
-		toggle(false, getObjectIdByTags([]string{parser.GetFlagValueDefault("unhold", "")}), hold, parser.ContainsFlagStrict("prev"))
-		return
-	}
-
-	if parser.ContainsFlagStrict("p") {
-		toggle(true, getObjectIdByTags([]string{parser.GetFlagValueDefault("p", "")}), myproblem, parser.ContainsFlagStrict("prev"))
-		return
-	}
-
-	if parser.ContainsFlagStrict("np") {
-		toggle(false, getObjectIdByTags([]string{parser.GetFlagValueDefault("np", "")}), myproblem, parser.ContainsFlagStrict("prev"))
-		return
-	}
-
-	if parser.GetNumArgs() != -1 {
-		n = int64(parser.GetNumArgs())
 	}
 	if parser.ContainsFlagStrict("n") {
 		n = parser.MustGetFlagValAsInt64("n")
@@ -1090,46 +1335,35 @@ func main() {
 	if all {
 		n = math.MaxInt64
 	}
+
 	listSpecial = parser.ContainsFlagStrict("sp") || all
 	reverse := parser.ContainsFlag("r") && !parser.ContainsAnyFlagStrict("prev", "remote", "prefix", "pre")
 	includeFinished := parser.ContainsFlagStrict("include-finished") || all
-	includeHeld := parser.ContainsFlagStrict("include-held") || all
 
 	verbose := parser.ContainsFlagStrict("v")
-	tags := []string{}
 	listTagsAndOrderByTime := internal.OrderByTime(parser)
+	toBinary := parser.ContainsAnyFlagStrict("binary", "b")
+	tags := []string{}
+	if (parser.ContainsFlagStrict("t") || parser.CoExists("t", "a")) && !listTagsAndOrderByTime {
+		tags = strw.SplitNoEmpty(strings.TrimSpace(parser.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
+	}
 	if parser.ContainsFlagStrict("out") {
 		txtOutputName, _ = parser.GetFlagVal("out")
 		if txtOutputName == "" {
 			txtOutputName = defaultTxtOutputName
 		}
 	}
-	toBinary := parser.ContainsAnyFlagStrict("binary", "b")
 
-	if (parser.ContainsFlagStrict("t") || parser.CoExists("t", "a")) && !listTagsAndOrderByTime {
-		tags = strw.SplitNoEmpty(strings.TrimSpace(parser.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
-	}
+	registerNf(parser)
+	registerF(parser, prefix)
+	registerOpen(parser, prefix)
+	registerCleanTag(parser)
+	registerLog(parser)
+	registerWeek(parser)
+	registerMove(parser)
+	registerListTags(parser, listTagsAndOrderByTime, reverse, verbose)
 
-	if parser.ContainsFlagStrict("clean-tag") {
-		t := parser.GetFlagValueDefault("clean-tag", "")
-		t = strings.ReplaceAll(t, ",", " ")
-		tags = strw.SplitNoEmpty(t, " ")
-		coloredTags := make([]string, len(tags))
-		if len(tags) == 0 {
-			fmt.Println("empty tags")
-			return
-		}
-		for i := range tags {
-			coloredTags[i] = color.HiRedString(tags[i])
-		}
-		fmt.Println("cleaning tags:", coloredTags)
-		records, _ := listRecords(-1, reverse, true, true, tags, true, "", false, onlyHold, false)
-		// fmt.Println("here", records)
-		for _, record := range records {
-			record.delete()
-		}
-		return
-	}
+	parser.Execute()
 
 	// list by tag name
 	if (parser.ContainsFlagStrict("t") || parser.CoExists("t", "a")) && !listTagsAndOrderByTime {
@@ -1147,9 +1381,8 @@ func main() {
 			r.loadByID()
 			records = []*record{r}
 		} else {
-			records, _ = listRecords(n, reverse, includeFinished, includeHeld,
-				tags, parser.ContainsFlagStrict("and"), "", parser.ContainsFlag("my") && !all, onlyHold,
-				parser.ContainsAnyFlagStrict("prefix", "pre"))
+			records, _ = listRecords(n, reverse, includeFinished,
+				tags, parser.ContainsFlagStrict("and"), "", parser.ContainsAnyFlagStrict("prefix", "pre"))
 		}
 		if parser.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
@@ -1244,7 +1477,7 @@ func main() {
 		}
 
 		if len(tags) > 0 {
-			if r, _ := listRecords(-1, true, false, false, tags, false, "", true, onlyHold, prefix); len(r) < 1 {
+			if r, _ := listRecords(-1, true, false, tags, false, "", prefix); len(r) < 1 {
 				fmt.Println(color.YellowString("no records associated with the tags (%v: prefix: %v) found", tags, prefix))
 				return
 			}
@@ -1302,114 +1535,6 @@ func main() {
 		syncByID(parser.GetFlagValueDefault("pull", ""), false, true)
 		return
 	}
-	// list tags, i stands for 'information'
-	if listTagsAndOrderByTime || parser.ContainsFlagStrict("tags") || positional.Contains("tags", nil) || positional.Contains("i", nil) || positional.Contains("t", nil) {
-		all = parser.ContainsAnyFlagStrict("a", "all")
-		var tags []tag
-		var w int
-		var err error
-		buf := bytes.NewBufferString("")
-		var cursor *mongo.Cursor
-		var cli *mongo.Client
-		var sortBy = "name"
-		op1 := options.FindOptions{}
-		var m bson.M = bson.M{}
-
-		if all || listTagsAndOrderByTime {
-			allRecords, _ := listRecords(-1, false, !listTagsAndOrderByTime || all, !listTagsAndOrderByTime || all,
-				nil, false, "", false, onlyHold, false)
-
-			// modified date map
-			mtMap := getAllTagsModifiedDate(allRecords)
-			testTags := cw.NewOrderedMap()
-			for _, r := range allRecords {
-				for _, t := range r.Tags {
-					testTags.Put(t, testTags.GetOrDefault(t, 0).(int)+1)
-				}
-			}
-			for it := range testTags.Iter().Iterate() {
-				v := it.Val().(int)
-				t := tag{Name: it.Key().(string), Count: int64(v), modifiedDate: mtMap[it.Key().(string)]}
-				// fmt.Println("here", it.Key().(string), mtMap[it.Key().(string)])
-				tags = append(tags, t)
-			}
-			if listTagsAndOrderByTime {
-				// sort.Sort(tagSlice(tags))
-				sortw.Sort(tags, func(t1, t2 tag) int {
-					if t1.modifiedDate.Before(t2.modifiedDate) {
-						return -1
-					}
-					if t1.modifiedDate.Equal(t2.modifiedDate) {
-						return 0
-					}
-					return 1
-				})
-			}
-			// fmt.Println("tags", tags)
-			goto print
-		}
-		if parser.GetNumArgs() != -1 {
-			n = int64(parser.GetNumArgs())
-		} else {
-			n = 100
-		}
-		op1.SetLimit(n)
-		if reverse {
-			op1.SetSort(bson.M{sortBy: -1})
-		} else {
-			op1.SetSort(bson.M{sortBy: 1})
-		}
-		cli = client
-		if remote.Get().(bool) {
-			cli = atlasClient
-		}
-		if !listSpecial {
-			m["name"] = bson.M{"$regex": primitive.Regex{Pattern: internal.BuildMongoRegularExpExclude(specialTagPatterns)}}
-		}
-		cursor, err = cli.Database(dbName).Collection(tagCollectionName).Find(ctx, m, &op1)
-		if err != nil {
-			panic(err)
-		}
-		cursor.All(ctx, &tags)
-	print:
-		_, w, err = utilsw.GetTerminalSize()
-		// filter records
-		if parser.GetFlagValueDefault("ex", "") != "" {
-			tags = filterTags(tags, utilsw.GetCommandList(parser.MustGetFlagVal("ex")))
-		}
-		for _, tag := range tags {
-			if verbose {
-				tag.Name = color.HiGreenString(tag.Name)
-				printSeperator()
-				fmt.Println(utilsw.ToString(tag))
-			} else {
-				fmt.Fprintf(buf, `%s[%d]  `, tag.Name, tag.Count)
-			}
-		}
-		if !verbose {
-			if err == nil {
-				terminalIndent := 2
-				delimiter := "   "
-				raw := strw.Wrap(buf.String(), w-terminalIndent, terminalIndent, delimiter)
-				for _, line := range strw.SplitNoEmpty(raw, "\n") {
-					arr := strw.SplitNoEmpty(line, " ")
-					changedArr := make([]string, len(arr))
-					for i := range arr {
-						idx := strings.Index(arr[i], "[")
-						if !isWindows {
-							changedArr[i] = fmt.Sprintf("%s%s", color.HiGreenString(arr[i][:idx]), arr[i][idx:])
-						} else { //windows color不能用
-							changedArr[i] = arr[i]
-						}
-					}
-					fmt.Fprintf(color.Output, "%s%s\n", strings.Repeat(" ", terminalIndent), strings.Join(changedArr, delimiter))
-				}
-			} else {
-				panic(err)
-			}
-		}
-		return
-	}
 
 	// list by title search
 	if parser.ContainsFlagStrict("title") || parser.ContainsFlagStrict("c") {
@@ -1417,8 +1542,7 @@ func main() {
 		if title == "" {
 			title = parser.GetFlagValueDefault("c", "")
 		}
-		records, _ := listRecords(n, reverse, includeFinished, includeHeld,
-			tags, parser.ContainsFlagStrict("and"), title, parser.ContainsFlag("my") || all, onlyHold, prefix)
+		records, _ := listRecords(n, reverse, includeFinished, tags, parser.ContainsFlagStrict("and"), title, prefix)
 
 		if parser.ContainsFlagStrict("count") {
 			fmt.Printf("%d records found\n", len(records))
@@ -1453,122 +1577,5 @@ func main() {
 			}
 		}
 		return
-	}
-	if positional.Contains("open", nil) || positional.Contains("o", nil) {
-		positional.Delete("open", nil)
-		positional.Delete("o", nil)
-		listSpecial = true
-		tags := positional.ToStringSlice()
-		isObjectID := false
-		if !positional.Empty() {
-			isObjectID = internal.IsObjectID(tags[0])
-		}
-		// tags 里面可能是 objectid
-		if len(tags) == 1 && isObjectID {
-			objectID, _ := primitive.ObjectIDFromHex(tags[0])
-			r := &record{ID: objectID}
-			r.loadByID()
-			internal.WriteInfo([]*primitive.ObjectID{&r.ID}, []string{r.Title})
-		}
-		if !isObjectID && len(tags) > 0 {
-			if _, written := listRecords(-1, true, true, true, tags, false, "", false, onlyHold, prefix); !written {
-				fmt.Printf("there are NO urls associated with tags: %v (prefix: %v)\n", tags, prefix)
-				return
-			}
-		}
-
-		internal.ReadInfo(true)
-		return
-	}
-
-	// log everyday work
-	if positional.Contains("log", nil) {
-		positional.Delete("log", nil)
-		nextDay := 0
-		var err error
-		if positional.Len() == 1 {
-			if nextDay, err = strconv.Atoi(positional.ToStringSlice()[0]); err != nil {
-				nextDay = 0
-			}
-		}
-
-		tag := time.Now().Add(time.Duration(nextDay * int(time.Hour) * 24)).Format("log.2006-01-02")
-		rs, _ := listRecords(-1, true, true, true, []string{tag}, false, "", false, false, false)
-		if len(rs) > 1 {
-			panic("log failed: ")
-		}
-		if len(rs) == 0 {
-			insert(true, "", tag)
-		} else {
-			parser.Optional.Put("-u", rs[0].ID.Hex())
-			update(parser, false, true, false)
-		}
-		return
-	}
-
-	// log week work
-	if positional.Contains("week", nil) {
-		// merge from log.yyyy-MM-dd
-		firstDay := utilsw.GetFirstDayOfThisWeek()
-		now := time.Now()
-		tag := firstDay.Format(fmt.Sprintf("%s.%s", "week", utilsw.DateFormat))
-		rs, _ := listRecords(-1, true, true, true, []string{tag}, false, "", false, false, false)
-		title := bytes.NewBufferString("")
-		newWeekRecord := false
-		if len(rs) > 1 {
-			panic("too many week tags ")
-		}
-		if len(rs) == 0 {
-			rs = []*record{newRecord("", tag)}
-			newWeekRecord = true
-		}
-		for firstDay.Before(now) {
-			dayTag := firstDay.Format(fmt.Sprintf("%s.%s", "log", utilsw.DateFormat))
-			r, _ := listRecords(-1, true, true, true, []string{dayTag}, false, "", false, false, false)
-			if len(r) > 1 {
-				panic("log failed")
-			}
-			if len(r) == 1 {
-				title.WriteString(fmt.Sprintf("-- %s --", firstDay.Format(utilsw.DateFormat)))
-				title.WriteString("\n")
-				title.WriteString(r[0].Title)
-				title.WriteString("\n\n")
-			}
-			firstDay = firstDay.AddDate(0, 0, 1)
-		}
-		rs[0].Title = title.String()
-		if newWeekRecord {
-			rs[0].save(true)
-		} else {
-			rs[0].update(true)
-		}
-		return
-	}
-
-	// clean (move) images
-	if positional.Contains("move", nil) {
-		s := positional.ToStringSlice()
-		if len(s) != 3 {
-			fmt.Println(">> re move absFileName type")
-			return
-		}
-		type_, filename := s[2], s[1]
-		logMsg := internal.LogMoveImages(type_, strings.ReplaceAll(filename, "\\\\", "\\"))
-		tag := "move_" + type_
-		rs, _ := listRecords(-1, true, true, true, []string{tag}, false, "", false, false, false)
-		if len(rs) == 0 {
-			newRecord(logMsg, tag).save(false)
-		} else {
-			s := cw.NewOrderedSet()
-			for _, title := range strings.Split(rs[0].Title, "\n") {
-				s.Add(title)
-			}
-			for _, title := range strings.Split(logMsg, "\n") {
-				s.Add(title)
-			}
-			rs[0].Title = strings.Join(s.ToStringSlice(), "\n")
-			rs[0].update(false)
-		}
-
 	}
 }

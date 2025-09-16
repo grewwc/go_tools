@@ -157,6 +157,10 @@ func buildMessageArr(n int) []Message {
 			continue
 		}
 		role, content := arr[len(arr)-2], arr[len(arr)-1]
+		// invalid role / content
+		if strings.ContainsRune(role, colon) || strings.ContainsRune(content, colon) {
+			continue
+		}
 		result = append(result, Message{
 			Role:    role,
 			Content: content,
