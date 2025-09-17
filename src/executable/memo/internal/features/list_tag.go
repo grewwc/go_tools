@@ -118,7 +118,7 @@ func RegisterListTags(parser *terminalw.Parser) {
 						idx := strings.Index(arr[i], "[")
 						if !isWindows {
 							changedArr[i] = fmt.Sprintf("%s%s", color.HiGreenString(arr[i][:idx]), arr[i][idx:])
-						} else { //windows color不能用
+						} else { //not working on windows
 							changedArr[i] = arr[i]
 						}
 					}
@@ -128,7 +128,6 @@ func RegisterListTags(parser *terminalw.Parser) {
 				panic(err)
 			}
 		}
-		return
 	})
 
 }

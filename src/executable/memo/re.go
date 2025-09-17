@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/executable/memo/internal"
 	"github.com/grewwc/go_tools/src/executable/memo/internal/features"
 
@@ -58,18 +57,6 @@ func main() {
 	parser.Bool("l", false, "list tags")
 
 	parser.ParseArgsCmd()
-
-	if parser.Empty() {
-		records, _ := internal.ListRecords(n, false, false, []string{"todo", "urgent"}, false, "", true)
-		for _, record := range records {
-			internal.PrintSeperator()
-			internal.ColoringRecord(record, nil)
-			fmt.Println(record)
-			fmt.Println(color.HiRedString(record.ID.String()))
-		}
-		return
-	}
-
 	internal.Prefix = parser.ContainsAnyFlagStrict("prefix", "pre", "all", "a")
 	internal.OnlyTags = parser.ContainsFlagStrict("s") || parser.CoExists("a", "s")
 
@@ -110,7 +97,7 @@ func main() {
 			internal.TxtOutputName = internal.DefaultTxtOutputName
 		}
 	}
-
+	features.RegisterDefault(parser)
 	features.RegisterNf(parser)
 	features.RegisterF(parser)
 	features.RegisterOpen(parser)
