@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-	var n int64 = 100
 	parser := terminalw.NewParser()
 	parser.Bool("i", false, "insert a record")
 	parser.String("ct", "", "change a record title")
