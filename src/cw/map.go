@@ -3,25 +3,25 @@ package cw
 import "github.com/grewwc/go_tools/src/typesw"
 
 type Map[K, V any] struct {
-	data map[any]any
+	data map[any]V
 }
 
 func NewMap[K, V any]() *Map[K, V] {
 	return &Map[K, V]{
-		data: make(map[any]any),
+		data: make(map[any]V),
 	}
 }
 
 func (m *Map[K, V]) Get(key K) V {
 	if val, ok := m.data[key]; ok {
-		return val.(V)
+		return val
 	}
 	return *new(V)
 }
 
 func (m *Map[K, V]) GetOrDefault(key K, defaultVal V) V {
 	if val, ok := m.data[key]; ok {
-		return val.(V)
+		return val
 	}
 	return defaultVal
 }
@@ -84,7 +84,7 @@ func (m *Map[K, V]) DeleteAll(keys ...K) {
 }
 
 func (m *Map[K, V]) Iter() typesw.IterableT[K] {
-	return &interfaceKeyMapIterator[K, interface{}]{
+	return &interfaceKeyMapIterator[K, V]{
 		data: m.data,
 	}
 }
@@ -94,7 +94,7 @@ func (m *Map[K, V]) IterEntry() typesw.IterableT[typesw.IMapEntry[K, V]] {
 		ch := make(chan typesw.IMapEntry[K, V])
 		go func() {
 			for k, v := range m.data {
-				ch <- &MapEntry[K, V]{k.(K), v.(V)}
+				ch <- &MapEntry[K, V]{k.(K), v}
 			}
 			close(ch)
 		}()
@@ -112,5 +112,5 @@ func (m *Map[K, V]) ReverseKV() *Map[V, K] {
 }
 
 func (m *Map[K, V]) Clear() {
-	m.data = make(map[any]any)
+	m.data = make(map[any]V)
 }
