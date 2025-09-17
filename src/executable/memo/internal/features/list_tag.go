@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/executable/memo/internal"
 	"github.com/grewwc/go_tools/src/sortw"
@@ -61,16 +62,20 @@ func RegisterListTags(parser *terminalw.Parser) {
 			if internal.ListTagsAndOrderByTime {
 				// sort.Sort(tagSlice(tags))
 				sortw.Sort(tags, func(t1, t2 internal.Tag) int {
+					var res = 0
 					if t1.ModifiedDate.Before(t2.ModifiedDate) {
-						return -1
+						res = -1
+					} else if t1.ModifiedDate.Equal(t2.ModifiedDate) {
+						res = 0
+					} else {
+						res = 1
 					}
-					if t1.ModifiedDate.Equal(t2.ModifiedDate) {
-						return 0
+					if internal.Reverse {
+						res *= -1
 					}
-					return 1
 				})
 			}
-			tags = tags[:internal.RecordLimit]
+			tags = tags[:algow.Min(int(internal.RecordLimit), len(tags))]
 			// fmt.Println("tags", tags)
 			goto print
 		}
