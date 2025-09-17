@@ -111,7 +111,6 @@ func action(parser *terminalw.Parser) {
 		}
 		utilsw.TimeoutWait(&wg, 30*time.Second)
 	}
-	return
 }
 
 func RegisterListByTagName(parser *terminalw.Parser) {

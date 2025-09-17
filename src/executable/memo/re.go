@@ -127,6 +127,7 @@ func main() {
 	features.RegisterDelTag(parser)
 	features.RegisterPush(parser)
 	features.RegisterPull(parser)
+	features.RegisterListByTagName(parser)
 	features.RegisterListByTitle(parser)
 
 	parser.Execute()
