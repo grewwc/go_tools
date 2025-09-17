@@ -65,7 +65,7 @@ var (
 var (
 	uri           string
 	clientOptions = &options.ClientOptions{}
-	Ctx           context.Context
+	ctx           context.Context
 	Client        *mongo.Client
 	AtlasClient   *mongo.Client
 )
@@ -94,15 +94,15 @@ func InitRemote() {
 	atlasURI := m.GetOrDefault(atlasMongoConfigName, "").(string)
 	if atlasURI != "" {
 		clientOptions = options.Client().ApplyURI(atlasURI)
-		AtlasClient, err = mongo.Connect(Ctx, clientOptions)
+		AtlasClient, err = mongo.Connect(ctx, clientOptions)
 		if err != nil {
 			panic(err)
 		}
 	}
 	// check if tags and memo collections exists
 	db := AtlasClient.Database(DbName)
-	if !CollectionExists(db, Ctx, TagCollectionName) {
-		db.Collection(TagCollectionName).Indexes().CreateOne(Ctx, mongo.IndexModel{
+	if !CollectionExists(db, ctx, TagCollectionName) {
+		db.Collection(TagCollectionName).Indexes().CreateOne(ctx, mongo.IndexModel{
 			Keys:    bson.D{bson.DocElem{Name: "name", Value: "text"}}.Map(),
 			Options: options.Index().SetUnique(true),
 		})
@@ -124,10 +124,10 @@ func init() {
 	}
 
 	// init client
-	Ctx = context.Background()
+	ctx = context.Background()
 	clientOptions.SetMaxPoolSize(10)
 	var err error
-	Client, err = mongo.Connect(Ctx, clientOptions)
+	Client, err = mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		panic(err)
 	}
@@ -189,16 +189,16 @@ func ListRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 		m["title"] = bson.M{"$regex": primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", title), Options: "i"}}
 	}
 
-	cursor, err := collection.Find(Ctx, m, addDateOption, modifiedDataOption)
+	cursor, err := collection.Find(ctx, m, addDateOption, modifiedDataOption)
 	if err != nil {
 		panic(err)
 	}
 	var res []*Record
-	if err = cursor.All(Ctx, &res); err != nil {
+	if err = cursor.All(ctx, &res); err != nil {
 		panic(err)
 	}
 	// filter by special tags
-	// fmt.Println("here", listSpecial, tags)
+	// fmt.Println("here", res)
 	if !ListSpecial {
 		resCopy := make([]*Record, 0, len(res))
 		for _, r := range res {
@@ -254,20 +254,20 @@ func incrementTagCount(db *mongo.Database, tags []string, val int) {
 	}
 
 	for _, tag := range tags {
-		_, err = db.Collection(TagCollectionName).UpdateOne(Ctx,
+		_, err = db.Collection(TagCollectionName).UpdateOne(ctx,
 			bson.M{"name": tag},
 			bson.M{"$inc": bson.M{"count": val}}, options.Update().SetUpsert(true))
 		if err != nil {
-			session.AbortTransaction(Ctx)
+			session.AbortTransaction(ctx)
 			panic(err)
 		}
 	}
 
-	if _, err := db.Collection(TagCollectionName).DeleteMany(Ctx, bson.M{"count": bson.M{"$lt": 1}}); err != nil {
-		session.AbortTransaction(Ctx)
+	if _, err := db.Collection(TagCollectionName).DeleteMany(ctx, bson.M{"count": bson.M{"$lt": 1}}); err != nil {
+		session.AbortTransaction(ctx)
 		panic(err)
 	}
-	session.CommitTransaction(Ctx)
+	session.CommitTransaction(ctx)
 }
 
 func Update(parser *terminalw.Parser, fromFile bool, fromEditor bool, prev bool) {
@@ -711,7 +711,7 @@ func SyncByID(id string, push, quiet bool) {
 		r.LoadByID()
 	}
 
-	if err = remoteClient.Database(DbName).Collection(CollectionName).FindOne(Ctx, bson.M{"_id": hexID}).Err(); err != nil && err != mongo.ErrNoDocuments {
+	if err = remoteClient.Database(DbName).Collection(CollectionName).FindOne(ctx, bson.M{"_id": hexID}).Err(); err != nil && err != mongo.ErrNoDocuments {
 		panic(err)
 	}
 

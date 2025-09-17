@@ -70,6 +70,7 @@ func RegisterListTags(parser *terminalw.Parser) {
 					return 1
 				})
 			}
+			tags = tags[:internal.RecordLimit]
 			// fmt.Println("tags", tags)
 			goto print
 		}

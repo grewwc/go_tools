@@ -83,7 +83,7 @@ func (r *Record) do(action string, options ...string) {
 	}
 	switch action {
 	case "load":
-		if err = collection.FindOne(Ctx, bson.M{"_id": r.ID}).Decode(r); err != nil {
+		if err = collection.FindOne(ctx, bson.M{"_id": r.ID}).Decode(r); err != nil {
 			panic(err)
 		}
 
@@ -105,25 +105,25 @@ func (r *Record) do(action string, options ...string) {
 			r.ModifiedDate = time.Now()
 		}
 		if _, err = collection.InsertOne(context.Background(), r); err != nil {
-			session.AbortTransaction(Ctx)
+			session.AbortTransaction(ctx)
 			panic(err)
 		}
 		incrementTagCount(db, r.Tags, 1)
 	case "delete":
-		if _, err = collection.DeleteOne(Ctx, bson.M{"_id": r.ID}); err != nil {
-			session.AbortTransaction(Ctx)
+		if _, err = collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
+			session.AbortTransaction(ctx)
 			panic(err)
 		}
 		incrementTagCount(db, r.Tags, -1)
 	case "deleteByID":
-		if _, err = collection.DeleteOne(Ctx, bson.M{"_id": r.ID}); err != nil {
-			session.AbortTransaction(Ctx)
+		if _, err = collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
+			session.AbortTransaction(ctx)
 			panic(err)
 		}
 		incrementTagCount(db, r.Tags, -1)
 	case "update":
-		if _, err = collection.UpdateOne(Ctx, bson.M{"_id": r.ID}, bson.M{"$set": r}); err != nil {
-			session.AbortTransaction(Ctx)
+		if _, err = collection.UpdateOne(ctx, bson.M{"_id": r.ID}, bson.M{"$set": r}); err != nil {
+			session.AbortTransaction(ctx)
 			panic(err)
 		}
 
@@ -131,7 +131,7 @@ func (r *Record) do(action string, options ...string) {
 		panic("unknow action " + action)
 	}
 
-	if err = session.CommitTransaction(Ctx); err != nil {
+	if err = session.CommitTransaction(ctx); err != nil {
 		panic(err)
 	}
 }
