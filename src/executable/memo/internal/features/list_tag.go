@@ -73,6 +73,7 @@ func RegisterListTags(parser *terminalw.Parser) {
 					if internal.Reverse {
 						res *= -1
 					}
+					return res
 				})
 			}
 			tags = tags[:algow.Min(int(internal.RecordLimit), len(tags))]
