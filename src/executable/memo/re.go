@@ -73,14 +73,14 @@ func main() {
 		return
 	}
 	if parser.ContainsFlagStrict("n") {
-		n = parser.MustGetFlagValAsInt64("n")
+		internal.RecordLimit = parser.MustGetFlagValAsInt64("n")
 	}
 
 	all := parser.ContainsFlagStrict("all") || (parser.ContainsFlag("a") &&
 		!parser.ContainsFlagStrict("add-tag") && !parser.ContainsFlagStrict("del-tag") &&
 		!parser.ContainsFlagStrict("tags")) && !parser.ContainsFlagStrict("binary")
 	if all {
-		n = math.MaxInt64
+		internal.RecordLimit = math.MaxInt64
 	}
 
 	internal.ListSpecial = parser.ContainsFlagStrict("sp") || all
