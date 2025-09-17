@@ -28,6 +28,9 @@ func (l *SyncStack[T]) Push(val T) {
 }
 
 func (l *SyncStack[T]) push(node *ListNode[T]) {
+	if node == nil {
+		return
+	}
 	for {
 		addr := unsafe.Pointer(&l.head.next)
 		head := atomic.LoadPointer((*unsafe.Pointer)(addr))
