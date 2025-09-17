@@ -37,6 +37,12 @@ func SplitNoEmpty(str, sep string) []string {
 //
 //	[]string: a slice of strings split by the separator, excluding quotes
 func SplitByStrKeepQuotes(str string, sep string, symbols string, keepSymbol bool) []string {
+	precheck := func(symbols *cw.SetT[rune], sep string) {
+		for _, r := range sep {
+			symbols.Delete(r)
+		}
+	}
+
 	var res []string
 	sepBytes := typesw.StrToBytes(sep)
 	inquote := false
@@ -46,6 +52,11 @@ func SplitByStrKeepQuotes(str string, sep string, symbols string, keepSymbol boo
 	s := cw.NewSetT[rune]()
 	for _, r := range symbols {
 		s.Add(r)
+	}
+
+	precheck(s, sep)
+	if s.Len() == 0 {
+		return []string{str}
 	}
 
 	for i, r := range str {
@@ -66,7 +77,7 @@ func SplitByStrKeepQuotes(str string, sep string, symbols string, keepSymbol boo
 				if !inquote {
 					// Extract content before separator and add to result
 					content := buf.String()[:buf.Len()-len(sep)]
-					// fmt.Println("===>", content, buf.String())
+					// fmt.Printf("===>|%s|, |%s|, %d \n", content, buf.String(), buf.Len())
 					if content != "" {
 						res = append(res, content)
 					}

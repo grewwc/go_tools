@@ -205,13 +205,17 @@ func GetCommandList(cmd string) []string {
 }
 
 func RunCmd(cmd string, stdin io.Reader) (string, error) {
-	l := strw.SplitByStrKeepQuotes(cmd, " ", `"'`, true)
+	l := strw.SplitByStrKeepQuotes(cmd, " ", `"'`, false)
 	if len(l) < 1 {
 		fmt.Println("cmd is empty")
 		return "", errors.New("cmd is empty")
 	}
 	if stdin == nil {
 		stdin = os.Stdin
+	}
+	// trim all spaces
+	for i := range l {
+		l[i] = strings.TrimSpace(l[i])
 	}
 	var buf bytes.Buffer
 	command := exec.Command(l[0], l[1:]...)
