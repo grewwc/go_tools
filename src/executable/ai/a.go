@@ -147,7 +147,7 @@ func buildMessageArr(n int) []Message {
 	}
 	history := utilsw.ReadString(historyFile)
 	result := make([]Message, 0)
-	lines := strw.SplitNoEmptyPreserveQuote(history, newline, `"`, true)
+	lines := strw.SplitByStrKeepQuotes(history, string(newline), `"`, true)
 	for _, line := range lines {
 		if line == "" {
 			continue

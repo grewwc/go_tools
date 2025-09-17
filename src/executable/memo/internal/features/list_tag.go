@@ -2,6 +2,7 @@ package features
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 
@@ -38,7 +39,7 @@ func RegisterListTags(parser *terminalw.Parser) {
 		var sortBy = "name"
 		op1 := options.FindOptions{}
 		var m bson.M = bson.M{}
-		var n int64
+		ctx := context.Background()
 		isWindows := utilsw.WINDOWS == utilsw.GetPlatform()
 
 		if all || internal.ListTagsAndOrderByTime {
@@ -46,16 +47,15 @@ func RegisterListTags(parser *terminalw.Parser) {
 
 			// modified date map
 			mtMap := internal.GetAllTagsModifiedDate(allRecords)
-			testTags := cw.NewOrderedMap()
+			testTags := cw.NewOrderedMapT[string, int]()
 			for _, r := range allRecords {
 				for _, t := range r.Tags {
-					testTags.Put(t, testTags.GetOrDefault(t, 0).(int)+1)
+					testTags.Put(t, testTags.GetOrDefault(t, 0)+1)
 				}
 			}
 			for it := range testTags.Iter().Iterate() {
-				v := it.Val().(int)
-				t := internal.Tag{Name: it.Key().(string), Count: int64(v), ModifiedDate: mtMap[it.Key().(string)]}
-				// fmt.Println("here", it.Key().(string), mtMap[it.Key().(string)])
+				v := it.Val()
+				t := internal.Tag{Name: it.Key(), Count: int64(v), ModifiedDate: mtMap[it.Key()]}
 				tags = append(tags, t)
 			}
 			if internal.ListTagsAndOrderByTime {
@@ -73,12 +73,7 @@ func RegisterListTags(parser *terminalw.Parser) {
 			// fmt.Println("tags", tags)
 			goto print
 		}
-		if parser.GetNumArgs() != -1 {
-			n = int64(parser.GetNumArgs())
-		} else {
-			n = 100
-		}
-		op1.SetLimit(n)
+		op1.SetLimit(internal.RecordLimit)
 		if internal.Reverse {
 			op1.SetSort(bson.M{sortBy: -1})
 		} else {
@@ -91,11 +86,11 @@ func RegisterListTags(parser *terminalw.Parser) {
 		if !internal.ListSpecial {
 			m["name"] = bson.M{"$regex": primitive.Regex{Pattern: internal.BuildMongoRegularExpExclude(internal.SpecialTagPatterns)}}
 		}
-		cursor, err = cli.Database(internal.DbName).Collection(internal.TagCollectionName).Find(internal.Ctx, m, &op1)
+		cursor, err = cli.Database(internal.DbName).Collection(internal.TagCollectionName).Find(ctx, m, &op1)
 		if err != nil {
 			panic(err)
 		}
-		cursor.All(internal.Ctx, &tags)
+		cursor.All(ctx, &tags)
 	print:
 		_, w, err = utilsw.GetTerminalSize()
 		// filter records

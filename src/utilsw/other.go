@@ -205,7 +205,7 @@ func GetCommandList(cmd string) []string {
 }
 
 func RunCmd(cmd string, stdin io.Reader) (string, error) {
-	l := strw.SplitNoEmptyPreserveQuote(cmd, ' ', `"'`, false)
+	l := strw.SplitByStrKeepQuotes(cmd, " ", `"'`, false)
 	if len(l) < 1 {
 		fmt.Println("cmd is empty")
 		return "", errors.New("cmd is empty")

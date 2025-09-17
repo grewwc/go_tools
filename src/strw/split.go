@@ -26,69 +26,56 @@ func SplitNoEmpty(str, sep string) []string {
 	return res
 }
 
-// SplitNoEmptyPreserveQuote keep content in quote intact
-func SplitNoEmptyPreserveQuote(str string, sep rune, symbols string, keepSymbol bool) []string {
-	inQuote := false
-	var res []string
-	var word strings.Builder
-	if str == "" {
-		return res
-	}
-	s := cw.NewSetT[rune]()
-	for _, symbol := range symbols {
-		s.Add(symbol)
-	}
-	for _, ch := range str {
-		if s.Contains(ch) {
-			inQuote = !inQuote
-			if keepSymbol {
-				word.WriteRune(ch)
-			}
-		} else if ch != sep || inQuote {
-			word.WriteRune(ch)
-		} else if word.Len() != 0 {
-			res = append(res, word.String())
-			word.Reset()
-		}
-	}
-	if word.Len() != 0 {
-		res = append(res, word.String())
-	}
-	return res
-}
-
-// SplitByStrKeepQuote keep content in quote intact
-func SplitByStrKeepQuote(str string, sep string) []string {
+// SplitByStrKeepQuotes splits a string by a string separator while preserving quoted content
+//
+// Parameters:
+//
+//	str: the string to split
+//	sep: the string separator to use for splitting
+//
+// Returns:
+//
+//	[]string: a slice of strings split by the separator, excluding quotes
+func SplitByStrKeepQuotes(str string, sep string, symbols string, keepSymbol bool) []string {
 	var res []string
 	sepBytes := typesw.StrToBytes(sep)
-	// var buf bytes.Buffer
 	inquote := false
 	var buf bytes.Buffer
-	// var curr bytes.Buffer
 	var prev byte
+
+	s := cw.NewSetT[rune]()
+	for _, r := range symbols {
+		s.Add(r)
+	}
+
 	for i, r := range str {
 		if i > 0 {
 			prev = str[i-1]
 		}
-		if r == '"' && prev != '\\' {
+		// Toggle quote state when encountering unescaped quote
+		if s.Contains(r) && prev != '\\' {
 			inquote = !inquote
-			buf.WriteRune(r)
+			if keepSymbol {
+				buf.WriteRune(r)
+			}
 		} else {
+			buf.WriteRune(r)
+			// Check if buffer ends with separator
 			if buf.Len() > len(sep) && bytes.Equal(buf.Bytes()[buf.Len()-len(sep):], sepBytes) {
-				if inquote {
-					buf.WriteRune(r)
-				} else {
+				// If inside quotes, just add the rune to buffer
+				if !inquote {
+					// Extract content before separator and add to result
 					content := buf.String()[:buf.Len()-len(sep)]
+					// fmt.Println("===>", content, buf.String())
 					if content != "" {
 						res = append(res, content)
 					}
 					buf.Reset()
 				}
-			} else {
-				buf.WriteRune(r)
 			}
 		}
 	}
+	// Add remaining content to result
 	if buf.Len() > 0 {
 		res = append(res, buf.String())
 	}

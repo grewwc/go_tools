@@ -477,7 +477,7 @@ func (r *Parser) ParseArgsCmd(boolOptionals ...string) {
 // cmd contains the Programs itself
 func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 	r.cmd = cmd
-	cmdSlice := strw.SplitNoEmptyPreserveQuote(cmd, ' ', fmt.Sprintf(`"'%c`, quote), true)
+	cmdSlice := strw.SplitByStrKeepQuotes(cmd, " ", fmt.Sprintf(`"'%c`, quote), true)
 	args := make([]string, 0, len(cmdSlice))
 
 	for _, option := range boolOptionals {

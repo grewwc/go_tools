@@ -20,7 +20,7 @@ func (f *CommentsFilter) Accept(b []byte) ([]byte, bool) {
 		if (strings.Count(line, `"`)-strings.Count(line, `\"`))%2 == 1 {
 			return b, true
 		}
-		parts := strw.SplitByStrKeepQuote(line, "//")
+		parts := strw.SplitByStrKeepQuotes(line, "//", `"`, true)
 		if len(parts) == 0 {
 			continue
 		}
