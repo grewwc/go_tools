@@ -8,15 +8,15 @@ var _cache_map *cw.ConcurrentHashMap[func(...any) any, *cw.LruCache] = cw.NewCon
 	nil, nil,
 )
 
-func WithCache[T any](maxSize uint, key any, f func(...any) any, args ...any) T {
-	cache := _cache_map.GetOrDefault(f, cw.NewLruCache(maxSize))
+func WithCache[returnType any](cacheSize uint, cacheKey any, f func(...any) any, args ...any) returnType {
+	cache := _cache_map.GetOrDefault(f, cw.NewLruCache(cacheSize))
 	_cache_map.PutIfAbsent(f, cache)
-	prev := cache.Get(key)
+	prev := cache.Get(cacheKey)
 	if prev == nil {
 		res := f(args...)
-		cache.Put(key, res)
-		return res.(T)
+		cache.Put(cacheKey, res)
+		return res.(returnType)
 	}
 
-	return prev.(T)
+	return prev.(returnType)
 }
