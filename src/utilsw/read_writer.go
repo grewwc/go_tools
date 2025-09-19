@@ -153,11 +153,12 @@ func MultiFilterReader(src io.Reader, filters ...BytesFilter) io.ReadCloser {
 		}
 
 		if buf.Len() > 0 {
+			accept := buf.Bytes()
 			for _, filter := range filters {
-				accept, _ := filter.Accept(buf.Bytes())
+				accept, _ = filter.Accept(buf.Bytes())
 				// fmt.Println("final", buf.String())
-				pw.Write(accept)
 			}
+			pw.Write(accept)
 		}
 	}()
 
