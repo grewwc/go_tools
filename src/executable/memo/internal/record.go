@@ -20,6 +20,8 @@ type Record struct {
 	Finished     bool               `bson:"finished,ignoreempty" json:"finished,omitempty"`
 	Hold         bool               `bson:"hold,ignoreempty" json:"hold,omitempty"`
 	Title        string             `bson:"title,ignoreempty" json:"title,omitempty"`
+
+	Invalid bool
 }
 
 func (r *Record) String() string {
@@ -84,7 +86,11 @@ func (r *Record) do(action string, options ...string) {
 	switch action {
 	case "load":
 		if err = collection.FindOne(ctx, bson.M{"_id": r.ID}).Decode(r); err != nil {
-			panic(err)
+			if err != mongo.ErrNoDocuments {
+				panic(err)
+			} else {
+				r.Invalid = true
+			}
 		}
 
 	case "save":

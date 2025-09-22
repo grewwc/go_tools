@@ -31,6 +31,9 @@ func action(parser *terminalw.Parser) {
 		}
 		r := &internal.Record{ID: id}
 		r.LoadByID()
+		if r.Invalid {
+			return
+		}
 		records = []*internal.Record{r}
 	} else {
 		records, _ = internal.ListRecords(internal.RecordLimit, internal.Reverse, internal.IncludeFinished,

@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	DateFormat     = "2006-01-02"
-	TimeFormat     = "15:04:05"
-	DateTimeFormat = DateFormat + "T" + TimeFormat + ".000Z"
+	DateFormat         = "2006-01-02"
+	TimeFormat         = "15:04:05"
+	DateTimeFormatFull = DateFormat + "T" + TimeFormat + ".000Z"
+	DateTimeFormat     = DateFormat + " " + TimeFormat
 )
 
 func GetFirstDayOfThisWeek() time.Time {
