@@ -251,8 +251,15 @@ func main() {
 	parser.Bool("mt", false, "multi-thread, result is not ordered.")
 	parser.Bool("p", false, "print to console.")
 	parser.Bool("quote", false, "escape json string")
+	parser.Bool("h", false, "print help")
 
 	parser.ParseArgsCmd()
+
+	if parser.ContainsFlagStrict("h") {
+		parser.PrintDefaults()
+		fmt.Println("j old.json new.json")
+		return
+	}
 
 	sort = parser.ContainsFlagStrict("sort")
 	mt = parser.ContainsFlagStrict("mt")
