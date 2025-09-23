@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/cw"
@@ -40,6 +41,8 @@ func NewParser(options ...ParserOption) *Parser {
 		enableParseNum: true,
 
 		boolOptionSet: cw.NewSet(),
+
+		onceFlag: &sync.Once{},
 	}
 	for _, op := range options {
 		op(p)
@@ -336,21 +339,17 @@ func (r *Parser) On(condition ConditionFunc) *ActionList {
 }
 
 func (r *Parser) Execute() {
-	if r.actionMap != nil {
-		for entry := range r.actionMap.IterEntry().Iterate() {
-			if (*entry.Key())(r) {
-				for work := range entry.Val().actionList.Iter().Iterate() {
-					work.Value()()
+	r.onceFlag.Do(func() {
+		if r.actionMap != nil {
+			for entry := range r.actionMap.IterEntry().Iterate() {
+				if (*entry.Key())(r) {
+					for work := range entry.Val().actionList.Iter().Iterate() {
+						work.Value()()
+					}
 				}
 			}
 		}
-	}
-	// if r.actions != nil {
-	// 	fmt.Println("?", r.actions.actionList)
-	// 	for work := range r.actions.actionList.Iter().Iterate() {
-	// 		work.Value()()
-	// 	}
-	// }
+	})
 }
 
 func test(cmd string, trie *cw.Trie, s *cw.OrderedSetT[string]) bool {
@@ -535,7 +534,7 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 
 	cmd = fmt.Sprintf("%c", sep) + cmd + fmt.Sprintf("%c", sep)
 	r.parseArgs(cmd, boolOptionals...)
-	r.Execute()
+	// r.Execute()
 }
 
 func canConstructByBoolOptionals(key string, boolOptionals ...string) bool {

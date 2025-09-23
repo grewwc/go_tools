@@ -154,6 +154,7 @@ func (om *OrderedMapT[Key, Val]) parseobject(dec *json.Decoder) (err error) {
 		// om.keys = append(om.keys, key)
 		// om.keys[key] = om.l.PushBack(key)
 		// om.m[key] = value
+		// fmt.Println("key, value", key, value)
 		if value != nil {
 			om.Put(key, value.(Val))
 		} else {
@@ -234,7 +235,9 @@ func encodeV2[Key comparable, Val any](w io.Writer, om *OrderedMapT[Key, Val]) e
 		item := e.Value()
 		// 写入键名
 		buf.WriteByte('"')
-		fmt.Fprintf(buf, "%v", item.Key())
+		key := strings.ReplaceAll(fmt.Sprintf("%v", item.Key()), `"`, `\"`)
+		// fmt.Fprintf(buf, "%v", key)
+		buf.WriteString(key)
 		buf.WriteByte('"')
 		buf.WriteByte(':')
 		var iItem any = item.Val()

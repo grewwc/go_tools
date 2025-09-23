@@ -10,7 +10,6 @@ import (
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/executable/jsondiff/internal"
 	"github.com/grewwc/go_tools/src/terminalw"
-	"github.com/grewwc/go_tools/src/typesw"
 	"github.com/grewwc/go_tools/src/utilsw"
 )
 
@@ -253,61 +252,37 @@ func main() {
 	parser.Bool("p", false, "print to console.")
 	parser.Bool("quote", false, "escape json string")
 
-	parser.On(func(p *terminalw.Parser) bool { return p.ContainsFlagStrict("quote") }).Do(quoteJsonString)
-
 	parser.ParseArgsCmd()
-
-	positional := parser.Positional
-
-	// format json file
-	if parser.ContainsFlagStrict("f") {
-		fname := parser.MustGetFlagVal("f")
-		var text string
-		if fname == "" {
-			text = utilsw.ReadClipboardText()
-		} else {
-			text = utilsw.ReadString(fname)
-		}
-		formatedJ, err := utilsw.NewJsonFromString(text)
-		if err != nil {
-			panic(err)
-		}
-		formated := formatedJ.StringWithIndent("", "  ")
-		if len(text) < 1024*16 {
-			fmt.Println(formated)
-		}
-		outputFname := fname
-		if outputFname == "" {
-			outputFname = "_f.json"
-			fmt.Printf("write file to %s\n", outputFname)
-		}
-		utilsw.WriteToFile(outputFname, typesw.StrToBytes(formated))
-		return
-	}
-
-	if positional.Len() != 2 {
-		parser.PrintDefaults()
-		fmt.Println("j old.json new.json")
-		return
-	}
 
 	sort = parser.ContainsFlagStrict("sort")
 	mt = parser.ContainsFlagStrict("mt")
 	print = parser.ContainsFlagStrict("p")
+	positional := parser.Positional
 	args := positional.ToStringSlice()
-	fname := parser.GetFlagValueDefault("o", fmt.Sprintf("%s_%s_diff.json", getOutputFilename(args[0]), getOutputFilename(args[1])))
-	oldJson, err := utilsw.NewJsonFromFile(args[0])
-	if err != nil {
-		panic(err)
+
+	if positional.Len() == 2 {
+
+		fname := parser.GetFlagValueDefault("o", fmt.Sprintf("%s_%s_diff.json", getOutputFilename(args[0]), getOutputFilename(args[1])))
+		oldJson, err := utilsw.NewJsonFromFile(args[0])
+		if err != nil {
+			panic(err)
+		}
+		newJson, err := utilsw.NewJsonFromFile(args[1])
+		if err != nil {
+			panic(err)
+		}
+		compareJson("", oldJson, newJson)
+		if print {
+			fmt.Println(diff.StringWithIndent("", "  "))
+		}
+		diff.ToFile(fname)
+		fmt.Println("write to " + fname)
 	}
-	newJson, err := utilsw.NewJsonFromFile(args[1])
-	if err != nil {
-		panic(err)
-	}
-	compareJson("", oldJson, newJson)
-	if print {
-		fmt.Println(diff.StringWithIndent("", "  "))
-	}
-	diff.ToFile(fname)
-	fmt.Println("write to " + fname)
+
+	parser.On(func(p *terminalw.Parser) bool { return p.ContainsFlagStrict("quote") }).Do(quoteJsonString)
+
+	internal.RegisterFormat(parser)
+
+	parser.Execute()
+
 }

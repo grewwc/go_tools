@@ -27,7 +27,7 @@ func init() {
 func GetAllConfig() (m *cw.OrderedMap) {
 	f, err := os.Open(fname)
 	if err != nil {
-		fmt.Printf("%s not found, ignored...", color.RedString(fname))
+		fmt.Printf("%s not found, ignored...\n", color.RedString(fname))
 	}
 	defer f.Close()
 	m = cw.NewOrderedMap()

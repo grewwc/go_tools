@@ -2,6 +2,7 @@ package internal
 
 import (
 	"flag"
+	"sync"
 
 	"github.com/grewwc/go_tools/src/cw"
 )
@@ -22,6 +23,8 @@ type Parser struct {
 
 	actionMap *cw.Map[*ConditionFunc, *ActionList]
 	// actions *ActionList
+
+	onceFlag *sync.Once
 
 	*flag.FlagSet
 }
