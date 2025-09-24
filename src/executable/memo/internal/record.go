@@ -25,7 +25,7 @@ type Record struct {
 }
 
 func (r *Record) String() string {
-	return utilsw.ToString(r, "AddDate", "ModifiedDate")
+	return utilsw.ToString(r, "AddDate", "ModifiedDate", "Invalid")
 }
 
 func NewRecord(title string, tags ...string) *Record {

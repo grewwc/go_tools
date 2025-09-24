@@ -10,36 +10,34 @@ import (
 
 func update(parser *terminalw.Parser) {
 	positional := parser.Positional
-	if parser.ContainsFlagStrict("u") || positional.Contains("u", nil) {
-		positional.Delete("u", nil)
-		var id string
-		tags := positional.ToStringSlice()
-		isObjectID := false
-		if positional.Len() > 0 {
-			isObjectID = internal.IsObjectID(tags[0])
-		}
-		// tags 里面可能是 objectid
-		if len(tags) == 1 && isObjectID {
-			id = tags[0]
-			goto tagIsId
-		}
-
-		if len(tags) > 0 {
-			if r, _ := internal.ListRecords(-1, true, false, tags, false, "", internal.Prefix); len(r) < 1 {
-				fmt.Println(color.YellowString("no records associated with the tags (%v: prefix: %v) found", tags, internal.Prefix))
-				return
-			}
-		}
-		id = internal.ReadInfo(false)
-
-	tagIsId:
-		parser.Optional.Put("-u", id)
-		if id != "" {
-			parser.Optional.Put("-e", "")
-		}
-		internal.Update(parser, parser.ContainsFlagStrict("file"), parser.ContainsFlagStrict("e"), id == "")
-		return
+	positional.Delete("u", nil)
+	var id string
+	tags := positional.ToStringSlice()
+	isObjectID := false
+	if positional.Len() > 0 {
+		isObjectID = internal.IsObjectID(tags[0])
 	}
+	// tags 里面可能是 objectid
+	if len(tags) == 1 && isObjectID {
+		id = tags[0]
+		goto tagIsId
+	}
+
+	if len(tags) > 0 {
+		prefix := internal.Prefix || positional.Contains("log", nil)
+		if r, _ := internal.ListRecords(-1, true, false, tags, false, "", prefix); len(r) < 1 {
+			fmt.Println(color.YellowString("no records associated with the tags (%v: prefix: %v) found", tags, internal.Prefix))
+			return
+		}
+	}
+	id = internal.ReadInfo(false)
+
+tagIsId:
+	parser.Optional.Put("-u", id)
+	if id != "" {
+		parser.Optional.Put("-e", "")
+	}
+	internal.Update(parser, parser.ContainsFlagStrict("file"), parser.ContainsFlagStrict("e"), id == "")
 }
 
 func RegisterUpdate(parser *terminalw.Parser) {

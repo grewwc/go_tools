@@ -44,7 +44,7 @@ func action(parser *terminalw.Parser) {
 		return
 	}
 	if !parser.ContainsAnyFlagStrict("pull", "push") {
-		ignoreFields := []string{"AddDate", "ModifiedDate"}
+		ignoreFields := []string{"AddDate", "ModifiedDate", "Invalid"}
 		if internal.Verbose {
 			ignoreFields = []string{}
 		}

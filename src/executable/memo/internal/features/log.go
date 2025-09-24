@@ -11,7 +11,7 @@ import (
 func RegisterLog(parser *terminalw.Parser) {
 	positional := parser.Positional
 	parser.On(func(p *terminalw.Parser) bool {
-		return positional.Contains("log", nil)
+		return positional.Contains("log", nil) && !positional.Contains("u", nil)
 	}).Do(func() {
 		positional.Delete("log", nil)
 		nextDay := 0
