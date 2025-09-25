@@ -20,7 +20,7 @@ const (
 	QWEN_LONG              = "qwen-long"
 	QWQ                    = "qwq-plus-latest"
 	QWEN_TURBO_LATEST      = "qwen-turbo-latest"
-	QWEN3_MAX              = "qwen3-max-preview"
+	QWEN3_MAX              = "qwen3-max"
 )
 
 const (
@@ -53,7 +53,7 @@ func GetModel(parsed *terminalw.Parser) string {
 	case 2:
 		return QWEN_MAX
 	case 3:
-		return QWEN_MAX_LASTEST
+		return QWEN3_MAX
 	case 4:
 		return QWEN_CODER_PLUS_LATEST
 	case 5:
@@ -70,8 +70,8 @@ func GetModel(parsed *terminalw.Parser) string {
 		return QWEN_PLUS_LATEST
 	case QWEN_MAX, "2":
 		return QWEN_MAX
-	case QWEN_MAX_LASTEST, "3":
-		return QWEN_MAX_LASTEST
+	case QWEN3_MAX, "3":
+		return QWEN3_MAX
 	case QWEN_CODER_PLUS_LATEST, "4":
 		return QWEN_CODER_PLUS_LATEST
 	case DEEPSEEK, "5":
@@ -118,7 +118,7 @@ func GetModelByInput(prevModel string, input *string) string {
 
 var enableSearchModels = cw.NewSet(
 	QWEN_MAX, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_TURBO_LATEST, QWEN_PLUS_LATEST,
-	DEEPSEEK,
+	DEEPSEEK, QWEN3_MAX,
 )
 
 func SearchEnabled(model string) bool {
