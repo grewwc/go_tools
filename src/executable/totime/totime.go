@@ -33,7 +33,11 @@ func main() {
 	}
 	unixTime, err := strconv.Atoi(posArr[0])
 	if err != nil {
-		fmt.Println(utilsw.ToUnix(posArr[0]), "s")
+		res, err := time.ParseInLocation(utilsw.DateTimeFormat, posArr[0], time.Local)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(res.UnixMilli()/1000, "s")
 		return
 	}
 	res := time.Unix(int64(unixTime), 0)
