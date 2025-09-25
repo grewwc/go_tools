@@ -37,7 +37,7 @@ func action(parser *terminalw.Parser) {
 		records = []*internal.Record{r}
 	} else {
 		records, _ = internal.ListRecords(internal.RecordLimit, internal.Reverse, internal.IncludeFinished,
-			tags, parser.ContainsFlagStrict("and"), "", parser.ContainsAnyFlagStrict("prefix", "pre"))
+			tags, parser.ContainsFlagStrict("and"), "", parser.ContainsAnyFlagStrict("prefix", "pre", "a"))
 	}
 	if parser.ContainsFlagStrict("count") {
 		fmt.Printf("%d records found\n", len(records))

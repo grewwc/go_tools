@@ -237,6 +237,7 @@ func main() {
 	parser.Bool("abs", false, fmt.Sprintf("print absolute path. (%s in ~/.configW)", absName))
 	parser.Bool("rel", false, "print relative path.")
 	parser.Bool("glob", false, "use filepath.Glob to match")
+	parser.Bool("g", false, "shortcut for -glob")
 	parser.ParseArgsCmd()
 
 	if parser.Empty() {
@@ -250,7 +251,7 @@ func main() {
 	}
 
 	printMd5 = parser.ContainsFlagStrict("md5")
-	glob = parser.ContainsFlagStrict("glob")
+	glob = parser.ContainsAnyFlagStrict("glob", "g")
 	verboseFlag := parser.ContainsFlagStrict("v")
 	rootDir := parser.GetFlagValueDefault("d", ".")
 	caseInsensitive = parser.ContainsFlag("i")

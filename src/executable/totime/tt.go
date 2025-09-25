@@ -5,26 +5,24 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilsw"
 )
 
 const (
-	helpMsg = "usage: totime 1603372219690"
+	helpMsg = "usage: tt 1603372219690"
 )
 
 func main() {
 	parser := terminalw.NewParser()
-	parser.Bool("ts", false, "get current timestamp")
 	parser.ParseArgsCmd()
-	if parser.Empty() || parser.ContainsFlagStrict("-h") {
+	if parser.ContainsFlagStrict("-h") {
 		parser.PrintDefaults()
-		fmt.Println(color.GreenString(helpMsg))
+		fmt.Println(helpMsg)
 		return
 	}
-	if parser.ContainsFlagStrict("ts") {
-		fmt.Printf("%v (ms)\n", (time.Now().Local().UnixNano())/int64(1e6))
+	if parser.Empty() {
+		fmt.Printf("%v ms\n", (time.Now().Local().UnixNano())/int64(1e6))
 		return
 	}
 	posArr := parser.Positional.ToStringSlice()
