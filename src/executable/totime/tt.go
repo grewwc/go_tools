@@ -15,6 +15,7 @@ const (
 
 func main() {
 	parser := terminalw.NewParser()
+	parser.Bool("h", false, "print help info")
 	parser.ParseArgsCmd()
 	if parser.ContainsFlagStrict("-h") {
 		parser.PrintDefaults()
