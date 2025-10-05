@@ -352,15 +352,31 @@ func (r *Parser) Execute() {
 	})
 }
 
+// test checks if the given command string can be matched by the trie structure,
+// and adds matched commands to the ordered set.
+// Parameters:
+//
+//	cmd: the command string to test
+//	trie: the trie structure used for matching
+//	s: the ordered set to store successfully matched commands
+//
+// Returns:
+//
+//	bool: true if the command can be fully matched, false otherwise
 func test(cmd string, trie *cw.Trie, s *cw.OrderedSetT[string]) bool {
 	// fmt.Println("test", []byte(cmd))
 	if cmd == "" {
-		return true
+		return false
 	}
+
+	// Check if the entire command exists in the trie, if so add it and return success
 	if trie.Contains(cmd) {
 		s.Add(cmd)
 		return true
 	}
+
+	// Try to split the command string into two parts, where the prefix exists in the trie
+	// and the remaining part can also be matched
 	for i := 1; i < len(cmd); i++ {
 		curr := cmd[:i]
 		if trie.Contains(curr) && test(cmd[i:], trie, s) {
