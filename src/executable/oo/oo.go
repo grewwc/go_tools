@@ -68,8 +68,14 @@ func main() {
 	parser.Bool("c", false, "copy from file to clipboard")
 	parser.Bool("p", false, "paste from clipboard to file")
 	parser.Bool("b", false, "binary file")
+	parser.Bool("h", false, "print help info")
 
 	parser.ParseArgsCmd()
+
+	if parser.ContainsFlagStrict("h") {
+		parser.PrintDefaults()
+		return
+	}
 
 	// use python script
 	cmd := getPythonCommand()
