@@ -71,6 +71,14 @@ func expandTilda() string {
 	return os.Getenv("HOME")
 }
 
+func fileEndsWith(abs, filename string) bool {
+	idx := strings.LastIndex(abs, filename)
+	if idx <= 0 || idx+len(filename) != len(abs) {
+		return false
+	}
+	return abs[idx-1] == '/'
+}
+
 func parseFileSize(size int64) string {
 	if size < 1024 {
 		return fmt.Sprintf("%d", size)
@@ -120,8 +128,8 @@ func findFile(rootDir string, numPrint int, allIgnores []string) {
 			}
 		} else {
 			for _, file := range utilsw.LsDir(rootDir, nil, nil) {
-				abs := filepath.Join(rootDir, file)
-				if abs == target || file == target {
+				abs, _ := filepath.Abs(filepath.Join(rootDir, file))
+				if abs == target || file == target || fileEndsWith(abs, target) {
 					matches = append(matches, abs)
 				}
 			}
