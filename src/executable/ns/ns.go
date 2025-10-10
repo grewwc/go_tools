@@ -22,13 +22,6 @@ func changeFormat(speed float64) string {
 	return fmt.Sprintf("%.2f %s", speed, unit)
 }
 
-func detectInterface() string {
-	if utilsw.GetPlatform() == utilsw.LINUX {
-		return "eth0"
-	}
-	return "en0"
-}
-
 func diff(prev, now *info) (float64, float64) {
 	sentDiff := float64((now.sent - prev.sent))
 	downloadDiff := float64(now.recv - prev.recv)
@@ -87,7 +80,7 @@ func getInputOutputIndex(header string) (int, int) {
 	return iIndex, oIndex
 }
 
-func getStats() []netstat {
+func getStatsMac() []netstat {
 	res, _ := utilsw.RunCmd("netstat -ibdnW", nil)
 	lines := strw.SplitNoEmpty(res, "\n")
 	header := lines[0]
@@ -101,10 +94,40 @@ func getStats() []netstat {
 	return stats
 }
 
+func getStatLinux() []netstat {
+	res, _ := utilsw.RunCmd("cat /proc/net/dev", nil)
+	// 	res := `Inter-|   Receive                                                |  Transmit
+	//  face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+	//     lo: 9908542407 154328739    0 7612319    0     0          0         0 9908542407 154328739    0    0    0     0       0          0
+	//   eth0: 825457268 4185267    0    0    0     0          0         0 461379983 3585146    0    0    0     0       0          0
+	// docker0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0`
+
+	lines := strw.SplitNoEmpty(res, "\n")
+	var headerIdx int
+	for i, line := range lines {
+		parts := strw.SplitByCutset(line, "| \t")
+		if parts[0] == "face" {
+			headerIdx = i
+		}
+	}
+	i, o := 1, 9
+	var stats []netstat
+	for _, line := range lines[headerIdx+1:] {
+		stats = append(stats, parseNetstat(line, i, o))
+	}
+	stats = selectEth(stats)
+	return stats
+}
+
 func showSpeed(ch chan<- *info) {
 	interval := 500
 	for {
-		stats := getStats()
+		var stats []netstat
+		if utilsw.GetPlatform() == utilsw.LINUX {
+			stats = getStatLinux()
+		} else {
+			stats = getStatsMac()
+		}
 		var sent, recv float64
 		for _, stat := range stats {
 			sent += float64(stat.sent)
