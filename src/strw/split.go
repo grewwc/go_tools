@@ -26,6 +26,31 @@ func SplitNoEmpty(str, sep string) []string {
 	return res
 }
 
+func SplitByCutset(str, cutset string) []string {
+
+	set := cw.NewSetT[rune]()
+	for _, r := range cutset {
+		set.Add(r)
+	}
+
+	res := make([]string, 0, 1)
+	buf := strings.Builder{}
+	for _, r := range str {
+		if set.Contains(r) {
+			if buf.Len() > 0 {
+				res = append(res, buf.String())
+				buf.Reset()
+			}
+		} else {
+			buf.WriteRune(r)
+		}
+	}
+	if buf.Len() > 0 {
+		res = append(res, buf.String())
+	}
+	return res
+}
+
 // SplitByStrKeepQuotes splits a string by a string separator while preserving quoted content
 //
 // Parameters:

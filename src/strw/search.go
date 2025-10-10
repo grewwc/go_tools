@@ -154,15 +154,6 @@ func TrimBefore(str, pattern string) string {
 	return SubStringQuiet(str, GetLastItem[int](indices)+len(bPattern)+1, len(bStr))
 }
 
-func AllHasPrefix(str string, sub ...string) bool {
-	for _, s := range sub {
-		if !strings.HasPrefix(str, s) {
-			return false
-		}
-	}
-	return true
-}
-
 func kmpNext(pattern string) []int {
 	next := make([]int, len(pattern))
 	prefixLen := 0

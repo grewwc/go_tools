@@ -5,21 +5,13 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/utilsw"
-	"github.com/shirou/gopsutil/net"
 )
-
-func selectEn0(stats []net.IOCountersStat, name string) *net.IOCountersStat {
-	for _, stat := range stats {
-		if stat.Name == name {
-			return &stat
-		}
-	}
-	return nil
-}
 
 func changeFormat(speed float64) string {
 	unit := "k/s"
@@ -48,18 +40,77 @@ type info struct {
 	sent, recv float64
 	tp         int64
 }
+type netstat struct {
+	sent, recv int64
+	name       string
+}
+
+func selectEth(stats []netstat) []netstat {
+	res := make([]netstat, 0)
+	for _, stat := range stats {
+		if strw.AnyHasPrefix(stat.name, "en", "eth") {
+			res = append(res, stat)
+		}
+	}
+	return res
+}
+
+func parseNetstat(line string, i, o int) netstat {
+	parts := strw.SplitByCutset(line, " \n\t")
+	var stat netstat
+	stat.name = parts[0]
+	sent, err := strconv.ParseInt(parts[o], 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	recv, err := strconv.ParseInt(parts[i], 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	stat.recv = recv
+	stat.sent = sent
+	return stat
+}
+
+func getInputOutputIndex(header string) (int, int) {
+	inputKey, outputKey := "Ibytes", "Obytes"
+	iIndex, oIndex := -1, -1
+	headers := strw.SplitByCutset(header, " \t\n")
+	for i, header := range headers {
+		switch header {
+		case inputKey:
+			iIndex = i
+		case outputKey:
+			oIndex = i
+		}
+	}
+	return iIndex, oIndex
+}
+
+func getStats() []netstat {
+	res, _ := utilsw.RunCmd("netstat -ibdnW", nil)
+	lines := strw.SplitNoEmpty(res, "\n")
+	header := lines[0]
+
+	i, o := getInputOutputIndex(header)
+	var stats []netstat
+	for _, line := range lines[1:] {
+		stats = append(stats, parseNetstat(line, i, o))
+	}
+	stats = selectEth(stats)
+	return stats
+}
 
 func showSpeed(ch chan<- *info) {
 	interval := 500
-	// stats, err := net.IOCounters(true)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	interface_ := detectInterface()
 	for {
-		stats, _ := net.IOCounters(true)
-		currStat := selectEn0(stats, interface_)
-		ch <- &info{sent: float64(currStat.BytesSent), recv: float64(currStat.BytesRecv), tp: time.Now().UnixMilli()}
+		stats := getStats()
+		var sent, recv float64
+		for _, stat := range stats {
+			sent += float64(stat.sent)
+			recv += float64(stat.recv)
+		}
+		ch <- &info{sent: sent, recv: recv, tp: time.Now().UnixMilli()}
 		time.Sleep(time.Millisecond * time.Duration(interval))
 	}
 }
