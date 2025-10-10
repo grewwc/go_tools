@@ -7,7 +7,7 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-type number interface {
+type Number interface {
 	constraints.Integer | constraints.Float
 }
 
@@ -38,7 +38,7 @@ func Min[T constraints.Ordered](args ...T) T {
 	return res
 }
 
-func Sum[T number](nums ...T) T {
+func Sum[T Number](nums ...T) T {
 	var res T
 	for _, num := range nums {
 		res += num
@@ -76,7 +76,7 @@ func RandInt(lo, hi, N int) []int {
 	return result
 }
 
-func Range[T number](start, end, step T) []T {
+func Range[T Number](start, end, step T) []T {
 	if step == 0 {
 		return nil
 	}
@@ -101,7 +101,7 @@ func Range[T number](start, end, step T) []T {
 	return res
 }
 
-func Abs[T number](val T) T {
+func Abs[T Number](val T) T {
 	if val < 0 {
 		return -val
 	}
