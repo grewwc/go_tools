@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/utilsw"
 )
@@ -119,6 +120,22 @@ func getStatLinux() []netstat {
 	return stats
 }
 
+func distinct(stats []netstat) []netstat {
+	set := cw.NewTreeSet(func(s1, s2 netstat) int {
+		if s1.name == s2.name {
+			return 0
+		}
+		if s1.name < s2.name {
+			return -1
+		}
+		return 1
+	})
+	for _, stat := range stats {
+		set.Add(stat)
+	}
+	return set.ToSlice()
+}
+
 func showSpeed(ch chan<- *info) {
 	interval := 500
 	for {
@@ -128,6 +145,7 @@ func showSpeed(ch chan<- *info) {
 		} else {
 			stats = getStatsMac()
 		}
+		stats = distinct(stats)
 		var sent, recv float64
 		for _, stat := range stats {
 			sent += float64(stat.sent)
