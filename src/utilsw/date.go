@@ -15,6 +15,10 @@ const (
 func GetFirstDayOfThisWeek() time.Time {
 	now := time.Now().Local()
 	delta := int(now.Weekday()) - int(time.Monday)
+	if delta < 0 {
+		delta += 7
+	}
+
 	return now.AddDate(0, 0, -delta)
 }
 
