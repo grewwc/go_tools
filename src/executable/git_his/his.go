@@ -23,6 +23,10 @@ const (
 	branchCmd     = `git for-each-ref --sort=-committerdate --format="%(refname:short) %(committerdate:short) %(subject)" refs/heads/ `
 )
 
+var (
+	color1 = color.New(color.FgHiBlack, color.Italic)
+)
+
 type ILineHandler interface {
 	handleLine(string) bool
 }
@@ -36,6 +40,7 @@ func (h *logHandler) handleLine(line string) bool {
 		fmt.Println(line)
 		return true
 	}
+	color1.Println(line)
 	return false
 }
 
@@ -109,7 +114,7 @@ func main() {
 	parser.Bool("a", false, "print all histories")
 	parser.Bool("h", false, "print help info")
 	parser.Bool("b", false, "print branch")
-	parser.ParseArgsCmd("h", "a", "b")
+	parser.ParseArgsCmd()
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
 		fmt.Println("his $branch")
