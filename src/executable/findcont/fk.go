@@ -29,7 +29,7 @@ var wg sync.WaitGroup
 var r *regexp.Regexp = nil
 var numLines int = 1
 
-const (
+var (
 	MAX_LEN = 128
 )
 
@@ -195,6 +195,7 @@ func main() {
 	parser.Int("l", 1, "how many lines more read to match")
 	parser.Int("p", 4, "how many threads to use")
 	parser.Bool("h", false, "print help info")
+	parser.Int("maxlen", MAX_LEN, "maxlen of one line")
 
 	fmt.Println()
 
@@ -209,6 +210,8 @@ func main() {
 	if parser.GetNumArgs() != -1 {
 		num = int64(parser.GetNumArgs())
 	}
+
+	MAX_LEN = parser.GetIntFlagValOrDefault("maxlen", MAX_LEN)
 
 	ext := parser.GetFlagValueDefault("t", "")
 	rootDir := filepath.ToSlash(strings.ReplaceAll(parser.GetFlagValueDefault("d", "."), `\\`, `\`))
