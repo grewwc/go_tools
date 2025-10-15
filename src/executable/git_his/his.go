@@ -24,7 +24,8 @@ const (
 )
 
 var (
-	color1 = color.New(color.FgHiBlack, color.Italic)
+	color1  = color.New(color.FgHiBlack, color.Italic)
+	verbose = false
 )
 
 type ILineHandler interface {
@@ -40,7 +41,9 @@ func (h *logHandler) handleLine(line string) bool {
 		fmt.Println(line)
 		return true
 	}
-	color1.Println(line)
+	if verbose {
+		color1.Println(line)
+	}
 	return false
 }
 
@@ -114,12 +117,14 @@ func main() {
 	parser.Bool("a", false, "print all histories")
 	parser.Bool("h", false, "print help info")
 	parser.Bool("b", false, "print branch")
+	parser.Bool("v", false, "verbose print")
 	parser.ParseArgsCmd()
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
 		fmt.Println("his $branch")
 		return
 	}
+	verbose = parser.ContainsFlagStrict("v")
 	n := getN(parser)
 	if n == -1 {
 		n = defaultN
