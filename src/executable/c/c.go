@@ -193,7 +193,7 @@ func calc(expr []byte) string {
 			}
 			opSt.Push(ch)
 			i++
-			state = NUMBER
+			state = OPERATOR
 		} else if ch == '\n' {
 			i++
 			continue
