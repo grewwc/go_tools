@@ -381,7 +381,8 @@ func Div(a, b string, numDigitToKeep int) string {
 	sumRemovedZero := 0
 	var removedCount, prevRemoveCount int
 	for decimalCount < numDigitToKeep+1 {
-		divResult, addedZero, _ := helper(&a, b)
+		divResult, remainder, addedZero, _ := helper(&a, b)
+		// fmt.Println("a, b", a, b)
 		a, removedCount = removeLeadingZero(a)
 
 		decimalCount += addedZero
@@ -392,6 +393,15 @@ func Div(a, b string, numDigitToKeep int) string {
 		} else {
 			res += divResult
 		}
+
+		remainder += "0"
+		for remainder[0] != '0' && Minus(remainder, b)[0] == '-' {
+			// fmt.Println("remainder", remainder, b, Minus(remainder, b)[0] == '-')
+			res += "0"
+			remainder += "0"
+			// fmt.Println("===>", res)
+		}
+
 		// fmt.Println("here", divResult, addedZero, a, removedCount, prevRemoveCount)
 		sumRemovedZero += removedCount
 		prevRemoveCount = removedCount
@@ -415,27 +425,27 @@ func Div(a, b string, numDigitToKeep int) string {
 	return res
 }
 
-func helper(a *string, b string) (string, int, bool) {
+func helper(a *string, b string) (string, string, int, bool) {
 	if len((*a)) > len(b) {
 		if (*a)[:len(b)] >= b {
 			remainder, divResult, clean := doDiv((*a)[:len(b)], b)
 			*a = remainder + (*a)[len(b):]
-			return divResult, 0, clean
+			return divResult, remainder, 0, clean
 		} else {
 			remainder, divResult, clean := doDiv((*a)[:len(b)+1], b)
 			*a = remainder + (*a)[len(b)+1:]
-			return divResult, 1, clean
+			return divResult, remainder, 1, clean
 		}
 	} else if len((*a)) == len(b) {
 		if (*a) >= b {
 			modified, divResult, clean := doDiv((*a), b)
 			*a = modified
-			return divResult, 0, clean
+			return divResult, modified, 0, clean
 		} else {
 			(*a) += "0"
 			modified, divResult, clean := doDiv((*a), b)
 			*a = modified
-			return divResult, 1, clean
+			return divResult, modified, 1, clean
 		}
 	} else {
 		zeroCount := 0
@@ -444,9 +454,9 @@ func helper(a *string, b string) (string, int, bool) {
 			*a += "0"
 			zeroCount++
 		}
-		divResult, addedZero, clean := helper(a, b)
+		divResult, remainder, addedZero, clean := helper(a, b)
 
-		return divResult, addedZero + zeroCount, clean
+		return divResult, remainder, addedZero + zeroCount, clean
 	}
 }
 
@@ -473,18 +483,18 @@ func doDiv(a, b string) (string, string, bool) {
 		return "0", a, true
 	}
 	res := 0
-	var curr = a
+	var remainder = a
 	for {
-		val := Minus(curr, b)
+		val := Minus(remainder, b)
 		if val[0] != '-' || val == "0" {
 			res++
-			curr = val
+			remainder = val
 		} else {
 			break
 		}
 	}
 	// fmt.Println("DoDiv", a, b, curr, res)
-	return curr, strconv.Itoa(res), curr == "0"
+	return remainder, strconv.Itoa(res), remainder == "0"
 }
 
 func round(s string, digitToKeep int) string {
