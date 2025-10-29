@@ -84,12 +84,13 @@ func main() {
 	parser.String("o", "", "output file name")
 	parser.Bool("toimg", false, "")
 	parser.Bool("h", false, "print help msg")
-	parser.ParseArgsCmd("f", "toimg", "c", "h")
+	parser.Bool("url", false, "if download from url")
+	parser.ParseArgsCmd()
 	if parser.ContainsAnyFlagStrict("h") {
 		parser.PrintDefaults()
 		return
 	}
-	isURL := true
+	isURL := parser.ContainsFlagStrict("url")
 	toImage := parser.ContainsFlagStrict("toimg")
 	if parser.ContainsAnyFlagStrict("in", "c") {
 		isURL = false
