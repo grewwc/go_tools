@@ -147,32 +147,48 @@ func buildMessageArr(n int) []Message {
 	}
 	history := utilsw.ReadString(historyFile)
 	result := make([]Message, 0)
-	lines := strw.SplitByStrKeepQuotes(history, string(newline), `"`, true)
+	lines := strw.SplitByStrKeepQuotes(history, string(newline), `"`, false)
+	validLines := 0
+
 	for _, line := range lines {
 		if line == "" {
 			continue
 		}
-		arr := strings.Split(line, string(colon))
-		if len(arr) < 2 {
+		// Find the last occurrence of the colon separator
+		lastColon := strings.LastIndex(line, string(colon))
+		if lastColon <= 0 || lastColon >= len(line)-1 {
 			continue
 		}
-		role, content := arr[len(arr)-2], arr[len(arr)-1]
-		// invalid role / content
-		if strings.ContainsRune(role, colon) || strings.ContainsRune(content, colon) {
+
+		role := line[:lastColon]
+		content := line[lastColon+1:]
+
+		// Skip invalid roles
+		if role != "user" && role != "assistant" {
 			continue
 		}
+
 		result = append(result, Message{
 			Role:    role,
 			Content: content,
 		})
+		validLines++
 	}
-	if n > len(lines) {
-		n = len(lines)
+
+	if n > validLines {
+		n = validLines
 	}
+
+	// Trim history file if it's too long
 	if len(lines) > maxHistoryLines {
-		utilsw.WriteToFile(historyFile, typesw.StrToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], "\n")))
+		utilsw.WriteToFile(historyFile, typesw.StrToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], string(newline))))
 	}
-	return result[len(lines)-n:]
+
+	// Return the last n messages
+	if validLines > n {
+		return result[validLines-n:]
+	}
+	return result
 }
 
 func appendHistory(content string) {

@@ -57,11 +57,15 @@ func SplitByCutset(str, cutset string) []string {
 //
 //	str: the string to split
 //	sep: the string separator to use for splitting
+//	symbols: the quote symbols to preserve (e.g. "\"'")
+//	keepSymbol: whether to keep the quote symbols in the result
 //
 // Returns:
 //
-//	[]string: a slice of strings split by the separator, excluding quotes
+//	[]string: a slice of strings split by the separator, with quotes preserved according to keepSymbol parameter
 func SplitByStrKeepQuotes(str string, sep string, symbols string, keepSymbol bool) []string {
+	// precheck removes separator characters from the quote symbols set
+	// to prevent conflicts between separator and quote symbols
 	precheck := func(symbols *cw.SetT[rune], sep string) {
 		for _, r := range sep {
 			symbols.Delete(r)
@@ -79,18 +83,23 @@ func SplitByStrKeepQuotes(str string, sep string, symbols string, keepSymbol boo
 		s.Add(r)
 	}
 
+	// Remove any separator characters from quote symbols
 	precheck(s, sep)
+	// If no quote symbols remain after precheck, return original string
 	if s.Len() == 0 {
 		return []string{str}
 	}
 
+	// Process each rune in the input string
 	for i, r := range str {
+		// Track previous character for escape sequence handling
 		if i > 0 {
 			prev = str[i-1]
 		}
-		// Toggle quote state when encountering unescaped quote
+		// Toggle quote state when encountering unescaped quote symbol
 		if s.Contains(r) && prev != '\\' {
 			inquote = !inquote
+			// Include quote symbol in output if keepSymbol is true
 			if keepSymbol {
 				buf.WriteRune(r)
 			}
@@ -98,11 +107,10 @@ func SplitByStrKeepQuotes(str string, sep string, symbols string, keepSymbol boo
 			buf.WriteRune(r)
 			// Check if buffer ends with separator
 			if buf.Len() > len(sep) && bytes.Equal(buf.Bytes()[buf.Len()-len(sep):], sepBytes) {
-				// If inside quotes, just add the rune to buffer
+				// Only split if not inside quotes
 				if !inquote {
 					// Extract content before separator and add to result
 					content := buf.String()[:buf.Len()-len(sep)]
-					// fmt.Printf("===>|%s|, |%s|, %d \n", content, buf.String(), buf.Len())
 					if content != "" {
 						res = append(res, content)
 					}
