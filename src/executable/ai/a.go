@@ -283,7 +283,7 @@ func run() {
 	parser := terminalw.NewParser()
 	parser.Int("history", defaultNumHistory, "number of history")
 	parser.String("m", "", `model name. (configured by \"ai.model.default\") ,
-qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4], deepseek-r1 [5], qwen-turbo [6]`)
+qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4], deepseek-r1 [5], qwen-flash [6]`)
 	parser.Bool("h", false, "print help info")
 	parser.Bool("multi-line", false, "input with multline")
 	parser.Bool("mul", false, "same as multi-line")

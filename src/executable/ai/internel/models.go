@@ -21,13 +21,13 @@ const (
 	QWEN_CODER_PLUS_LATEST = "qwen3-coder-plus"
 	QWEN_LONG              = "qwen-long"
 	QWQ                    = "qwq-plus-latest"
-	QWEN_TURBO_LATEST      = "qwen-turbo-latest"
+	QWEN_FLASH             = "qwen-flash"
 	QWEN3_MAX              = "qwen3-max"
 )
 
 var allModels = cw.NewSetT(
 	DEEPSEEK, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_MAX,
-	QWEN_CODER_PLUS_LATEST, QWEN_LONG, QWQ, QWEN_TURBO_LATEST, QWEN3_MAX,
+	QWEN_CODER_PLUS_LATEST, QWEN_LONG, QWQ, QWEN_FLASH, QWEN3_MAX,
 )
 
 const (
@@ -66,7 +66,7 @@ func GetModel(parsed *terminalw.Parser) string {
 	case 5:
 		return DEEPSEEK
 	case 6:
-		return QWEN_TURBO_LATEST
+		return QWEN_FLASH
 	}
 	model := parsed.GetFlagValueDefault("m", getDefaultModel())
 
@@ -83,8 +83,8 @@ func GetModel(parsed *terminalw.Parser) string {
 		return QWEN_CODER_PLUS_LATEST
 	case DEEPSEEK, "5":
 		return DEEPSEEK
-	case QWEN_TURBO_LATEST, "6":
-		return QWEN_TURBO_LATEST
+	case QWEN_FLASH, "6":
+		return QWEN_FLASH
 	default:
 		if !strw.IsBlank(model) {
 			return determinModel(model)
@@ -124,7 +124,7 @@ func GetModelByInput(prevModel string, input *string) string {
 }
 
 var enableSearchModels = cw.NewSet(
-	QWEN_MAX, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_TURBO_LATEST, QWEN_PLUS_LATEST,
+	QWEN_MAX, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_FLASH, QWEN_PLUS_LATEST,
 	DEEPSEEK, QWEN3_MAX,
 )
 
@@ -133,6 +133,7 @@ func SearchEnabled(model string) bool {
 }
 
 func determinModel(model string) string {
+	model = strings.ToLower(model)
 	result := model
 	dist := float32(math.MaxFloat32)
 	for m := range allModels.Iter().Iterate() {
