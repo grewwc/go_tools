@@ -2,9 +2,11 @@ package internal
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 
+	"github.com/grewwc/go_tools/src/algow"
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
@@ -21,6 +23,11 @@ const (
 	QWQ                    = "qwq-plus-latest"
 	QWEN_TURBO_LATEST      = "qwen-turbo-latest"
 	QWEN3_MAX              = "qwen3-max"
+)
+
+var allModels = cw.NewSetT(
+	DEEPSEEK, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_MAX,
+	QWEN_CODER_PLUS_LATEST, QWEN_LONG, QWQ, QWEN_TURBO_LATEST, QWEN3_MAX,
 )
 
 const (
@@ -80,7 +87,7 @@ func GetModel(parsed *terminalw.Parser) string {
 		return QWEN_TURBO_LATEST
 	default:
 		if !strw.IsBlank(model) {
-			return model
+			return determinModel(model)
 		}
 		return getDefaultModel()
 	}
@@ -123,4 +130,17 @@ var enableSearchModels = cw.NewSet(
 
 func SearchEnabled(model string) bool {
 	return enableSearchModels.Contains(model)
+}
+
+func determinModel(model string) string {
+	result := model
+	dist := float32(math.MaxFloat32)
+	for m := range allModels.Iter().Iterate() {
+		currDist := float32(algow.EditDistance([]byte(m), []byte(model), nil)) / float32(len(model)+len(m))
+		if currDist < dist {
+			dist = currDist
+			result = m
+		}
+	}
+	return result
 }
