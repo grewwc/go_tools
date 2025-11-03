@@ -440,6 +440,10 @@ func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
 	// fmt.Println("boolKeys", boolKeys)
 	// fmt.Println([]byte(allPositionals.ToStringSlice()[0]))
 	for i, key := range keys {
+		if i < len(vals) {
+			vals[i] = strings.ReplaceAll(vals[i], string(space), " ")
+		}
+
 		if !supportedOptions.Contains(key[1:]) {
 			// fmt.Printf("here |%s|", key)
 			if i < len(vals) {

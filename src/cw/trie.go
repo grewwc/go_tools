@@ -11,6 +11,8 @@ type Trie struct {
 	// end  map[rune]bool
 	cnt   int
 	isEnd bool
+
+	count int
 }
 
 /** Initialize your data structure here. */
@@ -21,11 +23,13 @@ func NewTrie() *Trie {
 /** Inserts a word into the trie. */
 func (t *Trie) Insert(word string) error {
 	cur := t
+	inserted := false
 	for cnt, ch := range word {
 		var child *Trie
 		var exists bool
 		if child, exists = cur.children[ch]; !exists {
 			child = NewTrie()
+			inserted = true
 			cur.children[ch] = child
 		}
 		chLen := utf8.RuneLen(ch)
@@ -37,6 +41,9 @@ func (t *Trie) Insert(word string) error {
 			child.isEnd = true
 		}
 		cur = cur.children[ch]
+	}
+	if inserted {
+		t.count++
 	}
 	return nil
 }
@@ -103,6 +110,7 @@ func (t *Trie) Delete(word string) bool {
 		}
 		cur = child
 	}
+	t.count--
 	return true
 }
 
@@ -158,4 +166,12 @@ func (t *Trie) ShowPrefix(prefix string, totalNum int) []string {
 		prefixInDict = t.isEnd
 	}
 	return showPrefixHelper(t, prefix, totalNum, prefixInDict)
+}
+
+func (t *Trie) Len() int {
+	return t.count
+}
+
+func (t *Trie) Empty() bool {
+	return t.count <= 0
 }

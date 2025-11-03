@@ -24,6 +24,7 @@ var (
 var (
 	excludeFileExtension = cw.NewTrie()
 	fileExtension        = cw.NewTrie()
+	excludeFileDir       = cw.NewLinkedList[string]()
 )
 
 // 控制打开文件数量
@@ -113,6 +114,16 @@ func printHelp(parser *terminalw.Parser) {
 	fmt.Printf("%s dest.tar.gz source_dir\n", utilsw.BaseNoExt(utilsw.GetCurrentFileName()))
 }
 
+func hasPrefix(dir string) bool {
+	for ex := range excludeFileDir.Iter().Iterate() {
+		d := ex.Value()
+		if strings.HasPrefix(dir, d) {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 	parser := terminalw.NewParser()
 	parser.String("ex", "", "exclude file/directory")
@@ -152,7 +163,6 @@ func main() {
 
 	// create tar files
 	exclude, err := parser.GetFlagVal("ex")
-	excludeSlice := make([]string, 0)
 	if err != nil || exclude == "" {
 		exclude, _ = parser.GetFlagVal("exclude")
 		err = nil
@@ -160,32 +170,14 @@ func main() {
 	if exclude != "" {
 		for _, ex := range strw.SplitByStrKeepQuotes(exclude, ",", `"`, false) {
 			ex = strings.TrimSpace(ex)
-			excludeSlice = append(excludeSlice, utilsw.Abs(ex))
+			ex = strw.Reverse(ex) + "/"
+			excludeFileDir.PushBack(ex)
 		}
-	}
-
-	var excludes []string
-	for _, ex := range excludeSlice {
-		gs, err := filepath.Glob(ex)
-		if err != nil {
-			panic(err)
-		}
-		excludes = append(excludes, gs...)
 	}
 
 	verbose := parser.ContainsFlagStrict("v")
 	showProgress := parser.MustGetFlagVal("prog")
-	excludeSet := cw.NewSetT[string]()
 
-	for _, ex := range excludes {
-		filepath.Walk(ex, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			excludeSet.Add(utilsw.Abs(path))
-			return nil
-		})
-	}
 	// fmt.Println("excludeset", excludeSet)
 	args := parser.Positional.ToStringSlice()
 	// fmt.Println("here", args)
@@ -258,24 +250,30 @@ func main() {
 
 	allFiles := []string{}
 	for _, srcName := range srcNames {
-		filepath.Walk(srcName, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			absPath := utilsw.Abs(path)
-			ext := filepath.Ext(path)
-			if t != "" {
-				// 没有文件后缀的也忽略
-				if fileExtension.Contains(ext) && ext != "" {
-					allFiles = append(allFiles, path)
+		q := cw.NewQueue[string]()
+		q.Enqueue(srcName)
+		for !q.Empty() {
+			curr := q.Dequeue()
+			ext := filepath.Ext(curr)
+
+			if hasPrefix(strw.Reverse(curr)) ||
+				(ext != "" && excludeFileExtension.Contains(ext)) ||
+				(!fileExtension.Empty() && !fileExtension.Contains(ext)) {
+
+				if verbose {
+					fmt.Println("exclude: ", color.YellowString(curr))
 				}
-			} else if !excludeSet.Contains(absPath) && (ext == "" || !excludeFileExtension.Contains(ext)) {
-				allFiles = append(allFiles, path)
-			} else if verbose {
-				fmt.Println("exclude: ", color.YellowString(path))
+				continue
 			}
-			return nil
-		})
+			allFiles = append(allFiles, curr)
+			subDirs := utilsw.LsDir(curr, nil, func(filename string) string {
+				return filepath.Join(curr, filename)
+			})
+
+			for _, subDir := range subDirs {
+				q.Enqueue(subDir)
+			}
+		}
 	}
 
 	if len(allFiles) == 0 {
