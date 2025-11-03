@@ -170,7 +170,7 @@ func main() {
 	if exclude != "" {
 		for _, ex := range strw.SplitByStrKeepQuotes(exclude, ",", `"`, false) {
 			ex = strings.TrimSpace(ex)
-			ex = strw.Reverse(ex) + "/"
+			ex = strw.Reverse(ex) + string(filepath.Separator)
 			excludeFileDir.PushBack(ex)
 		}
 	}
