@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	DEEPSEEK               = "deepseek-r1-0528"
+	DEEPSEEK_V3            = "deepseek-v3"
+	DEEPSEEK_R1            = "deepseek-r1"
 	QWEN_MAX_LASTEST       = "qwen-max-latest"
 	QWEN_PLUS_LATEST       = "qwen-plus-latest"
 	QWEN_MAX               = "qwen-max"
@@ -26,7 +27,7 @@ const (
 )
 
 var allModels = cw.NewSetT(
-	DEEPSEEK, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_MAX,
+	DEEPSEEK_V3, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_MAX,
 	QWEN_CODER_PLUS_LATEST, QWEN_LONG, QWQ, QWEN_FLASH, QWEN3_MAX,
 )
 
@@ -48,8 +49,13 @@ func GetModel(parsed *terminalw.Parser) string {
 	if parsed.ContainsFlagStrict("code") {
 		return QWEN_CODER_PLUS_LATEST
 	}
+
+	thinkingMode := parsed.ContainsFlagStrict("t")
 	if parsed.ContainsFlagStrict("d") {
-		return DEEPSEEK
+		if thinkingMode {
+			return DEEPSEEK_R1
+		}
+		return DEEPSEEK_V3
 	}
 	n := parsed.GetNumArgs()
 	switch n {
@@ -64,7 +70,10 @@ func GetModel(parsed *terminalw.Parser) string {
 	case 4:
 		return QWEN_CODER_PLUS_LATEST
 	case 5:
-		return DEEPSEEK
+		if thinkingMode {
+			return DEEPSEEK_R1
+		}
+		return DEEPSEEK_V3
 	case 6:
 		return QWEN_FLASH
 	}
@@ -81,8 +90,11 @@ func GetModel(parsed *terminalw.Parser) string {
 		return QWEN3_MAX
 	case QWEN_CODER_PLUS_LATEST, "4":
 		return QWEN_CODER_PLUS_LATEST
-	case DEEPSEEK, "5":
-		return DEEPSEEK
+	case DEEPSEEK_V3, "5":
+		if thinkingMode {
+			return DEEPSEEK_R1
+		}
+		return DEEPSEEK_V3
 	case QWEN_FLASH, "6":
 		return QWEN_FLASH
 	default:
@@ -109,7 +121,7 @@ func GetModelByInput(prevModel string, input *string) string {
 	}
 	if strings.HasSuffix(trimed, " -d") {
 		*input = strings.TrimSuffix(trimed, " -d")
-		return DEEPSEEK
+		return DEEPSEEK_V3
 	}
 
 	p := regexp.MustCompile(` -\d$`)
@@ -125,7 +137,7 @@ func GetModelByInput(prevModel string, input *string) string {
 
 var enableSearchModels = cw.NewSet(
 	QWEN_MAX, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_FLASH, QWEN_PLUS_LATEST,
-	DEEPSEEK, QWEN3_MAX,
+	DEEPSEEK_V3, QWEN3_MAX,
 )
 
 func SearchEnabled(model string) bool {

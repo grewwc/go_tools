@@ -295,6 +295,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4]
 	parser.String("f", "", "input file names. seprated by comma.")
 	parser.String("out", "", "write output to file. default is output.txt")
 	parser.Bool("raw", false, "raw mode: don't use parser to get positional arguments, use raw inputs instead.")
+	parser.Bool("t", false, "use thinking model. default: false.")
 	parser.ParseArgsCmd()
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
