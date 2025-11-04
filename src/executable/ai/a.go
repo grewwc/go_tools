@@ -217,10 +217,10 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 		// if tempParser.ContainsFlagStrict("c") {
 		// 	parsed.SetFlagValue("c", "true")
 		// }
-		// if tempParser.ContainsFlagStrict("s") {
-		// 	parsed.SetFlagValue("s", "true")
-		// }
-		question = strings.Join(tempParser.GetPositionalArgs(true), " ")
+		if tempParser.ContainsFlagStrict("s") {
+			parsed.SetFlagValue("s", "true")
+		}
+		// question = strings.Join(tempParser.GetPositionalArgs(true), " ")
 		// fmt.Println("getQuestion: ")
 		// fmt.Println(question)
 		// os.Exit(0)
@@ -249,6 +249,9 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 		parsed.RemoveFlagValue("c")
 	}
 	// short output
+	if parsed.ContainsFlagStrict("s") {
+		question += "\nBe Concise."
+	}
 	question = fileContent + question
 	return
 }
@@ -296,6 +299,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4]
 	parser.String("out", "", "write output to file. default is output.txt")
 	parser.Bool("raw", false, "raw mode: don't use parser to get positional arguments, use raw inputs instead.")
 	parser.Bool("t", false, "use thinking model. default: false.")
+	parser.Bool("s", false, "short output")
 	parser.ParseArgsCmd()
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()

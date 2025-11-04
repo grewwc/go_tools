@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	DEEPSEEK_V3            = "deepseek-v3"
+	DEEPSEEK_V3            = "deepseek-v3.1"
 	DEEPSEEK_R1            = "deepseek-r1"
 	QWEN_MAX_LASTEST       = "qwen-max-latest"
 	QWEN_PLUS_LATEST       = "qwen-plus-latest"
