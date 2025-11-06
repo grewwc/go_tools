@@ -380,12 +380,26 @@ func Div(a, b string, numDigitToKeep int) string {
 	aBak := a
 	sumRemovedZero := 0
 	var removedCount, prevRemoveCount int
+	digitalParts := false
+
+	original := a
+
 	for decimalCount < numDigitToKeep+1 {
+		// fmt.Println("===> input: ", a, b)
+		// time.Sleep(1 * time.Second)
 		divResult, remainder, addedZero, _ := helper(&a, b)
-		// fmt.Println("a, b", a, b)
-		a, removedCount = removeLeadingZero(a)
+		// fmt.Println("a, b", a, b, addedZero, decimalCount)
 
 		decimalCount += addedZero
+		a, removedCount = removeLeadingZero(a)
+
+		if digitalParts || (res != "" && Minus(original, Mul(res, b))[0] == '-') {
+			digitalParts = true
+			if addedZero > 0 {
+				addedZero--
+			}
+		}
+
 		if addedZero > 1 {
 			res += strings.Repeat("0", addedZero-1) + divResult
 		} else if prevRemoveCount > 0 && addedZero > 0 {
@@ -493,7 +507,7 @@ func doDiv(a, b string) (string, string, bool) {
 			break
 		}
 	}
-	// fmt.Println("DoDiv", a, b, curr, res)
+	// fmt.Println("DoDiv", a, b, res)
 	return remainder, strconv.Itoa(res), remainder == "0"
 }
 

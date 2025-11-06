@@ -27,6 +27,13 @@ type Parser struct {
 	onceFlag *sync.Once
 
 	*flag.FlagSet
+
+	aliasMap *cw.Map[string, string] // original => target
+}
+
+func (p *Parser) Alias(target, original string) {
+	p.aliasMap.Put(original, target)
+	p.aliasMap.Put(target, original)
 }
 
 type ParserOption func(*Parser)

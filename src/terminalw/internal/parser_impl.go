@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -43,6 +44,8 @@ func NewParser(options ...ParserOption) *Parser {
 		boolOptionSet: cw.NewSet(),
 
 		onceFlag: &sync.Once{},
+
+		aliasMap: cw.NewMap[string, string](),
 	}
 	for _, op := range options {
 		op(p)
@@ -101,6 +104,10 @@ func (r *Parser) GetFlagVal(flagName string) (string, error) {
 	}
 	if r.Optional.Contains(flagName) {
 		return r.Optional.Get(flagName), nil
+	}
+	alias := r.aliasMap.GetOrDefault(flagName[1:], "")
+	if alias != "" {
+		return r.GetFlagVal(alias)
 	}
 	return "", fmt.Errorf("GetFlagVal: flagName (%s) not exist", flagName)
 }
@@ -164,7 +171,15 @@ func (r *Parser) GetFlagValueDefault(flagName string, defaultVal string) string 
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
-	return r.Optional.GetOrDefault(flagName, defaultVal)
+	result := r.Optional.GetOrDefault(flagName, defaultVal)
+	if result == defaultVal && r.aliasMap.Contains(flagName[1:]) {
+		alias := r.aliasMap.GetOrDefault(flagName[1:], flagName)
+		if alias[0] != '-' {
+			alias = "-" + alias
+		}
+		return r.Optional.GetOrDefault(alias, defaultVal)
+	}
+	return result
 }
 
 func (r *Parser) SetFlagValue(flagName string, val string) {
@@ -179,6 +194,11 @@ func (r *Parser) RemoveFlagValue(flagName string) {
 		flagName = "-" + flagName
 	}
 	r.Optional.Delete(flagName)
+
+	alias := r.aliasMap.GetOrDefault(flagName, "")
+	if alias != "" {
+		r.RemoveFlagValue(alias)
+	}
 }
 
 func (r *Parser) GetMultiFlagValDefault(flagNames []string, defaultVal string) string {
@@ -232,7 +252,8 @@ func (r *Parser) ContainsFlag(flagName string) bool {
 	for entry := range r.Optional.Iter().Iterate() {
 		buf.WriteString(entry.Key())
 	}
-	return strings.Contains(buf.String(), flagName)
+	alias := r.aliasMap.GetOrDefault(flagName, flagName)
+	return strings.Contains(buf.String(), flagName) || strings.Contains(buf.String(), alias)
 }
 
 // ContainsFlagStrict checks if an optional flag is set
@@ -242,7 +263,12 @@ func (r *Parser) ContainsFlagStrict(flagName string) bool {
 	if flagName[0] != '-' {
 		flagName = "-" + flagName
 	}
-	return r.Optional.Contains(flagName)
+	alias := r.aliasMap.GetOrDefault(flagName[1:], flagName)
+	if alias[0] != '-' {
+		alias = "-" + alias
+	}
+	// fmt.Println(">> ", flagName, alias, r.Optional, r.aliasMap)
+	return r.Optional.Contains(flagName) || r.Optional.Contains(alias)
 }
 
 func (r *Parser) ContainsAnyFlagStrict(flagNames ...string) bool {
@@ -298,7 +324,8 @@ func (r *Parser) GetDefaultValue(key string) string {
 	if key[0] != '-' {
 		key = fmt.Sprintf("-%s", key)
 	}
-	return r.defaultValMap.GetOrDefault(key[1:], "")
+	alias := r.aliasMap.GetOrDefault(key[1:], key[1:])
+	return r.defaultValMap.GetOrDefault(key[1:], r.defaultValMap.GetOrDefault(alias, ""))
 }
 
 func (r *Parser) Bool(name string, value bool, usage string) *Parser {
@@ -385,6 +412,28 @@ func test(cmd string, trie *cw.Trie, s *cw.OrderedSetT[string]) bool {
 		}
 	}
 	return false
+}
+
+func (r *Parser) processAlias() {
+	buildUseage := func(msg, target string) string {
+		return fmt.Sprintf("%s (alias for %q)", msg, target)
+	}
+	r.VisitAll(func(f *flag.Flag) {
+		target := r.aliasMap.GetOrDefault(f.Name, "")
+		if target != "" {
+			t := reflect.TypeOf(f.Value).String()
+			switch t {
+			case typeBool:
+				val, _ := strconv.ParseBool(f.DefValue)
+				r.Bool(target, val, buildUseage(f.Usage, f.Name))
+			case typeInt:
+				val, _ := strconv.ParseInt(f.DefValue, 10, 64)
+				r.Int64(target, val, buildUseage(f.Usage, f.Name))
+			case typeString:
+				r.String(target, f.DefValue, buildUseage(f.Usage, f.Name))
+			}
+		}
+	})
 }
 
 func (r *Parser) parseArgs(cmd string, boolOptionals ...string) {
@@ -514,6 +563,9 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 			boolOptionals = append(boolOptionals, val.(string))
 		}
 	}
+
+	// process alias
+	r.processAlias()
 
 	trie := cw.NewTrie()
 	r.VisitAll(func(f *flag.Flag) {

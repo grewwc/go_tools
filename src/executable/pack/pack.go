@@ -125,7 +125,7 @@ func hasPrefix(dir string) bool {
 }
 
 func main() {
-	parser := terminalw.NewParser()
+	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.String("ex", "", "exclude file/directory")
 	parser.String("exclude", "", "exclude file/directory, (i.e.: ${somedir}/.git, NOT .git")
 	parser.Bool("v", false, "verbose")

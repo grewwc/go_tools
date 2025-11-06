@@ -237,7 +237,7 @@ func valid(file string) bool {
 }
 
 func main() {
-	parser := terminalw.NewParser()
+	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.Bool("v", false, "list directries seperately")
 	parser.Bool("d", false, "only list directries")
 	parser.Bool("f", false, "only list regular files")

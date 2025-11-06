@@ -78,7 +78,7 @@ func base64ToImage(fname, outName string) {
 }
 
 func main() {
-	parser := terminalw.NewParser()
+	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.Bool("in", true, "get content from file")
 	parser.Bool("c", false, "get content from clipboard")
 	parser.String("o", "", "output file name")

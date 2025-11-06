@@ -238,10 +238,10 @@ func test() {
 }
 
 func main() {
-	parser := terminalw.NewParser()
+	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.Int("prec", 16, "division precision. default is: 16")
 	parser.Bool("h", false, "print help info")
-	parser.ParseArgsCmd("h")
+	parser.ParseArgsCmd()
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
@@ -253,7 +253,8 @@ func main() {
 		return
 	}
 
-	expr := parser.Positional.ToStringSlice()[0]
+	expr := parser.GetPositionalArgs(false)[0]
+	// fmt.Println(parser.Positional.ToStringSlice())
 	// fmt.Println(parser)
 	prec = parser.GetIntFlagValOrDefault("prec", 16)
 	if parser.GetNumArgs() != -1 {

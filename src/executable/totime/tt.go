@@ -14,7 +14,7 @@ const (
 )
 
 func main() {
-	parser := terminalw.NewParser()
+	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.Bool("h", false, "print help info")
 	parser.ParseArgsCmd()
 	if parser.ContainsFlagStrict("-h") {

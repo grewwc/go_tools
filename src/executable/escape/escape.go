@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	parser := terminalw.NewParser()
+	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.Bool("un", false, "unescape the url string")
 	parser.Bool("p", false, "PathEscape (default is QueryEscape)")
 	parser.ParseArgsCmd("un", "p")

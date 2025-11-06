@@ -39,7 +39,7 @@ func newFileSet(rootDir string, parser *terminalw.Parser) *cw.OrderedSetT[string
 
 func main() {
 
-	parser := terminalw.NewParser()
+	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.Bool("line", false, "if print by new line (default false)")
 	parser.Bool("md5", false, "if print file md5 value (default false)")
 	parser.String("ext", "", "file extension to compare (default all file types)")

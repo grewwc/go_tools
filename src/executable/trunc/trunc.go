@@ -118,7 +118,7 @@ func getStringSlice(s string) []string {
 }
 
 func main() {
-	parser := terminalw.NewParser()
+	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.Bool("f", false, "force")
 	parser.Bool("v", false, "verbose")
 	parser.Bool("h", false, "print help info")

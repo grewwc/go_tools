@@ -300,6 +300,9 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4]
 	parser.Bool("raw", false, "raw mode: don't use parser to get positional arguments, use raw inputs instead.")
 	parser.Bool("t", false, "use thinking model. default: false.")
 	parser.Bool("s", false, "short output")
+
+	parser.Alias("o", "out")
+
 	parser.ParseArgsCmd()
 	if parser.ContainsFlagStrict("h") {
 		parser.PrintDefaults()
