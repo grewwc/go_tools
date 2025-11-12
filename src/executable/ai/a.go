@@ -2,11 +2,9 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -22,44 +20,15 @@ import (
 	"github.com/grewwc/go_tools/src/utilsw"
 )
 
-const (
-	maxHistoryLines   = 100
-	defaultNumHistory = 4
-)
-
-const (
-	colon   = '\x00'
-	newline = '\x01'
-)
-
 var (
 	apiKey      string
 	historyFile string
 )
 
 var (
-	fileidArr []string
-)
-
-var (
 	thinking int32 = 0
 
 	raw bool = false
-)
-
-type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-type RequestBody struct {
-	Model        string    `json:"model"`
-	Messages     []Message `json:"messages"`
-	EnableSearch bool      `json:"enable_search"`
-	Stream       bool      `json:"stream"`
-}
-
-var (
-	nHistory int
 )
 
 var (
@@ -141,56 +110,6 @@ func init() {
 	}
 }
 
-func buildMessageArr(n int) []Message {
-	if !utilsw.IsTextFile(historyFile) {
-		return []Message{}
-	}
-	history := utilsw.ReadString(historyFile)
-	result := make([]Message, 0)
-	lines := strw.SplitByStrKeepQuotes(history, string(newline), `"`, false)
-	validLines := 0
-
-	for _, line := range lines {
-		if line == "" {
-			continue
-		}
-		// Find the last occurrence of the colon separator
-		lastColon := strings.LastIndex(line, string(colon))
-		if lastColon <= 0 || lastColon >= len(line)-1 {
-			continue
-		}
-
-		role := line[:lastColon]
-		content := line[lastColon+1:]
-
-		// Skip invalid roles
-		if role != "user" && role != "assistant" {
-			continue
-		}
-
-		result = append(result, Message{
-			Role:    role,
-			Content: content,
-		})
-		validLines++
-	}
-
-	if n > validLines {
-		n = validLines
-	}
-
-	// Trim history file if it's too long
-	if len(lines) > maxHistoryLines {
-		utilsw.WriteToFile(historyFile, typesw.StrToBytes(strings.Join(lines[len(lines)-maxHistoryLines:], string(newline))))
-	}
-
-	// Return the last n messages
-	if validLines > n {
-		return result[validLines-n:]
-	}
-	return result
-}
-
 func appendHistory(content string) {
 	f, err := os.OpenFile(historyFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0664)
 	if err != nil {
@@ -227,7 +146,7 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 		// if tempParser.GetNumArgs() != -1 {
 		// 	question = fmt.Sprintf("%s -%d", question, tempParser.GetNumArgs())
 		// }
-		nHistory = getNumHistory(tempParser)
+		internal.NHistory = getNumHistory(tempParser)
 	} else {
 		if raw {
 			question = strings.Join(os.Args[1:], " ")
@@ -235,7 +154,7 @@ func getQuestion(parsed *terminalw.Parser, loopMode bool) (question string) {
 			question = strings.Join(parsed.GetPositionalArgs(true), " ")
 		}
 
-		nHistory = getNumHistory(parsed)
+		internal.NHistory = getNumHistory(parsed)
 	}
 	if parsed.GetFlagValueDefault("f", "") != "" {
 		files := parsed.MustGetFlagVal("f")
@@ -260,7 +179,7 @@ func getNumHistory(parsed *terminalw.Parser) int {
 	if parsed.ContainsFlagStrict("x") {
 		return 0
 	}
-	return parsed.GetIntFlagValOrDefault("history", defaultNumHistory)
+	return parsed.GetIntFlagValOrDefault("history", internal.DefaultNumHistory)
 }
 
 func getWriteResultFile(parsed *terminalw.Parser) *os.File {
@@ -284,7 +203,7 @@ func run() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	parser := terminalw.NewParser()
-	parser.Int("history", defaultNumHistory, "number of history")
+	parser.Int("history", internal.DefaultNumHistory, "number of history")
 	parser.String("m", "", `model name. (configured by \"ai.model.default\") ,
 qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4], deepseek-r1 [5], qwen-flash [6]`)
 	parser.Bool("h", false, "print help info")
@@ -323,7 +242,6 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4]
 	var model = internal.GetModel(parser)
 	var curr bytes.Buffer
 
-	client := &http.Client{}
 	var f *os.File = getWriteResultFile(parser)
 	var out io.Writer = os.Stdout
 	var shouldQuit bool
@@ -337,65 +255,31 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4]
 			question = getQuestion(parser, false)
 			args = []string{}
 			shouldQuit = true
+
+			go func() {
+				for range sigChan {
+					os.Exit(0)
+				}
+			}()
 		} else {
 			question = getQuestion(parser, true)
 		}
 		if strings.TrimSpace(question) == "" {
 			continue
 		}
-		curr.WriteString(fmt.Sprintf("%s%c%s%c", "user", colon, question, newline))
+		curr.WriteString(fmt.Sprintf("%s%c%s%c", "user", internal.Colon, question, internal.Newline))
 
 		nextModel := internal.GetModelByInput(model, &question)
 		model = nextModel
 		// fmt.Println("here question:", question)
 		// 构建请求体
 		// fmt.Println(internal.SearchEnabled(model), model)
-		requestBody := RequestBody{
-			// 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
-			Model: nextModel,
-			Messages: []Message{
-				{
-					Role:    "system",
-					Content: "You are a helpful assistant.",
-				},
-			},
-			EnableSearch: internal.SearchEnabled(nextModel),
-			Stream:       true,
-		}
-		files := internal.NonTextFile.Get().([]string)
-		if len(files) > 0 || len(fileidArr) > 0 {
-			internal.NonTextFile.Set([]string{})
-			if len(files) > 0 {
-				fileidArr = internal.UploadQwenLongFiles(apiKey, files)
-			}
-			fileids := strings.Join(fileidArr, ",")
-			msg := Message{
-				Role:    "system",
-				Content: fmt.Sprintf("fileid://%s", fileids),
-			}
-			requestBody.Messages = append(requestBody.Messages, msg)
-			requestBody.Model = internal.QWEN_LONG
-		} else {
-			arr := buildMessageArr(nHistory)
-			requestBody.Messages = append(requestBody.Messages, arr...)
-		}
-		requestBody.Messages = append(requestBody.Messages, Message{
-			Role:    "user",
-			Content: question,
-		})
-		jsonData, _ := json.Marshal(requestBody)
-		req, _ := http.NewRequest("POST", internal.GetEndpoint(), bytes.NewBuffer(jsonData))
-		req.Header.Set("Authorization", "Bearer "+apiKey)
-		req.Header.Set("Content-Type", "application/json")
+
 		// 发送请求
-		resp, _ := client.Do(req)
-		curr.WriteString(fmt.Sprintf("assistant%c", colon))
+		resp := internal.DoRequest(apiKey, nextModel, question, historyFile)
+		curr.WriteString(fmt.Sprintf("assistant%c", internal.Colon))
 		ch := handleResponse(resp.Body)
-		search := "true"
-		if !internal.SearchEnabled(model) {
-			search = "false"
-		}
-		fmt.Printf("[%s (search: %s)] ", color.GreenString(requestBody.Model), color.RedString(search))
+
 		for {
 			select {
 			case <-sigChan:
@@ -416,7 +300,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4]
 		}
 	end:
 		resp.Body.Close()
-		curr.WriteByte(newline)
+		curr.WriteByte(internal.Newline)
 		appendHistory(curr.String())
 		fmt.Println()
 		if shouldQuit {

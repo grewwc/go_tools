@@ -555,6 +555,10 @@ func (j *Json) StringWithIndent(prefix, indent string) string {
 	return res
 }
 
+func (j *Json) RawData() any {
+	return j.data
+}
+
 func (j *Json) ToFile(fname string) {
 	WriteToFile(fname, typesw.StrToBytes(j.String()))
 }

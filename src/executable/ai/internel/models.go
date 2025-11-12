@@ -26,10 +26,32 @@ const (
 	QWEN3_MAX              = "qwen3-max"
 )
 
+const (
+	QWEN_VL_FLASH = "qwen3-vl-flash"
+	QWEN_VL_MAX   = "qwen3-vl-plus"
+)
+
 var allModels = cw.NewSetT(
 	DEEPSEEK_V3, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_MAX,
 	QWEN_CODER_PLUS_LATEST, QWEN_LONG, QWQ, QWEN_FLASH, QWEN3_MAX,
 )
+
+var allVlModels = cw.NewSetT(
+	QWEN_VL_FLASH, QWEN_VL_MAX,
+)
+
+var enableSearchModels = cw.NewSetT(
+	QWEN_MAX, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_FLASH, QWEN_PLUS_LATEST,
+	DEEPSEEK_V3, QWEN3_MAX,
+)
+
+func init() {
+	allModels = allModels.Union(allVlModels)
+}
+
+func isVlModel(model string) bool {
+	return allVlModels.Contains(model)
+}
 
 const (
 	QWEN_ENDPOINT = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
@@ -40,7 +62,7 @@ func getDefaultModel() string {
 	return config.GetOrDefault("ai.model.default", QWEN3_MAX).(string)
 }
 
-func GetEndpoint() string {
+func getEndpoint() string {
 	config := utilsw.GetAllConfig()
 	return config.GetOrDefault("ai.model.endpoint", QWEN_ENDPOINT).(string)
 }
@@ -108,7 +130,7 @@ func GetModel(parsed *terminalw.Parser) string {
 var NonTextFile = utilsw.NewThreadSafeVal([]string{})
 
 func GetModelByInput(prevModel string, input *string) string {
-	if len(NonTextFile.Get().([]string)) > 0 {
+	if len(NonTextFile.Get().([]string)) > 0 && !isVlModel(prevModel) {
 		return QWEN_LONG
 	}
 	if prevModel == QWEN_LONG {
@@ -131,16 +153,10 @@ func GetModelByInput(prevModel string, input *string) string {
 		parser.ParseArgs(fmt.Sprintf("a %s", found))
 		return GetModel(parser)
 	}
-
 	return prevModel
 }
 
-var enableSearchModels = cw.NewSet(
-	QWEN_MAX, QWEN_MAX_LASTEST, QWEN_PLUS_LATEST, QWEN_FLASH, QWEN_PLUS_LATEST,
-	DEEPSEEK_V3, QWEN3_MAX,
-)
-
-func SearchEnabled(model string) bool {
+func searchEnabled(model string) bool {
 	return enableSearchModels.Contains(model)
 }
 

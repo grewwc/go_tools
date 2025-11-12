@@ -67,7 +67,7 @@ func uploadSingleQwenlongFile(apiKey, filename string) (string, error) {
 	return fileid, nil
 }
 
-func UploadQwenLongFiles(apiKey string, files []string) []string {
+func uploadQwenLongFiles(apiKey string, files []string) []string {
 	ch := make(chan *cw.Tuple, len(files))
 	defer close(ch)
 	for i, file := range files {
