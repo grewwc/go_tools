@@ -179,7 +179,7 @@ func DoRequest(apiKey, model, question, historyFile string) *http.Response {
 	req.Header.Set("Content-Type", "application/json")
 	client := getClient()
 	printInfo(model)
-	utilsw.NewJson(requestBody).ToFile("test.json")
+	// utilsw.NewJson(requestBody).ToFile("test.json")
 	// os.Exit(0)
 	resp, _ := client.Do(req)
 	return resp
