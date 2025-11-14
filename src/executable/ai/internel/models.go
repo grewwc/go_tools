@@ -29,6 +29,7 @@ const (
 const (
 	QWEN_VL_FLASH = "qwen3-vl-flash"
 	QWEN_VL_MAX   = "qwen3-vl-plus"
+	QWEN_VL_OCR   = "qwen-vl-ocr-latest"
 )
 
 var allModels = cw.NewSetT(
@@ -37,7 +38,7 @@ var allModels = cw.NewSetT(
 )
 
 var allVlModels = cw.NewSetT(
-	QWEN_VL_FLASH, QWEN_VL_MAX,
+	QWEN_VL_FLASH, QWEN_VL_MAX, QWEN_VL_OCR,
 )
 
 var enableSearchModels = cw.NewSetT(
@@ -173,3 +174,4 @@ func determinModel(model string) string {
 	}
 	return result
 }
+
