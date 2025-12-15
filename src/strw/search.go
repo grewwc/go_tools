@@ -116,6 +116,18 @@ func AnyContains(str string, searchStrings ...string) bool {
 	return false
 }
 
+func FindFirstSubstr(str string, skipMatch bool, searchStrings ...string) int {
+	for _, searchStr := range searchStrings {
+		if i := strings.Index(str, searchStr); i > 0 {
+			if skipMatch {
+				i += len(searchStr)
+			}
+			return i
+		}
+	}
+	return -1
+}
+
 func AllContains(str string, searchStrings ...string) bool {
 	for _, searchStr := range searchStrings {
 		if !Contains(str, searchStr) {

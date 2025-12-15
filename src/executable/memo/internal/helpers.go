@@ -11,9 +11,11 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/cw"
+	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilsw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -43,6 +45,21 @@ func init() {
 func _print(urlsWithNo, info []string) {
 	for i := range urlsWithNo {
 		fmt.Println(urlsWithNo[i])
+	}
+}
+
+func parseUrl(url string) string {
+	idx := strw.FindFirstSubstr(url, false, "http://", "https://")
+	if idx == -1 {
+		return url
+	}
+	url = url[idx:]
+	if idx = strings.IndexFunc(url, func(r rune) bool {
+		return unicode.IsSpace(r)
+	}); idx >= 0 {
+		return url[:idx]
+	} else {
+		return url
 	}
 }
 
@@ -175,7 +192,7 @@ func ReadInfo(isURL bool) string {
 	}
 	if len(urls) == 1 {
 		if isURL {
-			utilsw.OpenUrlInBrowswer(urls[0])
+			utilsw.OpenUrlInBrowswer(parseUrl(urls[0]))
 			return ""
 		}
 		return urls[0]
