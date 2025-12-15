@@ -323,9 +323,8 @@ func mulIntegerV2(x, y string) string {
 	d, _ = removeLeadingZero(d)
 	e := mulIntegerV2(a, c)
 	f := mulIntegerV2(b, d)
-	g := mulIntegerV2(Minus(a, b), Minus(c, d))
-	tmp := Plus(e, f)
-	tmp = Minus(tmp, g)
+	g := mulIntegerV2(Plus(a, b), Plus(c, d))
+	tmp := Minus(g, Plus(e, f))
 	m0 := strings.Repeat("0", m)
 	return Plus(fmt.Sprintf("%s%s", e, strings.Repeat(m0, 2)), fmt.Sprintf("%s%s", tmp, m0), f)
 }

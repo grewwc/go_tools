@@ -42,7 +42,7 @@ type netstat struct {
 func selectEth(stats []netstat) []netstat {
 	res := make([]netstat, 0)
 	for _, stat := range stats {
-		if strw.AnyHasPrefix(stat.name, "en", "eth") {
+		if strw.AnyHasPrefix(stat.name, "en", "eth", "lo", "utun") {
 			res = append(res, stat)
 		}
 	}
