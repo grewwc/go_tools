@@ -217,7 +217,7 @@ func ReadInfo(isURL bool) string {
 			fmt.Print("\ninput the number: ")
 		} else {
 			if isURL {
-				utilsw.OpenUrlInBrowswer(urls[val-1])
+				utilsw.OpenUrlInBrowswer(parseUrl(urls[val-1]))
 				return ""
 			} else {
 				return urls[val-1]
