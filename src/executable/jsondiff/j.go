@@ -227,9 +227,13 @@ func getOutputFilename(inputFname string) string {
 	return strings.ReplaceAll(utilsw.BaseNoExt(inputFname), " ", "")
 }
 
-func quoteJsonString() {
+func quoteJsonString(oneLine bool) {
 	j := utilsw.NewJson(nil)
 	content := utilsw.ReadClipboardText()
+	if oneLine {
+		content = strings.ReplaceAll(content, "\n", "")
+		content = strings.ReplaceAll(content, "\r", "")
+	}
 	if content == "" {
 		fmt.Println("input the content (press Ctrl-D to end input):")
 		content = utilsw.UserInput("", true)
@@ -239,7 +243,8 @@ func quoteJsonString() {
 	str := j.String()
 	l := strings.Index(str, ":")
 	r := strings.LastIndex(str, "}")
-	fmt.Println(str[l+1 : r])
+	result := str[l+1 : r]
+	fmt.Println(result)
 	os.Exit(0)
 }
 
@@ -251,6 +256,7 @@ func main() {
 	parser.Bool("mt", false, "multi-thread, result is not ordered.")
 	parser.Bool("p", false, "print to console.")
 	parser.Bool("quote", false, "escape json string")
+	parser.Bool("one-line", false, "escape json to one-line string")
 	parser.Bool("h", false, "print help")
 
 	parser.ParseArgsCmd()
@@ -286,7 +292,9 @@ func main() {
 		fmt.Println("write to " + fname)
 	}
 
-	parser.On(func(p *terminalw.Parser) bool { return p.ContainsFlagStrict("quote") }).Do(quoteJsonString)
+	parser.On(func(p *terminalw.Parser) bool { return p.ContainsFlagStrict("quote") }).Do(func() {
+		quoteJsonString(parser.ContainsFlagStrict("one-line"))
+	})
 
 	internal.RegisterFormat(parser)
 
