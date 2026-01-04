@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
@@ -25,7 +26,11 @@ func format(parser *terminalw.Parser) {
 		panic(err)
 	}
 	formated := formatedJ.StringWithIndent("", "  ")
-	fmt.Println(strw.SubStringQuiet(text, 0, 1024))
+	if parser.ContainsFlagStrict("one-line") {
+		re := regexp.MustCompile(`\s+`)
+		formated = re.ReplaceAllString(formated, "")
+	}
+	fmt.Println(strw.SubStringQuiet(formated, 0, 1024))
 	outputFname := fmt.Sprintf("%s_f.json", utilsw.BaseNoExt(fname))
 	if fname == "" {
 		outputFname = "_f.json"
