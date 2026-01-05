@@ -99,6 +99,54 @@ func TestCountSort(t *testing.T) {
 	}
 }
 
+func TestTimeSort(t *testing.T) {
+	// Test with random integers
+	for i := 0; i < 100; i++ {
+		arr := algow.RandInt(-1000, 1000, 5000)
+		sortw.TimeSort(arr)
+		if !sort.IntsAreSorted(arr) {
+			t.Errorf("arr is not sorted, %v", arr)
+		}
+	}
+
+	// Test with random floats
+	for i := 0; i < 100; i++ {
+		arr := algow.RandFloat64(5000)
+		sortw.TimeSort(arr)
+		if !sort.Float64sAreSorted(arr) {
+			t.Errorf("arr is not sorted, %v", arr)
+		}
+	}
+
+	// Test with small arrays
+	for i := 0; i < 20; i++ {
+		arr := algow.RandInt(0, 100, 10)
+		sortw.TimeSort(arr)
+		if !sort.IntsAreSorted(arr) {
+			t.Errorf("arr is not sorted, %v", arr)
+		}
+	}
+
+	// Test with edge cases
+	arr1 := []int{}
+	sortw.TimeSort(arr1)
+	if len(arr1) != 0 {
+		t.Errorf("empty array should remain empty")
+	}
+
+	arr2 := []int{5}
+	sortw.TimeSort(arr2)
+	if arr2[0] != 5 {
+		t.Errorf("single element should remain unchanged")
+	}
+
+	arr3 := []int{3, 1, 4, 1, 5, 9, 2, 6}
+	sortw.TimeSort(arr3)
+	if !sort.IntsAreSorted(arr3) {
+		t.Errorf("arr is not sorted, %v", arr3)
+	}
+}
+
 func BenchmarkQuickSort(b *testing.B) {
 	arr := algow.RandInt(0, 10000, N)
 	for i := 0; i < b.N; i++ {
@@ -176,5 +224,17 @@ func BenchmarkKth(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		k := algow.RandInt(0, len(arr), 1)[0]
 		algow.Kth(arr, k, func(i, j int) int { return i - j })
+	}
+}
+
+func BenchmarkTimeSort(b *testing.B) {
+	arr := algow.RandInt(0, 10000, N)
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		rand.Shuffle(len(arr), func(i, j int) {
+			arr[i], arr[j] = arr[j], arr[i]
+		})
+		b.StartTimer()
+		sortw.TimeSort(arr)
 	}
 }
