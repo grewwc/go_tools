@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -13,10 +14,37 @@ const (
 	helpMsg = "usage: tt 1603372219690"
 )
 
+func printDate(t time.Time, format string) {
+	fmt.Println(t.Format(format))
+}
+
+func printCurrentDate() {
+	printDate(time.Now().Local(), "2006-01-02")
+	os.Exit(0)
+}
+
+func printCurrentDateTime() {
+	printDate(time.Now().Local(), "2006-01-02 15:04:05")
+	os.Exit(0)
+}
+
 func main() {
 	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.Bool("h", false, "print help info")
+	parser.Bool("d", false, "show current date in date format")
+	parser.Bool("dt", false, "show current date in datetime format")
 	parser.ParseArgsCmd()
+
+	parser.On(func(p *terminalw.Parser) bool {
+		return p.ContainsFlagStrict("d")
+	}).Do(printCurrentDate)
+
+	parser.On(func(p *terminalw.Parser) bool {
+		return p.ContainsFlagStrict("dt")
+	}).Do(printCurrentDateTime)
+
+	parser.Execute()
+
 	if parser.ContainsFlagStrict("-h") {
 		parser.PrintDefaults()
 		fmt.Println(helpMsg)
