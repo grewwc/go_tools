@@ -17,6 +17,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+func printTitleWithColoredSeprator(title string) {
+	colored := color.CyanString(strings.Repeat("~~~~~~~~~~~~", 10))
+	title = strings.ReplaceAll(title, "<sep>", colored)
+	fmt.Println(title)
+}
+
 func action(parser *terminalw.Parser) {
 	tags := strw.SplitNoEmpty(strings.TrimSpace(parser.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	if parser.ContainsFlagStrict("pull") {
@@ -44,7 +50,7 @@ func action(parser *terminalw.Parser) {
 		return
 	}
 	if !parser.ContainsAnyFlagStrict("pull", "push") {
-		ignoreFields := []string{"AddDate", "ModifiedDate", "Invalid"}
+		ignoreFields := []string{"AddDate", "ModifiedDate", "Invalid", "Title"}
 		if internal.Verbose {
 			ignoreFields = []string{}
 		}
@@ -69,6 +75,8 @@ func action(parser *terminalw.Parser) {
 						record.Title = color.HiYellowString("<binary>")
 					}
 					fmt.Println(utilsw.ToString(record, ignoreFields...))
+					// print title
+					printTitleWithColoredSeprator(record.Title)
 					fmt.Println(color.HiRedString(record.ID.String()))
 				}
 			}
