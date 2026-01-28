@@ -358,77 +358,79 @@ func Div(a, b string, numDigitToKeep int) string {
 	}
 	isMinus := (a[0] == '-' && b[0] != '-') || (a[0] != '-' && b[0] == '-')
 	a, b = StripPrefix(a, "-"), StripPrefix(b, "-")
+
+	// Handle decimal points
 	d1, d2, d := countDotdigit(a, b, false)
-	a, b = strings.ReplaceAll(a, ".", ""), strings.ReplaceAll(b, ".", "")
-	// a, b = strings.TrimLeft(a, "0"), strings.TrimLeft(b, "0")
-	a, _ = removeLeadingZero(a)
-	b, _ = removeLeadingZero(b)
+	aNoDecimal := strings.ReplaceAll(a, ".", "")
+	bNoDecimal := strings.ReplaceAll(b, ".", "")
+	a, _ = removeLeadingZero(aNoDecimal)
+	b, _ = removeLeadingZero(bNoDecimal)
+
 	if b == "0" {
 		panic("b is 0")
 	}
 	if a == "0" {
 		return "0"
 	}
-	// append '0' to a, b
+
+	// Adjust a and b to align decimal places
 	a += strings.Repeat("0", d-d1)
 	b += strings.Repeat("0", d-d2)
-	// <<< a, b are integers now
-	decimalCount := 0
+
+	// Now a and b are both integers
+	// Calculate decimal point position: position from left where decimal should be
+	decimalPos := len(a) - (d - d1)
+
+	// Perform standard long division
 	res := ""
+	remainder := "0"
+	totalDigits := len(a) + numDigitToKeep
 
-	aBak := a
-	sumRemovedZero := 0
-	var removedCount, prevRemoveCount int
-	digitalParts := false
-
-	original := a
-
-	for decimalCount < numDigitToKeep+1 {
-		// fmt.Println("===> input: ", a, b)
-		// time.Sleep(1 * time.Second)
-		divResult, remainder, addedZero, _ := helper(&a, b)
-		// fmt.Println("a, b", a, b, addedZero, decimalCount)
-
-		decimalCount += addedZero
-		a, removedCount = removeLeadingZero(a)
-
-		if digitalParts || (res != "" && Minus(original, Mul(res, b))[0] == '-') {
-			digitalParts = true
-			if addedZero > 0 {
-				addedZero--
-			}
-		}
-
-		if addedZero > 1 {
-			res += strings.Repeat("0", addedZero-1) + divResult
-		} else if prevRemoveCount > 0 && addedZero > 0 {
-			res += strings.Repeat("0", addedZero) + divResult
+	for i := 0; i < totalDigits; i++ {
+		// Append next digit from a (if available)
+		if i < len(a) {
+			remainder += string(a[i])
 		} else {
-			res += divResult
-		}
-
-		remainder += "0"
-		for remainder[0] != '0' && Minus(remainder, b)[0] == '-' {
-			// fmt.Println("remainder", remainder, b, Minus(remainder, b)[0] == '-')
-			res += "0"
 			remainder += "0"
-			// fmt.Println("===>", res)
+		}
+		remainder, _ = removeLeadingZero(remainder)
+		if remainder == "" {
+			remainder = "0"
 		}
 
-		// fmt.Println("here", divResult, addedZero, a, removedCount, prevRemoveCount)
-		sumRemovedZero += removedCount
-		prevRemoveCount = removedCount
-		if aBak == Mul(res, b) {
-			break
+		// Find quotient digit using binary search
+		_, digit, _ := doDiv(remainder, b)
+		res += digit
+
+		// Calculate new remainder
+		remainder = Minus(remainder, Mul(b, digit))
+
+		// Insert decimal point at correct position
+		if i == decimalPos-1 && i < len(a)-1 {
+			res += "."
 		}
 	}
-	exp := exponent(aBak, b)
-	// res = strings.TrimLeft(res, "0")
-	res, _ = removeLeadingZero(res)
-	decimalCount = len(res) - exp - 1
 
-	// fmt.Println("decimalCount", decimalCount, len(res), res, exp)
-	res = prependLeadingZero(res, decimalCount)
+	// Ensure decimal point exists
+	if !strings.Contains(res, ".") {
+		if decimalPos <= 0 {
+			res = "0." + strings.Repeat("0", -decimalPos) + res
+		} else {
+			// Insert decimal point at position
+			if decimalPos < len(res) {
+				res = res[:decimalPos] + "." + res[decimalPos:]
+			} else {
+				res = res + "." + "0"
+			}
+		}
+	}
+
+	// Clean up
+	res, _ = removeLeadingZero(res)
+	if res == "" || res == "." {
+		res = "0"
+	}
+
 	if isMinus {
 		res = "-" + res
 	}
@@ -495,18 +497,30 @@ func doDiv(a, b string) (string, string, bool) {
 	if b == "1" {
 		return "0", a, true
 	}
-	res := 0
-	var remainder = a
-	for {
-		val := Minus(remainder, b)
-		if val[0] != '-' || val == "0" {
-			res++
-			remainder = val
+
+	// Use binary search to find quotient digit (0-9) instead of repeated subtraction
+	// This reduces O(res) to O(log 10) which is O(4)
+	low, high := 0, 9
+	var res int
+
+	for low <= high {
+		mid := (low + high) / 2
+		product := Mul(b, strconv.Itoa(mid))
+		cmp := Minus(a, product)
+
+		if cmp == "0" || (len(cmp) > 0 && cmp[0] != '-') {
+			// a >= mid*b, so mid is viable
+			res = mid
+			low = mid + 1
 		} else {
-			break
+			// a < mid*b, so mid is too large
+			high = mid - 1
 		}
 	}
-	// fmt.Println("DoDiv", a, b, res)
+
+	// Always compute final remainder to ensure it matches res
+	remainder := Minus(a, Mul(b, strconv.Itoa(res)))
+
 	return remainder, strconv.Itoa(res), remainder == "0"
 }
 
