@@ -235,8 +235,7 @@ func quoteJsonString(oneLine bool) {
 		content = strings.ReplaceAll(content, "\r", "")
 	}
 	if content == "" {
-		fmt.Println("input the content (press Ctrl-D to end input):")
-		content = utilsw.UserInput("", true)
+		content = utilsw.UserInput("input the content (press Ctrl-D to end input):", true)
 	}
 	key := "_quoted"
 	j.Set(key, content)
@@ -248,6 +247,29 @@ func quoteJsonString(oneLine bool) {
 	os.Exit(0)
 }
 
+func printClipboardOneline() {
+	content := utilsw.ReadClipboardText()
+	content = strings.ReplaceAll(content, "\n", "")
+	content = strings.ReplaceAll(content, "\r", "")
+	fmt.Println(content)
+	os.Exit(0)
+}
+
+func printJsonLengthInClipboard() {
+	content := utilsw.ReadClipboardText()
+	j, err := utilsw.NewJsonFromString(content)
+	if err != nil {
+		fmt.Println("clipboard content is not a valid json")
+		os.Exit(1)
+	}
+	msg := "Object"
+	if j.IsArray() {
+		msg = "Array"
+	}
+	fmt.Printf("%s: %d\n", msg, j.Len())
+	os.Exit(0)
+}
+
 func main() {
 	parser := terminalw.NewParser()
 	parser.String("f", "", "format json file.")
@@ -256,8 +278,9 @@ func main() {
 	parser.Bool("mt", false, "multi-thread, result is not ordered.")
 	parser.Bool("p", false, "print to console.")
 	parser.Bool("quote", false, "escape json string")
-	parser.Bool("one-line", false, "escape json to one-line string")
+	parser.Bool("oneline", false, "escape json to one-line string")
 	parser.Bool("h", false, "print help")
+	parser.Bool("len", false, "print json length in the clipboard")
 
 	parser.ParseArgsCmd()
 
@@ -293,8 +316,10 @@ func main() {
 	}
 
 	parser.On(func(p *terminalw.Parser) bool { return p.ContainsFlagStrict("quote") }).Do(func() {
-		quoteJsonString(parser.ContainsFlagStrict("one-line"))
+		quoteJsonString(parser.ContainsFlagStrict("oneline"))
 	})
+	parser.On(func(p *terminalw.Parser) bool { return p.ContainsFlagStrict("oneline") }).Do(printClipboardOneline)
+	parser.On(func(p *terminalw.Parser) bool { return p.ContainsFlagStrict("len") }).Do(printJsonLengthInClipboard)
 
 	internal.RegisterFormat(parser)
 
