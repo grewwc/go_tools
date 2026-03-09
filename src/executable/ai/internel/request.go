@@ -12,6 +12,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/strw"
+	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/typesw"
 	"github.com/grewwc/go_tools/src/utilsw"
 )
@@ -31,10 +32,11 @@ type Message struct {
 	Content any    `json:"content"`
 }
 type RequestBody struct {
-	Model        string    `json:"model"`
-	Messages     []Message `json:"messages"`
-	EnableSearch bool      `json:"enable_search"`
-	Stream       bool      `json:"stream"`
+	Model          string    `json:"model"`
+	Messages       []Message `json:"messages"`
+	Stream         bool      `json:"stream"`
+	EnableThinking bool      `json:"enable_thinking"`
+	EnableSearch   bool      `json:"enable_search,omitempty"`
 }
 
 func buildMessageArr(n int, historyFile string) []Message {
@@ -136,7 +138,7 @@ func buildContent(model, question string, fname []string) any {
 	return j.RawData()
 }
 
-func DoRequest(apiKey, model, question, historyFile string) *http.Response {
+func DoRequest(parser *terminalw.Parser, apiKey, model, question, historyFile string) *http.Response {
 	requestBody := RequestBody{
 		// 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
 		Model: model,
@@ -146,8 +148,9 @@ func DoRequest(apiKey, model, question, historyFile string) *http.Response {
 				Content: "You are a helpful assistant.",
 			},
 		},
-		EnableSearch: searchEnabled(model),
-		Stream:       true,
+		EnableSearch:   searchEnabled(model),
+		EnableThinking: thinkingEnabled(parser),
+		Stream:         true,
 	}
 
 	files := NonTextFile.Get().([]string)

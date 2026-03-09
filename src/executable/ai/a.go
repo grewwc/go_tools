@@ -276,7 +276,7 @@ qwq-plus[0], qwen-plus[1], qwen-max[2], qwen3-max[3], qwen-coder-plus-latest [4]
 		// fmt.Println(internal.SearchEnabled(model), model)
 
 		// 发送请求
-		resp := internal.DoRequest(apiKey, nextModel, question, historyFile)
+		resp := internal.DoRequest(parser, apiKey, nextModel, question, historyFile)
 		curr.WriteString(fmt.Sprintf("assistant%c", internal.Colon))
 		ch := handleResponse(resp.Body)
 

@@ -17,7 +17,7 @@ const (
 	DEEPSEEK_V3            = "deepseek-v3.1"
 	DEEPSEEK_R1            = "deepseek-r1"
 	QWEN_MAX_LASTEST       = "qwen-max-latest"
-	QWEN_PLUS_LATEST       = "qwen-plus-latest"
+	QWEN_PLUS_LATEST       = "qwen3.5-plus"
 	QWEN_MAX               = "qwen-max"
 	QWEN_CODER_PLUS_LATEST = "qwen3-coder-plus"
 	QWEN_LONG              = "qwen-long"
@@ -161,6 +161,10 @@ func searchEnabled(model string) bool {
 	return enableSearchModels.Contains(model)
 }
 
+func thinkingEnabled(parser *terminalw.Parser) bool {
+	return parser.ContainsFlagStrict("t")
+}
+
 func determinModel(model string) string {
 	model = strings.ToLower(model)
 	result := model
@@ -174,4 +178,3 @@ func determinModel(model string) string {
 	}
 	return result
 }
-
