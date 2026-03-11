@@ -250,7 +250,79 @@ func getT[T type_, U keytype](j *Json, key U) T {
 		return *(*T)(unsafe.Pointer(&val))
 	} else {
 		// fmt.Printf("ERROR: key (\"%s\", type: \"%s\") is not type (\"%s\")\n", strKey, reflect.TypeOf(data.Get(strKey)), reflect.TypeOf(*new(T)))
-		return *new(T)
+		switch data.Get(strKey).(type) {
+		case json.Number:
+			val := data.Get(strKey).(json.Number)
+			t := reflect.TypeOf(*new(T))
+			kind := t.Kind()
+			switch kind {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				i64, err := val.Int64()
+				if err != nil {
+					f64, err2 := val.Float64()
+					if err2 != nil {
+						return *new(T)
+					}
+					if math.Trunc(f64) != f64 {
+						return *new(T)
+					}
+					i64 = int64(f64)
+				}
+				bits := int(t.Bits())
+				if bits == 0 {
+					bits = strconv.IntSize
+				}
+				min := -(int64(1) << (bits - 1))
+				max := (int64(1) << (bits - 1)) - 1
+				if i64 < min || i64 > max {
+					return *new(T)
+				}
+				out := reflect.New(t).Elem()
+				out.SetInt(i64)
+				return out.Interface().(T)
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				u64, err := strconv.ParseUint(val.String(), 10, 64)
+				if err != nil {
+					f64, err2 := val.Float64()
+					if err2 != nil {
+						return *new(T)
+					}
+					if math.Trunc(f64) != f64 || f64 < 0 {
+						return *new(T)
+					}
+					u64 = uint64(f64)
+				}
+				bits := int(t.Bits())
+				if bits == 0 {
+					bits = strconv.IntSize
+				}
+				if bits < 64 {
+					max := (uint64(1) << bits) - 1
+					if u64 > max {
+						return *new(T)
+					}
+				}
+				out := reflect.New(t).Elem()
+				out.SetUint(u64)
+				return out.Interface().(T)
+			case reflect.Float32, reflect.Float64:
+				f64, err := val.Float64()
+				if err != nil {
+					return *new(T)
+				}
+				out := reflect.New(t).Elem()
+				out.SetFloat(f64)
+				return out.Interface().(T)
+			case reflect.String:
+				out := reflect.New(t).Elem()
+				out.SetString(val.String())
+				return out.Interface().(T)
+			default:
+				return *new(T)
+			}
+		default:
+			return *new(T)
+		}
 	}
 }
 
