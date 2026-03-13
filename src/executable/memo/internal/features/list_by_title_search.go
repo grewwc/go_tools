@@ -9,6 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/grewwc/go_tools/src/executable/memo/internal"
+	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilsw"
 )
@@ -18,7 +19,7 @@ func listByTitle(parser *terminalw.Parser) {
 	if title == "" {
 		title = parser.GetFlagValueDefault("c", "")
 	}
-	tags := []string{}
+	tags := strw.SplitNoEmpty(strings.TrimSpace(parser.GetMultiFlagValDefault([]string{"t", "ta", "at"}, "")), " ")
 	records, _ := internal.ListRecords(internal.RecordLimit, internal.Reverse,
 		internal.IncludeFinished, tags, parser.ContainsFlagStrict("and"), title, internal.Prefix)
 

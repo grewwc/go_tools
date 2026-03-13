@@ -224,6 +224,10 @@ func init() {
 }
 
 func ListRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool, title string, prefix bool) ([]*Record, bool) {
+	return listRecords(limit, reverse, includeFinished, tags, useAnd, title, prefix, true)
+}
+
+func listRecords(limit int64, reverse, includeFinished bool, tags []string, useAnd bool, title string, prefix bool, writeInfo bool) ([]*Record, bool) {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -347,9 +351,10 @@ func ListRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 		recordTitles[i] = res[i].Title
 		recordIDs[i] = &res[i].ID
 	}
-	// fmt.Println("here", recordIDs)
-	// os.Exit(0)
-	written := WriteInfo(recordIDs, recordTitles)
+	written := false
+	if writeInfo {
+		written = WriteInfo(recordIDs, recordTitles)
+	}
 	return res, written
 }
 

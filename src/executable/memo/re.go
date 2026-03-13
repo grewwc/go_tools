@@ -37,6 +37,7 @@ func main() {
 	parser.Bool("e", false, "read from editor")
 	parser.String("title", "", "search by title")
 	parser.String("c", "", "content (alias for title)")
+	parser.String("search", "", "fuzzy search records")
 	parser.String("out", "", fmt.Sprintf("output to text file (default is %s)", internal.DefaultTxtOutputName))
 	parser.Bool("remote", false, "operate on the remote server")
 	parser.Bool("prev", false, "operate based on the previous ObjectIDs")
@@ -53,6 +54,7 @@ func main() {
 	parser.Bool("l", false, "list tags")
 	parser.String("backend", internal.DefaultBackendMode, "local backend: auto|mongo|sqlite. '.configW:re.backend'")
 
+	parser.Alias("search", "q")
 	parser.ParseArgsCmd()
 	internal.SetLocalBackendMode(parser.GetFlagValueDefault("backend", internal.DefaultBackendMode))
 	internal.Prefix = parser.ContainsAnyFlagStrict("prefix", "pre", "all", "a")
@@ -114,6 +116,7 @@ func main() {
 	features.RegisterPull(parser)
 	features.RegisterListByTagName(parser)
 	features.RegisterListByTitle(parser)
+	features.RegisterSearch(parser)
 
 	parser.Execute()
 }

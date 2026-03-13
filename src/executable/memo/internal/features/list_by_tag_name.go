@@ -126,7 +126,9 @@ func action(parser *terminalw.Parser) {
 
 func RegisterListByTagName(parser *terminalw.Parser) {
 	parser.On(func(p *terminalw.Parser) bool {
-		return (parser.ContainsFlagStrict("t") || parser.CoExists("t", "a")) && !internal.ListTagsAndOrderByTime
+		return (parser.ContainsFlagStrict("t") || parser.CoExists("t", "a")) &&
+			!internal.ListTagsAndOrderByTime &&
+			!parser.ContainsAnyFlagStrict("title", "c", "search")
 	}).Do(func() {
 		action(parser)
 	})
