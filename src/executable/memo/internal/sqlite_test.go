@@ -153,3 +153,30 @@ func TestSQLiteQueriesAndTagCounts(t *testing.T) {
 		t.Fatalf("todo count should decrease after delete: %+v", tagCounts)
 	}
 }
+
+func TestSQLiteEmptyResults(t *testing.T) {
+	cleanup := setupSQLiteTest(t)
+	defer cleanup()
+
+	records, written := ListRecords(-1, false, false, nil, false, "", false)
+	if written {
+		t.Fatal("expected no url info to be written for empty results")
+	}
+	if len(records) != 0 {
+		t.Fatalf("expected empty record list, got %+v", records)
+	}
+
+	tags, err := ListTags(-1, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tags) != 0 {
+		t.Fatalf("expected empty tag list, got %+v", tags)
+	}
+
+	r := &Record{ID: primitive.NewObjectID()}
+	r.LoadByID()
+	if !r.Invalid {
+		t.Fatal("expected nonexistent record to be marked invalid")
+	}
+}

@@ -120,6 +120,9 @@ func execSQLiteScript(path, script string, jsonOutput bool) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("sqlite3 failed: %w: %s", err, strings.TrimSpace(string(out)))
 	}
+	if jsonOutput && strings.TrimSpace(string(out)) == "" {
+		return []byte("[]"), nil
+	}
 	return out, nil
 
 }
