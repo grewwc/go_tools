@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -38,6 +39,15 @@ const (
 	localMongoConfigName = "mongo.local"
 	atlasMongoConfigName = "mongo.atlas"
 	specialTagConfigname = "special.tags"
+)
+
+const (
+	LocalBackendAuto   = "auto"
+	LocalBackendMongo  = "mongo"
+	LocalBackendSQLite = "sqlite"
+
+	defaultLocalMongoURI  = "mongodb://localhost:27017"
+	localMongoInitTimeout = 1500 * time.Millisecond
 )
 
 const (
@@ -63,16 +73,21 @@ var (
 )
 
 var (
-	uri           string
-	clientOptions = &options.ClientOptions{}
-	ctx           context.Context
-	Client        *mongo.Client
-	AtlasClient   *mongo.Client
+	ctx         context.Context
+	Client      *mongo.Client
+	AtlasClient *mongo.Client
 )
 
 var (
-	Remote = utilsw.NewThreadSafeVal(false)
-	mu     sync.Mutex
+	Remote           = utilsw.NewThreadSafeVal(false)
+	localBackendMode = utilsw.NewThreadSafeVal(LocalBackendAuto)
+	mu               sync.Mutex
+	localMongoMu     sync.Mutex
+)
+
+var (
+	localMongoChecked bool
+	localMongoErr     error
 )
 
 var (
@@ -83,21 +98,23 @@ var (
 
 func InitRemote() {
 	mu.Lock()
+	defer mu.Unlock()
 	if AtlasClient != nil {
-		mu.Unlock()
+		Remote.Set(true)
 		return
 	}
 	fmt.Println("connecting to Remote...")
 	m := utilsw.GetAllConfig()
 	var err error
 	// mongo atlas init
-	atlasURI := m.GetOrDefault(atlasMongoConfigName, "").(string)
-	if atlasURI != "" {
-		clientOptions = options.Client().ApplyURI(atlasURI)
-		AtlasClient, err = mongo.Connect(ctx, clientOptions)
-		if err != nil {
-			panic(err)
-		}
+	atlasURI := strings.TrimSpace(m.GetOrDefault(atlasMongoConfigName, "").(string))
+	if atlasURI == "" {
+		panic("mongo.atlas not configured")
+	}
+	clientOptions := options.Client().ApplyURI(atlasURI)
+	AtlasClient, err = mongo.Connect(ctx, clientOptions)
+	if err != nil {
+		panic(err)
 	}
 	// check if tags and memo collections exists
 	db := AtlasClient.Database(DbName)
@@ -108,31 +125,91 @@ func InitRemote() {
 		})
 	}
 	fmt.Println("connected")
-	mu.Unlock()
 	Remote.Set(true)
 	// fmt.Println("init Atlas", atlasURI, atlasClient)
 }
 
-func init() {
-	// var cancel context.CancelFunc
-	// get the uri
-	m := utilsw.GetAllConfig()
-	uriFromConfig := m.GetOrDefault(localMongoConfigName, "")
-	if uriFromConfig != "" {
-		uri = uriFromConfig.(string)
-		clientOptions.ApplyURI(uri)
+func normalizeLocalBackendMode(mode string) string {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "", LocalBackendAuto:
+		return LocalBackendAuto
+	case LocalBackendMongo, "mongodb":
+		return LocalBackendMongo
+	case LocalBackendSQLite, "sqlite3":
+		return LocalBackendSQLite
+	default:
+		panic(fmt.Sprintf("unknown backend %q, use auto|mongo|sqlite", mode))
 	}
+}
 
-	// init client
-	ctx = context.Background()
-	clientOptions.SetMaxPoolSize(10)
-	var err error
-	Client, err = mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		panic(err)
+func SetLocalBackendMode(mode string) {
+	localBackendMode.Set(normalizeLocalBackendMode(mode))
+}
+
+func initLocalMongo() error {
+	localMongoMu.Lock()
+	defer localMongoMu.Unlock()
+	if Client != nil {
+		return nil
 	}
+	if localMongoChecked {
+		return localMongoErr
+	}
+	m := utilsw.GetAllConfig()
+	uri := strings.TrimSpace(m.GetOrDefault(localMongoConfigName, "").(string))
+	if uri == "" {
+		uri = defaultLocalMongoURI
+	}
+	connectCtx, cancel := context.WithTimeout(context.Background(), localMongoInitTimeout)
+	defer cancel()
+	clientOptions := options.Client().ApplyURI(uri)
+	clientOptions.SetMaxPoolSize(10)
+	clientOptions.SetConnectTimeout(localMongoInitTimeout)
+	clientOptions.SetServerSelectionTimeout(localMongoInitTimeout)
+	client, err := mongo.Connect(connectCtx, clientOptions)
+	if err == nil {
+		err = client.Ping(connectCtx, readpref.Primary())
+	}
+	localMongoChecked = true
+	localMongoErr = err
+	if err != nil {
+		if client != nil {
+			_ = client.Disconnect(context.Background())
+		}
+		return err
+	}
+	Client = client
+	return nil
+}
+
+func useLocalSQLite() bool {
+	if Remote.Get().(bool) {
+		return false
+	}
+	mode := localBackendMode.Get().(string)
+	switch mode {
+	case LocalBackendSQLite:
+		initLocalSQLite()
+		return true
+	case LocalBackendMongo:
+		if err := initLocalMongo(); err != nil {
+			panic(fmt.Sprintf("local mongodb unavailable: %v", err))
+		}
+		return false
+	default:
+		if err := initLocalMongo(); err == nil {
+			return false
+		}
+		initLocalSQLite()
+		return true
+	}
+}
+
+func init() {
+	ctx = context.Background()
 
 	// read the special tag patters from .configW
+	m := utilsw.GetAllConfig()
 	for _, val := range strw.SplitNoEmpty(m.GetOrDefault(specialTagConfigname, "").(string), ",") {
 		val = strings.TrimSpace(val)
 		SpecialTagPatterns.Add(val)
@@ -147,55 +224,100 @@ func ListRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 	if limit <= 0 {
 		limit = math.MaxInt64
 	}
-	reverseNum := 1
-	if reverse {
-		reverseNum = -1
-	}
-	var collection *mongo.Collection
-	if !Remote.Get().(bool) {
-		collection = Client.Database(DbName).Collection(CollectionName)
-	} else {
+	var res []*Record
+	if Remote.Get().(bool) {
 		InitRemote()
-		collection = AtlasClient.Database(DbName).Collection(CollectionName)
-	}
-	modifiedDataOption := options.Find()
-	addDateOption := options.Find()
-	modifiedDataOption.SetLimit(limit)
-	addDateOption.SetLimit(limit)
-	modifiedDataOption.SetSort(bson.M{"modified_date": reverseNum})
-	addDateOption.SetSort(bson.M{"add_date": reverseNum})
-	m := bson.M{}
-	// construct search filter
-	if !includeFinished {
-		m["finished"] = false
-	}
+		reverseNum := 1
+		if reverse {
+			reverseNum = -1
+		}
+		collection := AtlasClient.Database(DbName).Collection(CollectionName)
+		modifiedDataOption := options.Find()
+		addDateOption := options.Find()
+		modifiedDataOption.SetLimit(limit)
+		addDateOption.SetLimit(limit)
+		modifiedDataOption.SetSort(bson.M{"modified_date": reverseNum})
+		addDateOption.SetSort(bson.M{"add_date": reverseNum})
+		m := bson.M{}
+		if !includeFinished {
+			m["finished"] = false
+		}
 
-	if len(tags) > 0 {
-		if useAnd {
-			m["tags"] = bson.M{"$all": tags}
-		} else {
-			if prefix {
-				tagsReg := make([]primitive.Regex, len(tags))
-				for i := range tags {
-					tagsReg[i] = primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", tags[i])}
-				}
-				m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tagsReg}}
+		if len(tags) > 0 {
+			if useAnd {
+				m["tags"] = bson.M{"$all": tags}
 			} else {
-				m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tags}}
+				if prefix {
+					tagsReg := make([]primitive.Regex, len(tags))
+					for i := range tags {
+						tagsReg[i] = primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", tags[i])}
+					}
+					m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tagsReg}}
+				} else {
+					m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tags}}
+				}
 			}
 		}
-	}
-	if title != "" {
-		m["title"] = bson.M{"$regex": primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", title), Options: "i"}}
-	}
+		if title != "" {
+			m["title"] = bson.M{"$regex": primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", title), Options: "i"}}
+		}
 
-	cursor, err := collection.Find(ctx, m, addDateOption, modifiedDataOption)
-	if err != nil {
-		panic(err)
-	}
-	var res []*Record
-	if err = cursor.All(ctx, &res); err != nil {
-		panic(err)
+		cursor, err := collection.Find(ctx, m, addDateOption, modifiedDataOption)
+		if err != nil {
+			panic(err)
+		}
+		if err = cursor.All(ctx, &res); err != nil {
+			panic(err)
+		}
+	} else if useLocalSQLite() {
+		var err error
+		res, err = sqliteListRecords(limit, reverse, includeFinished, tags, useAnd, title, prefix)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		reverseNum := 1
+		if reverse {
+			reverseNum = -1
+		}
+		collection := Client.Database(DbName).Collection(CollectionName)
+		modifiedDataOption := options.Find()
+		addDateOption := options.Find()
+		modifiedDataOption.SetLimit(limit)
+		addDateOption.SetLimit(limit)
+		modifiedDataOption.SetSort(bson.M{"modified_date": reverseNum})
+		addDateOption.SetSort(bson.M{"add_date": reverseNum})
+		m := bson.M{}
+		if !includeFinished {
+			m["finished"] = false
+		}
+
+		if len(tags) > 0 {
+			if useAnd {
+				m["tags"] = bson.M{"$all": tags}
+			} else {
+				if prefix {
+					tagsReg := make([]primitive.Regex, len(tags))
+					for i := range tags {
+						tagsReg[i] = primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", tags[i])}
+					}
+					m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tagsReg}}
+				} else {
+					m["tags"] = bson.M{"$elemMatch": bson.M{"$in": tags}}
+				}
+			}
+		}
+		if title != "" {
+			m["title"] = bson.M{"$regex": primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", title), Options: "i"}}
+		}
+
+		cursor, err := collection.Find(ctx, m, addDateOption, modifiedDataOption)
+		if err != nil {
+			panic(err)
+		}
+		if err = cursor.All(ctx, &res); err != nil {
+			panic(err)
+		}
 	}
 	// filter by special tags
 	// fmt.Println("here", res)
@@ -226,12 +348,27 @@ func ListRecords(limit int64, reverse, includeFinished bool, tags []string, useA
 }
 
 func (r *Record) exists() bool {
-	var collection *mongo.Collection
-	if !Remote.Get().(bool) {
-		collection = Client.Database(DbName).Collection(CollectionName)
-	} else {
-		collection = AtlasClient.Database(DbName).Collection(CollectionName)
+	if Remote.Get().(bool) {
+		collection := AtlasClient.Database(DbName).Collection(CollectionName)
+		singleResults := collection.FindOne(context.Background(), bson.M{"_id": r.ID})
+		err := singleResults.Err()
+		if err == nil {
+			return true
+		}
+
+		if err == mongo.ErrNoDocuments {
+			return false
+		}
+		panic(err)
 	}
+	if useLocalSQLite() {
+		exists, err := sqliteRecordExists(r.ID)
+		if err != nil {
+			panic(err)
+		}
+		return exists
+	}
+	collection := Client.Database(DbName).Collection(CollectionName)
 	singleResults := collection.FindOne(context.Background(), bson.M{"_id": r.ID})
 	err := singleResults.Err()
 	if err == nil {
@@ -244,39 +381,50 @@ func (r *Record) exists() bool {
 	panic(err)
 }
 
-func incrementTagCount(db *mongo.Database, tags []string, val int) {
-	session, err := Client.StartSession()
-	if err != nil {
-		panic(err)
-	}
-	if err = session.StartTransaction(); err != nil {
-		panic(err)
-	}
+func incrementTagCount(tags []string, val int) {
+	if Remote.Get().(bool) {
+		InitRemote()
+		db := AtlasClient.Database(DbName)
+		var err error
+		for _, tag := range tags {
+			_, err = db.Collection(TagCollectionName).UpdateOne(ctx,
+				bson.M{"name": tag},
+				bson.M{"$inc": bson.M{"count": val}}, options.Update().SetUpsert(true))
+			if err != nil {
+				panic(err)
+			}
+		}
 
+		if _, err := db.Collection(TagCollectionName).DeleteMany(ctx, bson.M{"count": bson.M{"$lt": 1}}); err != nil {
+			panic(err)
+		}
+		return
+	}
+	if useLocalSQLite() {
+		if err := sqliteIncrementTagCount(tags, val); err != nil {
+			panic(err)
+		}
+		return
+	}
+	db := Client.Database(DbName)
+	var err error
 	for _, tag := range tags {
 		_, err = db.Collection(TagCollectionName).UpdateOne(ctx,
 			bson.M{"name": tag},
 			bson.M{"$inc": bson.M{"count": val}}, options.Update().SetUpsert(true))
 		if err != nil {
-			session.AbortTransaction(ctx)
 			panic(err)
 		}
 	}
 
 	if _, err := db.Collection(TagCollectionName).DeleteMany(ctx, bson.M{"count": bson.M{"$lt": 1}}); err != nil {
-		session.AbortTransaction(ctx)
 		panic(err)
 	}
-	session.CommitTransaction(ctx)
 }
 
 func Update(parser *terminalw.Parser, fromFile bool, fromEditor bool, prev bool) {
 	var err error
 	var changed bool
-	var cli = Client
-	if Remote.Get().(bool) {
-		cli = AtlasClient
-	}
 	scanner := bufio.NewScanner(os.Stdin)
 	id := parser.GetFlagValueDefault("u", "")
 	if prev {
@@ -331,11 +479,11 @@ func Update(parser *terminalw.Parser, fromFile bool, fromEditor bool, prev bool)
 		c := make(chan interface{}, 1)
 		defer close(c)
 		go func(c chan interface{}) {
-			incrementTagCount(cli.Database(DbName), oldTags, -1)
+			incrementTagCount(oldTags, -1)
 			c <- nil
 		}(c)
 		go func(c chan interface{}) {
-			incrementTagCount(cli.Database(DbName), newRecord.Tags, 1)
+			incrementTagCount(newRecord.Tags, 1)
 			c <- nil
 		}(c)
 		<-c
@@ -434,10 +582,6 @@ func Insert(fromEditor bool, filename, tagName string) {
 func Toggle(val bool, id string, name string, prev bool) {
 	var err error
 	var r Record
-	var cli = Client
-	if Remote.Get().(bool) {
-		cli = AtlasClient
-	}
 	id = strings.TrimSpace(id)
 	if prev {
 		id = ReadInfo(false)
@@ -477,7 +621,7 @@ func Toggle(val bool, id string, name string, prev bool) {
 		if !changed {
 			return
 		}
-		incrementTagCount(cli.Database(DbName), r.Tags, inc)
+		incrementTagCount(r.Tags, inc)
 	}(c, inc)
 	<-c
 	r.Update(false)
@@ -571,10 +715,6 @@ func ChangeTitle(fromFile, fromEditor bool, id string, prev bool) {
 
 func AddTag(add bool, id string, prev bool) {
 	var err error
-	var cli = Client
-	if Remote.Get().(bool) {
-		cli = AtlasClient
-	}
 	id = strings.TrimSpace(id)
 	scanner := bufio.NewScanner(os.Stdin)
 	if prev {
@@ -635,7 +775,7 @@ func AddTag(add bool, id string, prev bool) {
 			c <- nil
 		}()
 		// fmt.Println("here", incVal, newTagSet.ToStringSlice())
-		incrementTagCount(cli.Database(DbName), newTagSet.ToStringSlice(), incVal)
+		incrementTagCount(newTagSet.ToStringSlice(), incVal)
 	}(c)
 	<-c
 	go func(c chan interface{}) {
@@ -684,7 +824,6 @@ func ColoringRecord(r *Record, p *regexp.Regexp) {
 
 func SyncByID(id string, push, quiet bool) {
 	InitRemote()
-	remoteBackUp := Remote
 	scanner := bufio.NewScanner(os.Stdin)
 	var msg string
 	if id == "" {
@@ -696,38 +835,45 @@ func SyncByID(id string, push, quiet bool) {
 	if err != nil {
 		panic(err)
 	}
+	remoteBackUp := Remote.Get().(bool)
+	defer Remote.Set(remoteBackUp)
 	var r Record
 	r.ID = hexID
-	remoteClient := AtlasClient
 
-	if !push {
-		msg = "pull"
-		remoteClient = Client
-		Remote.Set(true)
-		r.LoadByID()
-		Remote = remoteBackUp
-	} else {
-		msg = "push"
-		r.LoadByID()
-	}
-
-	if err = remoteClient.Database(DbName).Collection(CollectionName).FindOne(ctx, bson.M{"_id": hexID}).Err(); err != nil && err != mongo.ErrNoDocuments {
-		panic(err)
-	}
-
-	// 保存的时候，remote需要重新设置
 	if push {
-		Remote.Set(true)
-	} else {
+		msg = "push"
 		Remote.Set(false)
-	}
-	if err == mongo.ErrNoDocuments {
-		r.Save(true)
 	} else {
-		r.Update(false)
+		msg = "pull"
+		Remote.Set(true)
 	}
-	// 恢复remote
-	Remote = remoteBackUp
+	r.LoadByID()
+	if r.Invalid {
+		panic(fmt.Sprintf("record %s not found", id))
+	}
+
+	if push {
+		if err = AtlasClient.Database(DbName).Collection(CollectionName).FindOne(ctx, bson.M{"_id": hexID}).Err(); err != nil && err != mongo.ErrNoDocuments {
+			panic(err)
+		}
+		Remote.Set(true)
+		if err == mongo.ErrNoDocuments {
+			r.Save(true)
+		} else {
+			r.Update(false)
+		}
+	} else {
+		exists, localErr := sqliteRecordExists(hexID)
+		if localErr != nil {
+			panic(localErr)
+		}
+		Remote.Set(false)
+		if !exists {
+			r.Save(true)
+		} else {
+			r.Update(false)
+		}
+	}
 	n := 70
 	if quiet {
 		n = 20

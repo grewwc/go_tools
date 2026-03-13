@@ -2,7 +2,6 @@ package features
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"strings"
 
@@ -14,10 +13,6 @@ import (
 	"github.com/grewwc/go_tools/src/strw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilsw"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func RegisterListTags(parser *terminalw.Parser) {
@@ -35,12 +30,6 @@ func RegisterListTags(parser *terminalw.Parser) {
 		var w int
 		var err error
 		buf := bytes.NewBufferString("")
-		var cursor *mongo.Cursor
-		var cli *mongo.Client
-		var sortBy = "name"
-		op1 := options.FindOptions{}
-		var m bson.M = bson.M{}
-		ctx := context.Background()
 		isWindows := utilsw.WINDOWS == utilsw.GetPlatform()
 
 		if all || internal.ListTagsAndOrderByTime {
@@ -80,24 +69,10 @@ func RegisterListTags(parser *terminalw.Parser) {
 			// fmt.Println("tags", tags)
 			goto print
 		}
-		op1.SetLimit(internal.RecordLimit)
-		if internal.Reverse {
-			op1.SetSort(bson.M{sortBy: -1})
-		} else {
-			op1.SetSort(bson.M{sortBy: 1})
-		}
-		cli = internal.AtlasClient
-		if internal.Remote.Get().(bool) {
-			cli = internal.AtlasClient
-		}
-		if !internal.ListSpecial {
-			m["name"] = bson.M{"$regex": primitive.Regex{Pattern: internal.BuildMongoRegularExpExclude(internal.SpecialTagPatterns)}}
-		}
-		cursor, err = cli.Database(internal.DbName).Collection(internal.TagCollectionName).Find(ctx, m, &op1)
+		tags, err = internal.ListTags(internal.RecordLimit, internal.Reverse)
 		if err != nil {
 			panic(err)
 		}
-		cursor.All(ctx, &tags)
 	print:
 		_, w, err = utilsw.GetTerminalSize()
 		// filter records

@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"context"
 	"time"
 
 	"github.com/grewwc/go_tools/src/cw"
@@ -68,24 +67,93 @@ func (r *Record) LoadByID() {
 }
 
 func (r *Record) do(action string, options ...string) {
-	var err error
-	var db *mongo.Database
-	if !Remote.Get().(bool) {
-		db = Client.Database(DbName)
-	} else {
-		db = AtlasClient.Database(DbName)
+	noUpdateModifiedDate := false
+	if len(options) > 0 {
+		s := cw.NewSet()
+		for _, option := range options {
+			s.Add(option)
+		}
+		if s.Contains("noUpdateModifiedDate") {
+			noUpdateModifiedDate = true
+		}
 	}
-	collection := db.Collection(CollectionName)
-	session, err := Client.StartSession()
-	if err != nil {
-		panic(err)
+	if Remote.Get().(bool) {
+		InitRemote()
+		collection := AtlasClient.Database(DbName).Collection(CollectionName)
+		switch action {
+		case "load":
+			if err := collection.FindOne(ctx, bson.M{"_id": r.ID}).Decode(r); err != nil {
+				if err != mongo.ErrNoDocuments {
+					panic(err)
+				} else {
+					r.Invalid = true
+				}
+			}
+
+		case "save":
+			if r.exists() {
+				return
+			}
+			if !noUpdateModifiedDate {
+				r.ModifiedDate = time.Now()
+			}
+			if _, err := collection.InsertOne(ctx, r); err != nil {
+				panic(err)
+			}
+			incrementTagCount(r.Tags, 1)
+		case "delete":
+			if _, err := collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
+				panic(err)
+			}
+			incrementTagCount(r.Tags, -1)
+		case "deleteByID":
+			if _, err := collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
+				panic(err)
+			}
+			incrementTagCount(r.Tags, -1)
+		case "update":
+			if _, err := collection.UpdateOne(ctx, bson.M{"_id": r.ID}, bson.M{"$set": r}); err != nil {
+				panic(err)
+			}
+
+		default:
+			panic("unknow action " + action)
+		}
+		return
 	}
-	if err = session.StartTransaction(); err != nil {
-		panic(err)
+	if useLocalSQLite() {
+		switch action {
+		case "load":
+			loaded, err := sqliteLoadRecord(r.ID)
+			if err != nil {
+				panic(err)
+			}
+			if loaded == nil {
+				r.Invalid = true
+				return
+			}
+			*r = *loaded
+		case "save":
+			if err := sqliteSaveRecord(r, noUpdateModifiedDate); err != nil {
+				panic(err)
+			}
+		case "delete", "deleteByID":
+			if err := sqliteDeleteRecord(r); err != nil {
+				panic(err)
+			}
+		case "update":
+			if err := sqliteUpdateRecord(r); err != nil {
+				panic(err)
+			}
+		default:
+			panic("unknow action " + action)
+		}
+		return
 	}
+	collection := Client.Database(DbName).Collection(CollectionName)
 	switch action {
 	case "load":
-		if err = collection.FindOne(ctx, bson.M{"_id": r.ID}).Decode(r); err != nil {
+		if err := collection.FindOne(ctx, bson.M{"_id": r.ID}).Decode(r); err != nil {
 			if err != mongo.ErrNoDocuments {
 				panic(err)
 			} else {
@@ -97,47 +165,29 @@ func (r *Record) do(action string, options ...string) {
 		if r.exists() {
 			return
 		}
-		noUpdateModifiedDate := false
-		if len(options) > 0 {
-			s := cw.NewSet()
-			for _, option := range options {
-				s.Add(option)
-			}
-			if s.Contains("noUpdateModifiedDate") {
-				noUpdateModifiedDate = true
-			}
-		}
 		if !noUpdateModifiedDate {
 			r.ModifiedDate = time.Now()
 		}
-		if _, err = collection.InsertOne(context.Background(), r); err != nil {
-			session.AbortTransaction(ctx)
+		if _, err := collection.InsertOne(ctx, r); err != nil {
 			panic(err)
 		}
-		incrementTagCount(db, r.Tags, 1)
+		incrementTagCount(r.Tags, 1)
 	case "delete":
-		if _, err = collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
-			session.AbortTransaction(ctx)
+		if _, err := collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
 			panic(err)
 		}
-		incrementTagCount(db, r.Tags, -1)
+		incrementTagCount(r.Tags, -1)
 	case "deleteByID":
-		if _, err = collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
-			session.AbortTransaction(ctx)
+		if _, err := collection.DeleteOne(ctx, bson.M{"_id": r.ID}); err != nil {
 			panic(err)
 		}
-		incrementTagCount(db, r.Tags, -1)
+		incrementTagCount(r.Tags, -1)
 	case "update":
-		if _, err = collection.UpdateOne(ctx, bson.M{"_id": r.ID}, bson.M{"$set": r}); err != nil {
-			session.AbortTransaction(ctx)
+		if _, err := collection.UpdateOne(ctx, bson.M{"_id": r.ID}, bson.M{"$set": r}); err != nil {
 			panic(err)
 		}
 
 	default:
 		panic("unknow action " + action)
-	}
-
-	if err = session.CommitTransaction(ctx); err != nil {
-		panic(err)
 	}
 }
