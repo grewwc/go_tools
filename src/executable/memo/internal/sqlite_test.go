@@ -15,6 +15,8 @@ func setupSQLiteTest(t *testing.T) func() {
 	oldHomeDir := homeDir
 	oldSQLitePath := localSQLitePath
 	oldSQLiteReady := localSQLiteReady
+	oldSQLiteDB := localSQLiteDB
+	oldSQLiteDBPath := localSQLiteDBPath
 	oldBackendMode := localBackendMode.Get().(string)
 	oldClient := Client
 	oldLocalMongoChecked := localMongoChecked
@@ -26,6 +28,8 @@ func setupSQLiteTest(t *testing.T) func() {
 	homeDir = tempDir
 	localSQLitePath = filepath.Join(tempDir, "memo.sqlite3")
 	localSQLiteReady = false
+	localSQLiteDB = nil
+	localSQLiteDBPath = ""
 	Client = nil
 	localMongoChecked = false
 	localMongoErr = nil
@@ -36,9 +40,14 @@ func setupSQLiteTest(t *testing.T) func() {
 	initLocalSQLite()
 
 	return func() {
+		if localSQLiteDB != nil {
+			_ = localSQLiteDB.Close()
+		}
 		homeDir = oldHomeDir
 		localSQLitePath = oldSQLitePath
 		localSQLiteReady = oldSQLiteReady
+		localSQLiteDB = oldSQLiteDB
+		localSQLiteDBPath = oldSQLiteDBPath
 		Client = oldClient
 		localMongoChecked = oldLocalMongoChecked
 		localMongoErr = oldLocalMongoErr
