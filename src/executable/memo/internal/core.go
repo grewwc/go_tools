@@ -39,6 +39,8 @@ const (
 	localMongoConfigName = "mongo.local"
 	atlasMongoConfigName = "mongo.atlas"
 	specialTagConfigname = "special.tags"
+
+	DefaultBackendConfigName = "re.backend"
 )
 
 const (
@@ -70,6 +72,10 @@ var (
 	Verbose                      = false
 	RecordLimit            int64 = 100
 	Prefix                       = false
+)
+
+var (
+	DefaultBackendMode = utilsw.GetConfig(DefaultBackendConfigName, LocalBackendAuto)
 )
 
 var (

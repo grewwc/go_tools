@@ -57,3 +57,15 @@ func GetAllConfig() (m *cw.OrderedMap) {
 	}
 	return
 }
+
+func GetConfig(key, default_ string) string {
+	m := GetAllConfig()
+	if m == nil {
+		return default_
+	}
+	ret := strings.TrimSpace(m.GetOrDefault(key, default_).(string))
+
+	ret = strings.TrimSuffix(strings.TrimPrefix(ret, "'"), "'")
+	ret = strings.TrimSuffix(strings.TrimSuffix(ret, `"`), `"`)
+	return ret
+}

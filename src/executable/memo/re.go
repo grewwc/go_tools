@@ -51,10 +51,10 @@ func main() {
 	parser.Bool("code", false, "if use vscode as input editor (default false)")
 	parser.Bool("s", false, "short format, only print titles")
 	parser.Bool("l", false, "list tags")
-	parser.String("backend", internal.LocalBackendAuto, "local backend: auto|mongo|sqlite")
+	parser.String("backend", internal.DefaultBackendMode, "local backend: auto|mongo|sqlite. '.configW:re.backend'")
 
 	parser.ParseArgsCmd()
-	internal.SetLocalBackendMode(parser.GetFlagValueDefault("backend", internal.LocalBackendAuto))
+	internal.SetLocalBackendMode(parser.GetFlagValueDefault("backend", internal.DefaultBackendMode))
 	internal.Prefix = parser.ContainsAnyFlagStrict("prefix", "pre", "all", "a")
 	internal.OnlyTags = parser.ContainsFlagStrict("s") || parser.CoExists("a", "s")
 
