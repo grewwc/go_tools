@@ -15,9 +15,6 @@ type WeightedUndirectedGraph[T any] struct {
 	pq     *IndexHeap[T, float64]
 	edgeTo *Map[T, *Edge[T]]
 
-	um *Map[T, *Set]
-	vm *Map[T, *Set]
-
 	hasNegtiveCycle bool
 	negtiveEdge     *Set
 }
@@ -46,9 +43,6 @@ func NewWeightedUndirectedGraph[T any](cmp typesw.CompareFunc[T]) *WeightedUndir
 		pq:     NewIndexHeap[T, float64](nil),
 		edgeTo: NewMap[T, *Edge[T]](),
 
-		um: NewMap[T, *Set](),
-		vm: NewMap[T, *Set](),
-
 		negtiveEdge: NewSet(),
 	}
 }
@@ -66,7 +60,13 @@ func (g *WeightedUndirectedGraph[T]) AddEdge(u, v T, weight float64) bool {
 		ch := it.Iterate()
 		s := (<-ch).(*Edge[T])
 		it.Stop()
+		if s.weight < 0 {
+			g.negtiveEdge.Delete(s)
+		}
 		s.weight = weight
+		if s.weight < 0 {
+			g.negtiveEdge.Add(s)
+		}
 		return true
 	} else if !added {
 		return false
@@ -80,6 +80,18 @@ func (g *WeightedUndirectedGraph[T]) AddEdge(u, v T, weight float64) bool {
 	}
 
 	return true
+}
+
+func (g *WeightedUndirectedGraph[T]) findUndirectedEdge(u, v T) *Edge[T] {
+	for e := range g.nodes.GetOrDefault(u, NewSet()).Iter().Iterate() {
+		edge := e.(*Edge[T])
+		uv := g.cmp(edge.v1, u) == 0 && g.cmp(edge.v2, v) == 0
+		vu := g.cmp(edge.v1, v) == 0 && g.cmp(edge.v2, u) == 0
+		if uv || vu {
+			return edge
+		}
+	}
+	return nil
 }
 
 func (g *WeightedUndirectedGraph[T]) Edges() typesw.IterableT[*Edge[T]] {
@@ -125,21 +137,29 @@ func (g *WeightedUndirectedGraph[T]) DeleteEdge(u, v T) bool {
 	if !res {
 		return res
 	}
-	e1 := g.nodes.Get(u)
-	if e1 == nil {
+	edge := g.findUndirectedEdge(u, v)
+	if edge == nil {
 		return false
 	}
-	deleted := e1.Delete(g.um.Get(u))
-	e2 := g.nodes.Get(v)
-	deleted = deleted && e2.Delete(g.vm.Get(v))
 
-	if e1.Empty() {
-		g.um.Delete(u)
+	e1 := g.nodes.Get(u)
+	e2 := g.nodes.Get(v)
+	deleted1 := e1 != nil && e1.Delete(edge)
+	deleted2 := deleted1
+	if g.cmp(u, v) != 0 {
+		deleted2 = e2 != nil && e2.Delete(edge)
 	}
-	if e2.Empty() {
-		g.vm.Delete(v)
+
+	if e1 != nil && e1.Empty() {
+		g.nodes.Delete(u)
 	}
-	return deleted
+	if e2 != nil && e2.Empty() {
+		g.nodes.Delete(v)
+	}
+	if edge.weight < 0 {
+		g.negtiveEdge.Delete(edge)
+	}
+	return deleted1 && deleted2
 }
 
 func (g *WeightedUndirectedGraph[T]) dijkstraRelax(v T) {

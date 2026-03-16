@@ -22,14 +22,13 @@ func NewTrie() *Trie {
 
 /** Inserts a word into the trie. */
 func (t *Trie) Insert(word string) error {
+	alreadyExists := t.Contains(word)
 	cur := t
-	inserted := false
 	for cnt, ch := range word {
 		var child *Trie
 		var exists bool
 		if child, exists = cur.children[ch]; !exists {
 			child = NewTrie()
-			inserted = true
 			cur.children[ch] = child
 		}
 		chLen := utf8.RuneLen(ch)
@@ -42,7 +41,7 @@ func (t *Trie) Insert(word string) error {
 		}
 		cur = cur.children[ch]
 	}
-	if inserted {
+	if len(word) > 0 && !alreadyExists {
 		t.count++
 	}
 	return nil
@@ -90,27 +89,47 @@ func (t *Trie) HasPrefix(word string) bool {
 }
 
 func (t *Trie) Delete(word string) bool {
+	if len(word) == 0 {
+		return false
+	}
 	cur := t
-	for cnt, ch := range word {
+	path := make([]*Trie, 0, utf8.RuneCountInString(word))
+	runes := make([]rune, 0, utf8.RuneCountInString(word))
+	for _, ch := range word {
 		var child *Trie
 		var exists bool
 		if child, exists = cur.children[ch]; !exists {
 			return false
 		}
-		chLen := utf8.RuneLen(ch)
-		if chLen == -1 {
-			return false
-		}
-		if cnt+chLen == len(word) {
-			if child.cnt <= 1 {
-				delete(cur.children, ch)
-			}
-			child.isEnd = false
-			break
-		}
+		path = append(path, child)
+		runes = append(runes, ch)
 		cur = child
 	}
-	t.count--
+	if len(path) == 0 || !path[len(path)-1].isEnd {
+		return false
+	}
+
+	path[len(path)-1].isEnd = false
+	if t.count > 0 {
+		t.count--
+	}
+
+	for i := range path {
+		if path[i].cnt > 0 {
+			path[i].cnt--
+		}
+	}
+
+	for i := len(path) - 1; i >= 0; i-- {
+		if path[i].cnt > 0 {
+			break
+		}
+		parent := t
+		if i > 0 {
+			parent = path[i-1]
+		}
+		delete(parent.children, runes[i])
+	}
 	return true
 }
 

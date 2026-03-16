@@ -171,9 +171,12 @@ func (cm *ConcurrentHashMap[K, V]) Keys() []K {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 	for _, buck := range cm.buckets {
-		buck.mu.Lock()
+		if buck == nil {
+			continue
+		}
+		buck.mu.RLock()
 		res = append(res, buck.data.Keys()...)
-		buck.mu.Unlock()
+		buck.mu.RUnlock()
 	}
 	return res
 }
@@ -183,11 +186,14 @@ func (cm *ConcurrentHashMap[K, V]) Values() []V {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 	for _, buck := range cm.buckets {
-		buck.mu.Lock()
+		if buck == nil {
+			continue
+		}
+		buck.mu.RLock()
 		for _, val := range buck.data.Values() {
 			s.Add(val)
 		}
-		buck.mu.Unlock()
+		buck.mu.RUnlock()
 	}
 	res := make([]V, 0, s.Size())
 	for val := range s.Iter().Iterate() {
@@ -332,25 +338,32 @@ func (cm *ConcurrentHashMap[K, V]) IterEntry() typesw.IterableT[typesw.IMapEntry
 	return typesw.FuncToIterable(f)
 }
 
-
 func (cm *ConcurrentHashMap[K, V]) ForEachEntry(f func(entry typesw.IMapEntry[K, V])) {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
 	for _, bucket := range cm.buckets {
+		if bucket == nil {
+			continue
+		}
 		bucket.mu.RLock()
-		defer bucket.mu.RUnlock()
 		bucket.data.ForEachEntry(func(entry *MapEntry[K, V]) {
 			f(entry)
 		})
-
+		bucket.mu.RUnlock()
 	}
 }
 
 func (cm *ConcurrentHashMap[K, V]) ForEach(f func(k K)) {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
 	for _, bucket := range cm.buckets {
+		if bucket == nil {
+			continue
+		}
 		bucket.mu.RLock()
-		defer bucket.mu.RUnlock()
 		bucket.data.ForEach(func(k K) {
 			f(k)
 		})
-
+		bucket.mu.RUnlock()
 	}
 }

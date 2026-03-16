@@ -219,6 +219,20 @@ func TestKth(t *testing.T) {
 	}
 }
 
+func TestTopK(t *testing.T) {
+	arr := []int{5, 1, 4, 2, 3}
+
+	maxK := sortw.TopK(arr, 2, false)
+	if len(maxK) != 2 || maxK[0] != 5 || maxK[1] != 4 {
+		t.Fatalf("unexpected max top-k result: %v", maxK)
+	}
+
+	minK := sortw.TopK(arr, 2, true)
+	if len(minK) != 2 || minK[0] != 1 || minK[1] != 2 {
+		t.Fatalf("unexpected min top-k result: %v", minK)
+	}
+}
+
 func BenchmarkKth(b *testing.B) {
 	arr := algow.RandInt(0, 10000, N)
 	for i := 0; i < b.N; i++ {

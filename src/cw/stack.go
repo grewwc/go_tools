@@ -23,8 +23,19 @@ func (s *Stack[T]) Push(item T) {
 }
 
 func (s *Stack[T]) Pop() T {
+	result, ok := s.TryPop()
+	if !ok {
+		return *new(T)
+	}
+	return result
+}
+
+func (s *Stack[T]) TryPop() (T, bool) {
 	result := s.data.PopFront()
-	return result.Value()
+	if result == nil {
+		return *new(T), false
+	}
+	return result.Value(), true
 }
 func (s *Stack[T]) Top() T {
 	if s.Empty() {

@@ -115,12 +115,18 @@ func (l *LinkedList[T]) Merge(mergePoint *ListNode[T], other *LinkedList[T]) *Li
 	if l.Empty() {
 		return other
 	}
+	added := other.size
 	next := mergePoint.next
-	mergePoint.next = other.Front()
+	mergePoint.next = other.head
+	other.head.prev = mergePoint
 	other.tail.next = next
-	l.tail = other.tail
+	if next != nil {
+		next.prev = other.tail
+	} else {
+		l.tail = other.tail
+	}
+	l.size += added
 	other.Clear()
-	l.size += other.size
 	return l
 }
 

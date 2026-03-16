@@ -7,6 +7,8 @@ import (
 type IndexHeap[Index, T any] struct {
 	h typesw.IHeap[*Tuple]
 	m *Map[Index, *Tuple]
+
+	cmp typesw.CompareFunc[T]
 }
 
 func NewIndexHeap[Index, T any](cmp typesw.CompareFunc[T]) *IndexHeap[Index, T] {
@@ -18,9 +20,21 @@ func NewIndexHeap[Index, T any](cmp typesw.CompareFunc[T]) *IndexHeap[Index, T] 
 	}
 	h := NewHeap(newCmp)
 	return &IndexHeap[Index, T]{
-		h: h,
-		m: NewMap[Index, *Tuple](),
+		h:   h,
+		m:   NewMap[Index, *Tuple](),
+		cmp: cmp,
 	}
+}
+
+func (h *IndexHeap[Index, T]) rebuildHeap() {
+	newCmp := func(a, b *Tuple) int {
+		return h.cmp(a.Get(1).(T), b.Get(1).(T))
+	}
+	next := NewHeap(newCmp)
+	for entry := range h.m.IterEntry().Iterate() {
+		next.Insert(entry.Val())
+	}
+	h.h = next
 }
 
 func (h *IndexHeap[Index, T]) Insert(index Index, val T) {
@@ -87,6 +101,7 @@ func (h *IndexHeap[Index, T]) Update(index Index, val T) {
 		h.Insert(index, val)
 	} else {
 		tup.Set(1, val)
+		h.rebuildHeap()
 	}
 }
 

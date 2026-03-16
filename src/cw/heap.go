@@ -37,7 +37,7 @@ func (h *Heap[T]) Top() T {
 }
 
 func (h *Heap[T]) ToList() []T {
-	res := make([]T, h.Size()-1)
+	res := make([]T, h.Size())
 	copy(res, h.data[1:])
 	return res
 }

@@ -16,8 +16,6 @@ type WeightedDirectedGraph[T any] struct {
 
 	hasNegtiveCycle bool
 	negtiveEdge     *Set
-
-	um *Map[T, *Edge[T]]
 }
 
 func NewWeightedDirectedGraph[T any](cmp typesw.CompareFunc[T]) *WeightedDirectedGraph[T] {
@@ -30,8 +28,6 @@ func NewWeightedDirectedGraph[T any](cmp typesw.CompareFunc[T]) *WeightedDirecte
 		edgeTo: NewMap[T, *Edge[T]](),
 
 		negtiveEdge: NewSet(),
-
-		um: NewMap[T, *Edge[T]](),
 	}
 }
 
@@ -43,28 +39,36 @@ func (g *WeightedDirectedGraph[T]) AddEdge(u, v T, weight float64) bool {
 	s := g.nodes.GetOrDefault(u, NewSet())
 	g.nodes.PutIfAbsent(u, s)
 	s.Add(edge)
-	g.um.Put(u, edge)
 	if weight < 0 {
 		g.negtiveEdge.Add(edge)
 	}
 	return true
 }
 
+func (g *WeightedDirectedGraph[T]) findDirectedEdge(u, v T) *Edge[T] {
+	for e := range g.nodes.GetOrDefault(u, NewSet()).Iter().Iterate() {
+		edge := e.(*Edge[T])
+		if g.cmp(edge.v1, u) == 0 && g.cmp(edge.v2, v) == 0 {
+			return edge
+		}
+	}
+	return nil
+}
+
 func (g *WeightedDirectedGraph[T]) DeleteEdge(u, v T) bool {
 	if !g.DirectedGraph.DeleteEdge(u, v) {
 		return false
 	}
-	if !g.nodes.Contains(u) {
+	edge := g.findDirectedEdge(u, v)
+	if edge == nil || !g.nodes.Contains(u) {
 		return false
 	}
-	e := g.um.Get(u)
-	g.nodes.Get(u).Delete(e)
+	g.nodes.Get(u).Delete(edge)
 	if g.nodes.Get(u).Empty() {
 		g.nodes.Delete(u)
-		g.um.Delete(u)
 	}
-	if e.weight < 0 {
-		g.negtiveEdge.Delete(e)
+	if edge.weight < 0 {
+		g.negtiveEdge.Delete(edge)
 	}
 	return true
 }

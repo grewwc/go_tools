@@ -2,7 +2,7 @@ package cw
 
 import (
 	"container/list"
-	"log"
+	"fmt"
 )
 
 type Deque struct {
@@ -22,11 +22,19 @@ func (dq *Deque) PushBack(item interface{}) {
 }
 
 func (dq *Deque) Front() interface{} {
+	front, ok := dq.TryFront()
+	if !ok {
+		panic("empty deque")
+	}
+	return front
+}
+
+func (dq *Deque) TryFront() (interface{}, bool) {
 	front := dq.data.Front()
 	if front == nil {
-		log.Fatalln("empty deque")
+		return nil, false
 	}
-	return front.Value
+	return front.Value, true
 }
 
 func (dq *Deque) PopFront() interface{} {
@@ -35,18 +43,44 @@ func (dq *Deque) PopFront() interface{} {
 	return front
 }
 
+func (dq *Deque) TryPopFront() (interface{}, bool) {
+	front, ok := dq.TryFront()
+	if !ok {
+		return nil, false
+	}
+	dq.data.Remove(dq.data.Front())
+	return front, true
+}
+
 func (dq *Deque) Back() interface{} {
-	front := dq.data.Back()
-	if front == nil {
+	back, ok := dq.TryBack()
+	if !ok {
 		panic("empty deque")
 	}
-	return front.Value
+	return back
+}
+
+func (dq *Deque) TryBack() (interface{}, bool) {
+	back := dq.data.Back()
+	if back == nil {
+		return nil, false
+	}
+	return back.Value, true
 }
 
 func (dq *Deque) PopBack() interface{} {
 	front := dq.Back()
 	dq.data.Remove(dq.data.Back())
 	return front
+}
+
+func (dq *Deque) TryPopBack() (interface{}, bool) {
+	back, ok := dq.TryBack()
+	if !ok {
+		return nil, false
+	}
+	dq.data.Remove(dq.data.Back())
+	return back, true
 }
 
 func (dq *Deque) Empty() bool {
@@ -62,19 +96,17 @@ func (dq *Deque) Len() int {
 }
 
 func (dq *Deque) ToSlice() []interface{} {
-	l := dq.data.Front()
 	res := make([]interface{}, 0, dq.Size())
-	for l.Next() != nil {
+	for l := dq.data.Front(); l != nil; l = l.Next() {
 		res = append(res, l.Value)
 	}
 	return res
 }
 
 func (dq *Deque) ToStringSlice() []string {
-	l := dq.data.Front()
 	res := make([]string, 0, dq.Size())
-	for l.Next() != nil {
-		res = append(res, l.Value.(string))
+	for l := dq.data.Front(); l != nil; l = l.Next() {
+		res = append(res, fmt.Sprintf("%v", l.Value))
 	}
 	return res
 }

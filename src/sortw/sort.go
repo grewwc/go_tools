@@ -226,43 +226,52 @@ func CountSort[T constraints.Integer](arr []T) {
 }
 
 func TopK[T constraints.Ordered](arr []T, k int, minK bool) []T {
-	if k < 1 {
+	if k < 1 || len(arr) == 0 {
 		return nil
 	}
-	var h typesw.IHeap[T]
-	cmp := typesw.CreateDefaultCmp[T]()
+	if k > len(arr) {
+		k = len(arr)
+	}
+	baseCmp := typesw.CreateDefaultCmp[T]()
+	if baseCmp == nil {
+		return nil
+	}
+
+	heapCmp := baseCmp
 	if minK {
-		cmp = func(i, j T) int {
-			return -cmp(i, j)
+		heapCmp = func(i, j T) int {
+			return -baseCmp(i, j)
 		}
 	}
-	h = cw.NewHeap[T](cmp)
-	for i, val := range arr {
-		if i < k {
+	h := cw.NewHeap[T](heapCmp)
+	for _, val := range arr {
+		if h.Size() < k {
 			h.Insert(val)
 			continue
 		}
-		next := h.Next()
-		cmp := 0
-		if next < val {
-			cmp = -1
-		} else if next == val {
-			cmp = 0
-		} else {
-			cmp = -1
-		}
-		if !minK {
-			cmp *= -1
-		}
-		if cmp > 0 {
+		top := h.Top()
+		if (minK && baseCmp(val, top) < 0) || (!minK && baseCmp(val, top) > 0) {
 			h.Pop()
 			h.Insert(val)
 		}
 	}
-	interfaceList := h.ToList()
-	result := make([]T, len(interfaceList))
 
+	result := make([]T, 0, k)
+	for !h.IsEmpty() {
+		result = append(result, h.Pop())
+	}
+	if minK {
+		reverse(result)
+	} else {
+		reverse(result)
+	}
 	return result
+}
+
+func reverse[T any](arr []T) {
+	for i := 0; i < len(arr)/2; i++ {
+		arr[i], arr[len(arr)-i-1] = arr[len(arr)-i-1], arr[i]
+	}
 }
 
 func AreSorted[T constraints.Ordered](arr []T) bool {
