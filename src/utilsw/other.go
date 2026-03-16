@@ -149,21 +149,36 @@ func PromptYesOrNo(msg string) bool {
 	return strings.ToLower(ans) == "y"
 }
 
+func restoreTerminalState() {
+	if GetPlatform() == WINDOWS {
+		return
+	}
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return
+	}
+	if (info.Mode() & os.ModeCharDevice) == 0 {
+		return
+	}
+	_, _ = RunCmd("stty sane", os.Stdin)
+}
+
 func UserInput(msg string, multiline bool) string {
-	defer RunCmd("stty sane", os.Stdin)
+	restoreTerminalState()
+	defer restoreTerminalState()
+
 	line := liner.NewLiner()
+	defer line.Close()
 	line.SetMultiLineMode(multiline)
 	if multiline && msg != "" {
 		msg = "  "
 	}
-	defer line.Close()
 	historyFile := ExpandUser("~/.liner_histroy")
 	f, err := os.OpenFile(historyFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0664)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
-	defer line.Close()
 	line.ReadHistory(f)
 	line.SetCtrlCAborts(true)
 
@@ -172,6 +187,8 @@ func UserInput(msg string, multiline bool) string {
 		input, err := line.Prompt(msg)
 		if err != nil {
 			if err == liner.ErrPromptAborted {
+				_ = line.Close()
+				restoreTerminalState()
 				fmt.Println("Exit.")
 				os.Exit(0)
 			}

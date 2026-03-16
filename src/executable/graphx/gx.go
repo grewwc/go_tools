@@ -8,7 +8,9 @@ import (
 	"io"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -809,6 +811,34 @@ func openInputFile(path string) (io.ReadCloser, error) {
 	return os.Open(path)
 }
 
+func stdinIsTTY() bool {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return (info.Mode() & os.ModeCharDevice) != 0
+}
+
+func ensureSaneTTY() {
+	if runtime.GOOS == "windows" || !stdinIsTTY() {
+		return
+	}
+	cmd := exec.Command("stty", "sane")
+	cmd.Stdin = os.Stdin
+	_ = cmd.Run()
+}
+
+func resolveInputFile(flagValue string, fileFlagSet bool, args []string) (string, error) {
+	inputFile := strings.TrimSpace(flagValue)
+	if fileFlagSet && inputFile == "" {
+		return "", fmt.Errorf("flag -f requires a file path; remove -f to read from stdin")
+	}
+	if inputFile == "" && len(args) > 1 {
+		inputFile = strings.TrimSpace(args[1])
+	}
+	return inputFile, nil
+}
+
 func main() {
 	parser := terminalw.NewParser(terminalw.DisableParserNumber)
 	parser.String("f", "", "edge list file (default: stdin)")
@@ -839,9 +869,14 @@ func main() {
 		return
 	}
 	mode := strings.ToLower(args[0])
-	inputFile := parser.GetFlagValueDefault("f", "")
-	if inputFile == "" && len(args) > 1 {
-		inputFile = args[1]
+	inputFile, err := resolveInputFile(
+		parser.GetFlagValueDefault("f", ""),
+		parser.ContainsFlagStrict("f"),
+		args,
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
 	}
 	dirPath := parser.GetFlagValueDefault("dir", "")
 	sep := parser.GetFlagValueDefault("sep", "")
@@ -884,6 +919,12 @@ func main() {
 
 	results := make([]analysisResult, 0)
 	if len(files) == 0 {
+		if strings.TrimSpace(inputFile) == "" {
+			ensureSaneTTY()
+			if stdinIsTTY() {
+				fmt.Fprintln(os.Stderr, "reading edge list from stdin, press Ctrl-D to finish")
+			}
+		}
 		reader, err := openInputFile(inputFile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to open input: %v\n", err)

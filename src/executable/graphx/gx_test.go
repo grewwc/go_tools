@@ -144,3 +144,25 @@ func TestCollectInputFiles(t *testing.T) {
 		t.Fatalf("unexpected recursive files order/content: %v", files)
 	}
 }
+
+func TestResolveInputFile(t *testing.T) {
+	if _, err := resolveInputFile("", true, []string{"cycle"}); err == nil {
+		t.Fatal("expected error when -f is set without value")
+	}
+
+	got, err := resolveInputFile("", false, []string{"cycle", "edges.txt"})
+	if err != nil {
+		t.Fatalf("unexpected error resolving positional file: %v", err)
+	}
+	if got != "edges.txt" {
+		t.Fatalf("unexpected positional file resolution: %q", got)
+	}
+
+	got, err = resolveInputFile(" graph.txt ", true, []string{"cycle"})
+	if err != nil {
+		t.Fatalf("unexpected error resolving -f value: %v", err)
+	}
+	if got != "graph.txt" {
+		t.Fatalf("expected trimmed file path, got %q", got)
+	}
+}
