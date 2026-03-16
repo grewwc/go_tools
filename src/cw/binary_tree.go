@@ -76,6 +76,53 @@ func (t *RbTree[T]) Search(val T) *treeNode[T] {
 	return nil
 }
 
+// SearchOrInsert finds an existing node or inserts a new one if absent.
+// It returns the matched/inserted node and whether a new node was inserted.
+func (t *RbTree[T]) SearchOrInsert(val T) (*treeNode[T], bool) {
+	curr := t.root
+	if curr == nil {
+		newNode := newTreeNode(val)
+		newNode.color = black
+		t.root = newNode
+		t.size++
+		t.min = &newNode.val
+		t.max = &newNode.val
+		return newNode, true
+	}
+
+	var parent *treeNode[T]
+	cmpRes := 0
+	for curr != nil {
+		parent = curr
+		cmpRes = t.cmp(val, curr.val)
+		if cmpRes < 0 {
+			curr = curr.left
+		} else if cmpRes > 0 {
+			curr = curr.right
+		} else {
+			return curr, false
+		}
+	}
+
+	newNode := newTreeNode(val)
+	newNode.parent = parent
+	if cmpRes < 0 {
+		parent.left = newNode
+	} else {
+		parent.right = newNode
+	}
+	t.size++
+	t.fixInsert(newNode)
+
+	if t.min != nil && t.cmp(newNode.val, *t.min) < 0 {
+		t.min = &newNode.val
+	}
+	if t.max != nil && t.cmp(newNode.val, *t.max) > 0 {
+		t.max = &newNode.val
+	}
+	return newNode, true
+}
+
 func (t *RbTree[T]) Insert(val T) {
 	newNode := newTreeNode(val)
 	curr := t.root
@@ -245,29 +292,23 @@ func (t *RbTree[T]) rightRotate(n *treeNode[T]) {
 }
 
 func (t *RbTree[T]) Delete(val T) {
-	node := t.search(t.root, val)
+	t.deleteFoundNode(t.Search(val))
+}
+
+func (t *RbTree[T]) deleteFoundNode(node *treeNode[T]) {
 	if node == nil {
-		return // 节点不存在，直接返回
+		return
 	}
 	t.deleteNode(node)
 	t.size--
+	if t.root == nil {
+		t.min = nil
+		t.max = nil
+		return
+	}
 
 	t.min = &t.minimum(t.root).val
 	t.max = &t.maximum(t.root).val
-}
-
-func (t *RbTree[T]) search(n *treeNode[T], val T) *treeNode[T] {
-	if n == nil {
-		return nil
-	}
-	tmp := t.cmp(val, n.val)
-	if tmp == 0 {
-		return n
-	}
-	if tmp < 0 {
-		return t.search(n.left, val)
-	}
-	return t.search(n.right, val)
 }
 
 func (t *RbTree[T]) deleteNode(z *treeNode[T]) {
@@ -413,14 +454,19 @@ func (t *RbTree[T]) SearchRange(lower, upper T) typesw.IterableT[T] {
 		ch := make(chan T)
 		go func() {
 			defer close(ch)
+			if t.cmp(lower, upper) > 0 {
+				return
+			}
 			curr := t.root
-            st := NewStack[*treeNode[T]]()
-			for !st.Empty() || curr != nil {
+			st := make([]*treeNode[T], 0, 32)
+			for curr != nil || len(st) > 0 {
 				for curr != nil {
-                    st.Push(curr)
+					st = append(st, curr)
 					curr = curr.left
 				}
-				curr = st.Pop()
+				last := len(st) - 1
+				curr = st[last]
+				st = st[:last]
 				tmp := t.cmp(curr.val, lower)
 				if tmp >= 0 {
 					if t.cmp(curr.val, upper) <= 0 {
@@ -447,14 +493,16 @@ func (t *RbTree[T]) Iter() typesw.IterableT[T] {
 		ret := make(chan T)
 		go func() {
 			defer close(ret)
-			st := NewDeque()
+			st := make([]*treeNode[T], 0, 32)
 			curr := t.root
-			for curr != nil || !st.Empty() {
+			for curr != nil || len(st) > 0 {
 				for curr != nil {
-					st.PushBack(curr)
+					st = append(st, curr)
 					curr = curr.left
 				}
-				curr = st.PopBack().(*treeNode[T])
+				last := len(st) - 1
+				curr = st[last]
+				st = st[:last]
 				ret <- curr.val
 				curr = curr.right
 			}

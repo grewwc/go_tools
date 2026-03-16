@@ -59,10 +59,9 @@ func (m *TreeMap[K, V]) Values() []V {
 }
 
 func (m *TreeMap[K, V]) Put(key K, value V) bool {
-	node := MapEntry[K, V]{k: key, v: value}
-	n := m.rbTree.Search(&node)
-	if n == nil {
-		m.rbTree.Insert(&node)
+	entry := &MapEntry[K, V]{k: key, v: value}
+	n, inserted := m.rbTree.SearchOrInsert(entry)
+	if inserted {
 		return true
 	}
 	n.val.v = value
@@ -70,12 +69,9 @@ func (m *TreeMap[K, V]) Put(key K, value V) bool {
 }
 
 func (m *TreeMap[K, V]) PutIfAbsent(key K, value V) bool {
-	node := MapEntry[K, V]{k: key, v: value}
-	if m.rbTree.Contains(&node) {
-		return false
-	}
-	m.rbTree.Insert(&node)
-	return true
+	entry := &MapEntry[K, V]{k: key, v: value}
+	_, inserted := m.rbTree.SearchOrInsert(entry)
+	return inserted
 }
 
 func (m *TreeMap[K, V]) Size() int {
@@ -92,7 +88,7 @@ func (m *TreeMap[K, V]) Delete(key K) bool {
 	if n == nil {
 		return false
 	}
-	m.rbTree.Delete(&node)
+	m.rbTree.deleteFoundNode(n)
 	return true
 }
 

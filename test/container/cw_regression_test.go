@@ -2,6 +2,7 @@ package test
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -170,6 +171,116 @@ func TestConcurrentHashMapForEachAndForEachEntryNoPanicOnNilBuckets(t *testing.T
 	case p := <-panicCh:
 		t.Fatalf("ConcurrentHashMap for-each panicked: %v", p)
 	default:
+	}
+}
+
+func TestTreeMapDeleteLastKeyNoPanic(t *testing.T) {
+	tm := cw.NewTreeMap[int, int](nil)
+	tm.Put(1, 1)
+
+	if !tm.Delete(1) {
+		t.Fatal("delete existing key should return true")
+	}
+	if tm.Size() != 0 {
+		t.Fatalf("tree map should be empty after deleting last key, got size %d", tm.Size())
+	}
+	if tm.Delete(1) {
+		t.Fatal("deleting missing key should return false")
+	}
+}
+
+func TestConcurrentHashMapDeleteLastKeyNoPanic(t *testing.T) {
+	m := cw.NewConcurrentHashMap[int, int](nil, nil)
+	m.Put(1, 1)
+
+	if !m.Delete(1) {
+		t.Fatal("delete existing key should return true")
+	}
+	if m.Size() != 0 {
+		t.Fatalf("concurrent map should be empty after deleting last key, got size %d", m.Size())
+	}
+	if m.Contains(1) {
+		t.Fatal("deleted key should not exist")
+	}
+}
+
+func TestConcurrentHashMapGetOrDefaultMissingReturnsDefault(t *testing.T) {
+	m := cw.NewConcurrentHashMap[int, int](nil, nil)
+	if got := m.GetOrDefault(42, -1); got != -1 {
+		t.Fatalf("GetOrDefault on missing key should return default value, got %d", got)
+	}
+}
+
+func TestConcurrentHashMapValuesKeepDuplicates(t *testing.T) {
+	m := cw.NewConcurrentHashMap[int, int](nil, nil)
+	m.Put(1, 7)
+	m.Put(2, 7)
+	m.Put(3, 8)
+
+	vals := m.Values()
+	if len(vals) != 3 {
+		t.Fatalf("Values should include one item per key, got len=%d vals=%v", len(vals), vals)
+	}
+
+	freq := map[int]int{}
+	for _, v := range vals {
+		freq[v]++
+	}
+	if freq[7] != 2 || freq[8] != 1 {
+		t.Fatalf("unexpected value frequencies: %v", freq)
+	}
+}
+
+func TestConcurrentHashMapValuesSupportsNonComparableValueType(t *testing.T) {
+	m := cw.NewConcurrentHashMap[int, []int](nil, nil)
+	m.Put(1, []int{1})
+	m.Put(2, []int{2})
+
+	vals := m.Values()
+	if len(vals) != 2 {
+		t.Fatalf("Values should return all entries for slice values, got len=%d", len(vals))
+	}
+}
+
+func TestConcurrentHashMapContentionNoDeadlock(t *testing.T) {
+	m := cw.NewConcurrentHashMap[int, int](func(_ int) int { return 0 }, nil)
+
+	const loops = 1000
+	const workers = 6
+
+	done := make(chan struct{})
+	go func() {
+		var wg sync.WaitGroup
+		for w := 0; w < workers; w++ {
+			wg.Add(1)
+			go func(id int) {
+				defer wg.Done()
+				for i := 0; i < loops; i++ {
+					k := i & 1
+					m.Put(k, id+i)
+					m.Delete(k)
+					m.PutIfAbsent(k, id+i)
+					m.Delete(k)
+				}
+			}(w)
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < loops; i++ {
+				m.Clear()
+			}
+		}()
+
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("concurrent map operations blocked unexpectedly under contention")
 	}
 }
 
