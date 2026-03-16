@@ -5,11 +5,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,10 +40,10 @@ const (
 // .configW
 const (
 	localMongoConfigName = "mongo.local"
-	atlasMongoConfigName = "mongo.atlas"
 	specialTagConfigname = "special.tags"
 
 	DefaultBackendConfigName = "re.backend"
+	DefaultRemoteHostConfigName = "re.remote.host"
 )
 
 const (
@@ -50,6 +53,9 @@ const (
 
 	defaultLocalMongoURI  = "mongodb://localhost:27017"
 	localMongoInitTimeout = 1500 * time.Millisecond
+	remoteMongoTimeout    = 10 * time.Second
+	remoteSQLiteShellPath = "$HOME/.go_tools_memo.sqlite3"
+	sshConnectTimeoutSec  = 8
 )
 
 const (
@@ -76,6 +82,7 @@ var (
 
 var (
 	DefaultBackendMode = utilsw.GetConfig(DefaultBackendConfigName, LocalBackendAuto)
+	DefaultRemoteHost = utilsw.GetConfig(DefaultRemoteHostConfigName, "")
 )
 
 var (
@@ -87,6 +94,8 @@ var (
 var (
 	Remote           = utilsw.NewThreadSafeVal(false)
 	localBackendMode = utilsw.NewThreadSafeVal(LocalBackendAuto)
+	remoteMongoURI   = utilsw.NewThreadSafeVal("")
+	remoteMongoHost  = utilsw.NewThreadSafeVal("")
 	mu               sync.Mutex
 	localMongoMu     sync.Mutex
 )
@@ -105,23 +114,37 @@ var (
 func InitRemote() {
 	mu.Lock()
 	defer mu.Unlock()
-	if AtlasClient != nil {
+	host := strings.TrimSpace(remoteMongoHost.Get().(string))
+	if host == "" {
+		panic("remote host not configured, pass --host <ip[:port]> or set .configW:re.remote.host")
+	}
+	uri := normalizeMongoURI(host)
+	if AtlasClient != nil && remoteMongoURI.Get().(string) == uri {
 		Remote.Set(true)
 		return
 	}
-	fmt.Println("connecting to Remote...")
-	m := utilsw.GetAllConfig()
-	var err error
-	// mongo atlas init
-	atlasURI := strings.TrimSpace(m.GetOrDefault(atlasMongoConfigName, "").(string))
-	if atlasURI == "" {
-		panic("mongo.atlas not configured")
+	if AtlasClient != nil {
+		_ = AtlasClient.Disconnect(context.Background())
+		AtlasClient = nil
 	}
-	clientOptions := options.Client().ApplyURI(atlasURI)
-	AtlasClient, err = mongo.Connect(ctx, clientOptions)
+	fmt.Printf("connecting to Remote %s...\n", host)
+	connectCtx, cancel := context.WithTimeout(context.Background(), remoteMongoTimeout)
+	defer cancel()
+	clientOptions := options.Client().ApplyURI(uri)
+	clientOptions.SetConnectTimeout(remoteMongoTimeout)
+	clientOptions.SetServerSelectionTimeout(remoteMongoTimeout)
+	client, err := mongo.Connect(connectCtx, clientOptions)
+	if err == nil {
+		err = client.Ping(connectCtx, readpref.Primary())
+	}
 	if err != nil {
-		panic(err)
+		if client != nil {
+			_ = client.Disconnect(context.Background())
+		}
+		panic(fmt.Sprintf("failed to connect to remote host %s: %v", host, err))
 	}
+	AtlasClient = client
+	remoteMongoURI.Set(uri)
 	// check if tags and memo collections exists
 	db := AtlasClient.Database(DbName)
 	if !CollectionExists(db, ctx, TagCollectionName) {
@@ -132,7 +155,25 @@ func InitRemote() {
 	}
 	fmt.Println("connected")
 	Remote.Set(true)
-	// fmt.Println("init Atlas", atlasURI, atlasClient)
+	// fmt.Println("init remote", uri, AtlasClient)
+}
+
+func SetRemoteHost(host string) {
+	remoteMongoHost.Set(strings.TrimSpace(host))
+}
+
+func normalizeMongoURI(host string) string {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return ""
+	}
+	if strings.HasPrefix(host, "mongodb://") || strings.HasPrefix(host, "mongodb+srv://") {
+		return host
+	}
+	if !strings.Contains(host, ":") {
+		host += ":27017"
+	}
+	return "mongodb://" + host
 }
 
 func normalizeLocalBackendMode(mode string) string {
@@ -833,19 +874,328 @@ func ColoringRecord(r *Record, p *regexp.Regexp) {
 	}
 }
 
-func SyncByID(id string, push, quiet bool) {
-	InitRemote()
-	scanner := bufio.NewScanner(os.Stdin)
-	var msg string
-	if id == "" {
-		fmt.Print("Input the ObjectID: ")
-		scanner.Scan()
-		id = strings.TrimSpace(scanner.Text())
+func recordPrimaryTitle(title string) string {
+	title = strings.ReplaceAll(title, "\r", "")
+	for _, line := range strings.Split(title, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			return line
+		}
 	}
+	return strings.TrimSpace(title)
+}
+
+func appendUniqueRecords(dst []*Record, seen map[primitive.ObjectID]struct{}, groups ...[]*Record) []*Record {
+	for _, group := range groups {
+		for _, r := range group {
+			if _, ok := seen[r.ID]; ok {
+				continue
+			}
+			seen[r.ID] = struct{}{}
+			dst = append(dst, r)
+		}
+	}
+	return dst
+}
+
+func filterExactTitleMatches(records []*Record, ref string) []*Record {
+	res := make([]*Record, 0, len(records))
+	for _, r := range records {
+		if strings.EqualFold(strings.TrimSpace(r.Title), ref) || strings.EqualFold(recordPrimaryTitle(r.Title), ref) {
+			res = append(res, r)
+		}
+	}
+	return res
+}
+
+func listRecordsByLiteralTitle(ref string, remote bool) []*Record {
+	query := ref
+	if remote {
+		query = regexp.QuoteMeta(ref)
+	}
+	records, _ := listRecords(math.MaxInt64, false, true, nil, false, query, false, false)
+	return records
+}
+
+func chooseRecordID(ref string, records []*Record) string {
+	if len(records) == 0 {
+		panic(fmt.Sprintf("record %q not found", ref))
+	}
+	if len(records) == 1 {
+		return records[0].ID.Hex()
+	}
+	ids := make([]*primitive.ObjectID, 0, len(records))
+	titles := make([]string, 0, len(records))
+	for _, r := range records {
+		ids = append(ids, &r.ID)
+		titles = append(titles, r.Title)
+	}
+	WriteInfo(ids, titles)
+	fmt.Printf("multiple records matched %q, choose one:\n", ref)
+	return ReadInfo(false)
+}
+
+func resolveRecordReferenceID(ref string, remote bool) string {
+	scanner := bufio.NewScanner(os.Stdin)
+	ref = strings.TrimSpace(ref)
+	if ref == "" {
+		fmt.Print("Input the ObjectID/title/tag: ")
+		scanner.Scan()
+		ref = strings.TrimSpace(scanner.Text())
+	}
+	if IsObjectID(ref) {
+		return ref
+	}
+
+	remoteBackup := Remote.Get().(bool)
+	listSpecialBackup := ListSpecial
+	defer func() {
+		Remote.Set(remoteBackup)
+		ListSpecial = listSpecialBackup
+	}()
+	ListSpecial = true
+	if remote {
+		InitRemote()
+		Remote.Set(true)
+	} else {
+		Remote.Set(false)
+	}
+
+	titleMatches := listRecordsByLiteralTitle(ref, remote)
+	exactTitleMatches := filterExactTitleMatches(titleMatches, ref)
+	exactTagMatches, _ := listRecords(math.MaxInt64, false, true, []string{ref}, false, "", false, false)
+
+	seen := make(map[primitive.ObjectID]struct{})
+	exactMatches := appendUniqueRecords(nil, seen, exactTitleMatches, exactTagMatches)
+	if len(exactMatches) > 0 {
+		return chooseRecordID(ref, exactMatches)
+	}
+
+	seen = make(map[primitive.ObjectID]struct{})
+	tagMatches, _ := listRecords(math.MaxInt64, false, true, []string{ref}, false, "", true, false)
+	fuzzyMatches := appendUniqueRecords(nil, seen, titleMatches, tagMatches)
+	return chooseRecordID(ref, fuzzyMatches)
+}
+
+func parseSSHHostSpec(spec string) (target, port string) {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return "", ""
+	}
+	idx := strings.LastIndex(spec, ":")
+	if idx <= strings.LastIndex(spec, "@") {
+		return spec, ""
+	}
+	if idx < 0 || strings.Count(spec, ":") > 1 && !strings.Contains(spec, "@") {
+		return spec, ""
+	}
+	if _, err := strconv.Atoi(spec[idx+1:]); err != nil {
+		return spec, ""
+	}
+	return spec[:idx], spec[idx+1:]
+}
+
+func runCommandCapture(name string, args ...string) (string, error) {
+	if _, err := exec.LookPath(name); err != nil {
+		return "", fmt.Errorf("%s not found in PATH", name)
+	}
+	cmd := exec.Command(name, args...)
+	var buf bytes.Buffer
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = io.MultiWriter(&buf, os.Stdout)
+	cmd.Stderr = io.MultiWriter(&buf, os.Stderr)
+	err := cmd.Run()
+	return strings.TrimSpace(buf.String()), err
+}
+
+func sshTargetArgs(host string) ([]string, string, error) {
+	target, port := parseSSHHostSpec(host)
+	if target == "" {
+		return nil, "", fmt.Errorf("empty host")
+	}
+	args := []string{"-o", fmt.Sprintf("ConnectTimeout=%d", sshConnectTimeoutSec)}
+	if port != "" {
+		args = append(args, "-p", port)
+	}
+	args = append(args, target)
+	return args, target, nil
+}
+
+func scpTargetArgs(host string) ([]string, string, error) {
+	target, port := parseSSHHostSpec(host)
+	if target == "" {
+		return nil, "", fmt.Errorf("empty host")
+	}
+	args := []string{"-o", fmt.Sprintf("ConnectTimeout=%d", sshConnectTimeoutSec)}
+	if port != "" {
+		args = append(args, "-P", port)
+	}
+	return args, target, nil
+}
+
+func remoteSQLiteExists(host string) bool {
+	args, _, err := sshTargetArgs(host)
+	if err != nil {
+		return false
+	}
+	args = append(args, "test", "-f", remoteSQLiteShellPath)
+	_, err = runCommandCapture("ssh", args...)
+	return err == nil
+}
+
+func pullRemoteSQLiteToTemp(host, dest string, required bool) error {
+	if !remoteSQLiteExists(host) {
+		if required {
+			return fmt.Errorf("remote sqlite not found on %s (%s)", host, defaultLocalSQLite)
+		}
+		return nil
+	}
+	args, target, err := scpTargetArgs(host)
+	if err != nil {
+		return err
+	}
+	args = append(args, fmt.Sprintf("%s:%s", target, defaultLocalSQLite), dest)
+	if output, err := runCommandCapture("scp", args...); err != nil {
+		if output != "" {
+			return fmt.Errorf("failed to download remote sqlite: %s", output)
+		}
+		return fmt.Errorf("failed to download remote sqlite: %v", err)
+	}
+	return nil
+}
+
+func pushTempSQLiteToRemote(host, src string) error {
+	args, target, err := scpTargetArgs(host)
+	if err != nil {
+		return err
+	}
+	args = append(args, src, fmt.Sprintf("%s:%s", target, defaultLocalSQLite))
+	if output, err := runCommandCapture("scp", args...); err != nil {
+		if output != "" {
+			return fmt.Errorf("failed to upload remote sqlite: %s", output)
+		}
+		return fmt.Errorf("failed to upload remote sqlite: %v", err)
+	}
+	return nil
+}
+
+func loadRecordFromCurrentLocal(ref string) *Record {
+	resolvedID := resolveRecordReferenceID(ref, false)
+	hexID, err := primitive.ObjectIDFromHex(resolvedID)
+	if err != nil {
+		panic(err)
+	}
+	remoteBackup := Remote.Get().(bool)
+	defer Remote.Set(remoteBackup)
+	Remote.Set(false)
+	r := &Record{ID: hexID}
+	r.LoadByID()
+	if r.Invalid {
+		panic(fmt.Sprintf("record %q not found", ref))
+	}
+	return r
+}
+
+func loadRecordFromSQLitePath(ref, sqlitePath string) (*Record, error) {
+	var loaded *Record
+	err := withSQLitePath(sqlitePath, func() error {
+		resolvedID := resolveRecordReferenceID(ref, false)
+		hexID, err := primitive.ObjectIDFromHex(resolvedID)
+		if err != nil {
+			return err
+		}
+		loaded, err = sqliteLoadRecord(hexID)
+		if err != nil {
+			return err
+		}
+		if loaded == nil {
+			return fmt.Errorf("record %q not found in remote sqlite", ref)
+		}
+		return nil
+	})
+	return loaded, err
+}
+
+func saveRecordToSQLitePath(r *Record, sqlitePath string) error {
+	return withSQLitePath(sqlitePath, func() error {
+		return sqliteUpsertRecord(r)
+	})
+}
+
+func upsertRecordToCurrentLocal(r *Record) error {
+	remoteBackup := Remote.Get().(bool)
+	defer Remote.Set(remoteBackup)
+	Remote.Set(false)
+	if useLocalSQLite() {
+		return sqliteUpsertRecord(r)
+	}
+	if err := initLocalMongo(); err != nil {
+		return err
+	}
+	collection := Client.Database(DbName).Collection(CollectionName)
+	err := collection.FindOne(ctx, bson.M{"_id": r.ID}).Err()
+	if err != nil && err != mongo.ErrNoDocuments {
+		return err
+	}
+	if err == mongo.ErrNoDocuments {
+		r.Save(true)
+		return nil
+	}
+	r.Update(false)
+	return nil
+}
+
+func SyncByHost(ref, host string, push, quiet bool) {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		panic("host is required")
+	}
+	tmpDir, err := os.MkdirTemp("", "go_tools_remote_sqlite_")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(tmpDir)
+	tmpSQLite := filepath.Join(tmpDir, "memo.sqlite3")
+	if err = pullRemoteSQLiteToTemp(host, tmpSQLite, !push); err != nil {
+		panic(err)
+	}
+
+	var msg string
+	var record *Record
+	if push {
+		msg = "push"
+		record = loadRecordFromCurrentLocal(ref)
+		if err = saveRecordToSQLitePath(record, tmpSQLite); err != nil {
+			panic(err)
+		}
+		if err = pushTempSQLiteToRemote(host, tmpSQLite); err != nil {
+			panic(err)
+		}
+	} else {
+		msg = "pull"
+		record, err = loadRecordFromSQLitePath(ref, tmpSQLite)
+		if err != nil {
+			panic(err)
+		}
+		if err = upsertRecordToCurrentLocal(record); err != nil {
+			panic(err)
+		}
+	}
+	n := 70
+	if quiet {
+		n = 20
+	}
+	fmt.Printf("finished %s %s: \n", msg, color.GreenString(strw.SubStringQuiet(record.Title, 0, n)))
+}
+
+func SyncByID(id string, push, quiet bool) {
+	var msg string
+	id = resolveRecordReferenceID(id, !push)
 	hexID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		panic(err)
 	}
+	InitRemote()
 	remoteBackUp := Remote.Get().(bool)
 	defer Remote.Set(remoteBackUp)
 	var r Record
@@ -893,6 +1243,12 @@ func SyncByID(id string, push, quiet bool) {
 	// printSeperator()
 	// fmt.Println(r)
 	// printSeperator()
+}
+
+// SyncByIDToHost pushes a local record to the managed SQLite database on a remote host.
+// The remote database path is managed by re and defaults to ~/.go_tools_memo.sqlite3 on that host.
+func SyncByIDToHost(id, targetHost string, quiet bool) {
+	SyncByHost(id, targetHost, true, quiet)
 }
 
 func GetObjectIdByTags(tags []string, includeFinished bool) string {

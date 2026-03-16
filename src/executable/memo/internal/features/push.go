@@ -9,8 +9,12 @@ import (
 
 func push(parser *terminalw.Parser) {
 	fmt.Println("pushing...")
-	fmt.Println(parser.GetFlagValueDefault("push", ""))
-	internal.SyncByID(parser.GetFlagValueDefault("push", ""), true, true)
+	id := parser.GetFlagValueDefault("push", "")
+	host := parser.GetFlagValueDefault("host", internal.DefaultRemoteHost)
+	if host == "" {
+		panic("-push requires --host <ip[:port]> or .configW:re.remote.host")
+	}
+	internal.SyncByIDToHost(id, host, true)
 }
 
 func RegisterPush(parser *terminalw.Parser) {

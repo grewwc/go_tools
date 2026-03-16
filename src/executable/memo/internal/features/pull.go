@@ -9,7 +9,11 @@ import (
 
 func pull(parser *terminalw.Parser) {
 	fmt.Println("pulling...")
-	internal.SyncByID(parser.GetFlagValueDefault("pull", ""), false, true)
+	host := parser.GetFlagValueDefault("host", internal.DefaultRemoteHost)
+	if host == "" {
+		panic("-pull requires --host <ip[:port]> or .configW:re.remote.host")
+	}
+	internal.SyncByHost(parser.GetFlagValueDefault("pull", ""), host, false, true)
 }
 
 func RegisterPull(parser *terminalw.Parser) {

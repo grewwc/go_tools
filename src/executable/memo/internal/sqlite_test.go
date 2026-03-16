@@ -189,3 +189,136 @@ func TestSQLiteEmptyResults(t *testing.T) {
 		t.Fatal("expected nonexistent record to be marked invalid")
 	}
 }
+
+func TestResolveRecordReferenceIDLocal(t *testing.T) {
+	cleanup := setupSQLiteTest(t)
+	defer cleanup()
+
+	r1 := &Record{
+		ID:           primitive.NewObjectID(),
+		Tags:         []string{"alpha"},
+		AddDate:      time.Unix(1_700_000_100, 0),
+		ModifiedDate: time.Unix(1_700_000_100, 0),
+		MyProblem:    true,
+		Title:        "main\nbody",
+	}
+	r2 := &Record{
+		ID:           primitive.NewObjectID(),
+		Tags:         []string{"deploy"},
+		AddDate:      time.Unix(1_700_000_101, 0),
+		ModifiedDate: time.Unix(1_700_000_101, 0),
+		MyProblem:    true,
+		Title:        "deploy guide",
+	}
+	r3 := &Record{
+		ID:           primitive.NewObjectID(),
+		Tags:         []string{"notes"},
+		AddDate:      time.Unix(1_700_000_102, 0),
+		ModifiedDate: time.Unix(1_700_000_102, 0),
+		MyProblem:    true,
+		Title:        "service main notes",
+	}
+
+	r1.Save(true)
+	r2.Save(true)
+	r3.Save(true)
+
+	if got := resolveRecordReferenceID(r1.ID.Hex(), false); got != r1.ID.Hex() {
+		t.Fatalf("object id resolution mismatch: got %s want %s", got, r1.ID.Hex())
+	}
+	if got := resolveRecordReferenceID("main", false); got != r1.ID.Hex() {
+		t.Fatalf("exact title resolution mismatch: got %s want %s", got, r1.ID.Hex())
+	}
+	if got := resolveRecordReferenceID("deploy", false); got != r2.ID.Hex() {
+		t.Fatalf("exact tag resolution mismatch: got %s want %s", got, r2.ID.Hex())
+	}
+	if got := resolveRecordReferenceID("service main", false); got != r3.ID.Hex() {
+		t.Fatalf("fuzzy title resolution mismatch: got %s want %s", got, r3.ID.Hex())
+	}
+}
+
+func TestSQLiteUpdateAdjustsTagCounts(t *testing.T) {
+	cleanup := setupSQLiteTest(t)
+	defer cleanup()
+
+	r := &Record{
+		ID:           primitive.NewObjectID(),
+		Tags:         []string{"main", "old"},
+		AddDate:      time.Unix(1_700_000_200, 0),
+		ModifiedDate: time.Unix(1_700_000_200, 0),
+		MyProblem:    true,
+		Title:        "main",
+	}
+	r.Save(true)
+	r.Tags = []string{"main", "new"}
+	r.Title = "main updated"
+	r.Update(false)
+
+	tags, err := ListTags(-1, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tagCounts := make(map[string]int64, len(tags))
+	for _, tag := range tags {
+		tagCounts[tag.Name] = tag.Count
+	}
+	if _, ok := tagCounts["old"]; ok {
+		t.Fatalf("old tag should have been removed after update: %+v", tagCounts)
+	}
+	if tagCounts["main"] != 1 || tagCounts["new"] != 1 {
+		t.Fatalf("unexpected updated tag counts: %+v", tagCounts)
+	}
+}
+
+func TestSaveRecordToSQLitePath(t *testing.T) {
+	cleanup := setupSQLiteTest(t)
+	defer cleanup()
+
+	remotePath := filepath.Join(t.TempDir(), "remote.sqlite3")
+	r := &Record{
+		ID:           primitive.NewObjectID(),
+		Tags:         []string{"main", "remote"},
+		AddDate:      time.Unix(1_700_000_300, 0),
+		ModifiedDate: time.Unix(1_700_000_300, 0),
+		MyProblem:    true,
+		Title:        "main",
+	}
+	if err := saveRecordToSQLitePath(r, remotePath); err != nil {
+		t.Fatal(err)
+	}
+	r.Tags = []string{"main", "synced"}
+	r.Title = "main synced"
+	if err := saveRecordToSQLitePath(r, remotePath); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := withSQLitePath(remotePath, func() error {
+		loaded, err := sqliteLoadRecord(r.ID)
+		if err != nil {
+			return err
+		}
+		if loaded == nil {
+			t.Fatalf("expected record to be present in alternate sqlite path")
+		}
+		if loaded.Title != "main synced" {
+			t.Fatalf("unexpected title in alternate sqlite path: %s", loaded.Title)
+		}
+		tags, err := ListTags(-1, false)
+		if err != nil {
+			return err
+		}
+		tagCounts := make(map[string]int64, len(tags))
+		for _, tag := range tags {
+			tagCounts[tag.Name] = tag.Count
+		}
+		if _, ok := tagCounts["remote"]; ok {
+			t.Fatalf("stale tag should not remain in alternate sqlite path: %+v", tagCounts)
+		}
+		if tagCounts["main"] != 1 || tagCounts["synced"] != 1 {
+			t.Fatalf("unexpected tag counts in alternate sqlite path: %+v", tagCounts)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -576,6 +576,9 @@ func (r *Parser) ParseArgs(cmd string, boolOptionals ...string) {
 
 	for _, arg := range cmdSlice {
 		// fmt.Println([]byte(arg), arg)
+		if strings.HasPrefix(arg, "--") && len(arg) > 2 {
+			arg = "-" + strings.TrimPrefix(arg, "--")
+		}
 		if len(arg) > 0 && arg[0] == '-' {
 			s := cw.NewOrderedSetT[string]()
 			if test(arg[1:], trie, s) {

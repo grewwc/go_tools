@@ -152,6 +152,38 @@ func ensureLocalSQLiteDBLocked() (*sql.DB, error) {
 	return db, nil
 }
 
+func withSQLitePath(path string, fn func() error) error {
+	path = utilsw.ExpandUser(path)
+	localSQLiteMu.Lock()
+	oldPath := localSQLitePath
+	oldReady := localSQLiteReady
+	oldDB := localSQLiteDB
+	oldDBPath := localSQLiteDBPath
+	oldBackendMode := localBackendMode.Get().(string)
+	localSQLitePath = path
+	localSQLiteReady = false
+	localSQLiteDB = nil
+	localSQLiteDBPath = ""
+	localSQLiteMu.Unlock()
+
+	SetLocalBackendMode(LocalBackendSQLite)
+	defer SetLocalBackendMode(oldBackendMode)
+	defer func() {
+		localSQLiteMu.Lock()
+		tempDB := localSQLiteDB
+		localSQLitePath = oldPath
+		localSQLiteReady = oldReady
+		localSQLiteDB = oldDB
+		localSQLiteDBPath = oldDBPath
+		localSQLiteMu.Unlock()
+		if tempDB != nil && tempDB != oldDB {
+			_ = tempDB.Close()
+		}
+	}()
+
+	return fn()
+}
+
 func withSQLiteConn(db *sql.DB, fn func(context.Context, *sql.Conn) error) error {
 	ctx := context.Background()
 	conn, err := db.Conn(ctx)
@@ -492,6 +524,17 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 	})
 }
 
+func sqliteUpsertRecord(r *Record) error {
+	exists, err := sqliteRecordExists(r.ID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return sqliteSaveRecord(r, true)
+	}
+	return sqliteUpdateRecord(r)
+}
+
 func sqliteDeleteRecord(r *Record) error {
 	if len(r.Tags) == 0 {
 		loaded, err := sqliteLoadRecord(r.ID)
@@ -511,6 +554,14 @@ func sqliteDeleteRecord(r *Record) error {
 }
 
 func sqliteUpdateRecord(r *Record) error {
+	existing, err := sqliteLoadRecord(r.ID)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return sqliteSaveRecord(r, true)
+	}
+	oldTags := append([]string(nil), existing.Tags...)
 	return withSQLiteTx(sqliteDB(), func(ctx context.Context, tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `
 UPDATE records
@@ -526,6 +577,12 @@ WHERE id = ?;
 			if _, err := tx.ExecContext(ctx, "INSERT INTO record_tags(record_id, tag, position) VALUES (?, ?, ?);", r.ID.Hex(), tag, i); err != nil {
 				return err
 			}
+		}
+		if err := sqliteApplyTagCountDeltaTx(ctx, tx, oldTags, -1); err != nil {
+			return err
+		}
+		if err := sqliteApplyTagCountDeltaTx(ctx, tx, r.Tags, 1); err != nil {
+			return err
 		}
 		return nil
 	})
