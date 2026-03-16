@@ -3,6 +3,7 @@ package utilsw
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -247,18 +248,35 @@ func RunCmd(cmd string, stdin io.Reader) (string, error) {
 }
 
 func RunCmdWithTimeout(cmd string, timeout time.Duration) (string, error) {
-	wg := sync.WaitGroup{}
-	var err error
-	var res string
-	wg.Add(1)
-	go func(err *error) {
-		res, *err = RunCmd(cmd, nil)
-		defer wg.Done()
-	}(&err)
-	if TimeoutWait(&wg, timeout) != nil {
+	l := strw.SplitByStrKeepQuotes(cmd, " ", `"'`, false)
+	if len(l) < 1 {
+		fmt.Println("cmd is empty")
+		return "", errors.New("cmd is empty")
+	}
+	for i := range l {
+		l[i] = strings.TrimSpace(l[i])
+	}
+	ctx := context.Background()
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+	} else {
+		ctx, cancel = context.WithCancel(ctx)
+	}
+	defer cancel()
+	var buf bytes.Buffer
+	command := exec.CommandContext(ctx, l[0], l[1:]...)
+	command.Stdin = os.Stdin
+	command.Stderr = os.Stderr
+	command.Stdout = &buf
+	err := command.Run()
+	if ctx.Err() == context.DeadlineExceeded {
 		return "", fmt.Errorf("timeout Execute command: %s (%v)", cmd, timeout)
 	}
-	return res, err
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 // Goid

@@ -24,6 +24,10 @@ const (
 	defaultLocalSQLite    = "~/.go_tools_memo.sqlite3"
 )
 
+func sqliteCompanionPaths(base string) []string {
+	return []string{base + "-wal", base + "-shm"}
+}
+
 var (
 	localSQLitePath   string
 	localSQLiteReady  bool
@@ -182,6 +186,19 @@ func withSQLitePath(path string, fn func() error) error {
 	}()
 
 	return fn()
+}
+
+func sqliteSidecarPaths(path string) []string {
+	return sqliteCompanionPaths(utilsw.ExpandUser(path))
+}
+
+func prepareSQLitePathForTransfer(path string) error {
+	return withSQLitePath(path, func() error {
+		return withSQLiteConn(sqliteDB(), func(ctx context.Context, conn *sql.Conn) error {
+			_, err := conn.ExecContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE);")
+			return err
+		})
+	})
 }
 
 func withSQLiteConn(db *sql.DB, fn func(context.Context, *sql.Conn) error) error {

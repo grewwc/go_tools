@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -316,6 +317,79 @@ func TestSaveRecordToSQLitePath(t *testing.T) {
 		}
 		if tagCounts["main"] != 1 || tagCounts["synced"] != 1 {
 			t.Fatalf("unexpected tag counts in alternate sqlite path: %+v", tagCounts)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPrepareSQLitePathForTransferCheckpointsWALState(t *testing.T) {
+	cleanup := setupSQLiteTest(t)
+	defer cleanup()
+
+	remotePath := filepath.Join(t.TempDir(), "remote.sqlite3")
+	staleCopy := filepath.Join(t.TempDir(), "stale.sqlite3")
+	freshCopy := filepath.Join(t.TempDir(), "fresh.sqlite3")
+	r := &Record{
+		ID:           primitive.NewObjectID(),
+		Tags:         []string{"main", "wal"},
+		AddDate:      time.Unix(1_700_000_400, 0),
+		ModifiedDate: time.Unix(1_700_000_400, 0),
+		MyProblem:    true,
+		Title:        "checkpoint me",
+	}
+
+	if err := withSQLitePath(remotePath, func() error {
+		if err := sqliteSaveRecord(r, true); err != nil {
+			return err
+		}
+		if _, err := os.Stat(remotePath + "-wal"); err != nil {
+			return err
+		}
+		payload, err := os.ReadFile(remotePath)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(staleCopy, payload, 0o644)
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := withSQLitePath(staleCopy, func() error {
+		loaded, err := sqliteLoadRecord(r.ID)
+		if err != nil {
+			return err
+		}
+		if loaded != nil {
+			t.Fatalf("expected main-file-only copy taken during WAL activity to miss the record")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := prepareSQLitePathForTransfer(remotePath); err != nil {
+		t.Fatal(err)
+	}
+	payload, err := os.ReadFile(remotePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(freshCopy, payload, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := withSQLitePath(freshCopy, func() error {
+		loaded, err := sqliteLoadRecord(r.ID)
+		if err != nil {
+			return err
+		}
+		if loaded == nil {
+			t.Fatal("expected checkpointed main-file copy to include the record")
+		}
+		if loaded.Title != r.Title {
+			t.Fatalf("unexpected record title after checkpointed copy: %s", loaded.Title)
 		}
 		return nil
 	}); err != nil {

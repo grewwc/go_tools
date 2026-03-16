@@ -5,10 +5,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -42,7 +40,7 @@ const (
 	localMongoConfigName = "mongo.local"
 	specialTagConfigname = "special.tags"
 
-	DefaultBackendConfigName = "re.backend"
+	DefaultBackendConfigName    = "re.backend"
 	DefaultRemoteHostConfigName = "re.remote.host"
 )
 
@@ -56,6 +54,7 @@ const (
 	remoteMongoTimeout    = 10 * time.Second
 	remoteSQLiteShellPath = "$HOME/.go_tools_memo.sqlite3"
 	sshConnectTimeoutSec  = 8
+	remoteCmdTimeout      = 2 * time.Minute
 )
 
 const (
@@ -82,7 +81,7 @@ var (
 
 var (
 	DefaultBackendMode = utilsw.GetConfig(DefaultBackendConfigName, LocalBackendAuto)
-	DefaultRemoteHost = utilsw.GetConfig(DefaultRemoteHostConfigName, "")
+	DefaultRemoteHost  = utilsw.GetConfig(DefaultRemoteHostConfigName, "")
 )
 
 var (
@@ -995,17 +994,37 @@ func parseSSHHostSpec(spec string) (target, port string) {
 	return spec[:idx], spec[idx+1:]
 }
 
-func runCommandCapture(name string, args ...string) (string, error) {
-	if _, err := exec.LookPath(name); err != nil {
-		return "", fmt.Errorf("%s not found in PATH", name)
+func buildCommandLine(name string, args ...string) string {
+	parts := make([]string, 0, len(args)+1)
+	parts = append(parts, strconv.Quote(name))
+	for _, arg := range args {
+		parts = append(parts, strconv.Quote(arg))
 	}
-	cmd := exec.Command(name, args...)
-	var buf bytes.Buffer
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = io.MultiWriter(&buf, os.Stdout)
-	cmd.Stderr = io.MultiWriter(&buf, os.Stderr)
-	err := cmd.Run()
-	return strings.TrimSpace(buf.String()), err
+	return strings.Join(parts, " ")
+}
+
+func runSSHCommand(host, command string) (string, error) {
+	args, _, err := sshTargetArgs(host)
+	if err != nil {
+		return "", err
+	}
+	command = strings.TrimSpace(command)
+	if command == "" {
+		return "", fmt.Errorf("empty remote command")
+	}
+	args = append(args, command)
+	return utilsw.RunCmdWithTimeout(buildCommandLine("ssh", args...), remoteCmdTimeout)
+}
+
+func buildRemoteSQLiteReplaceCommand() string {
+	sidecars := sqliteCompanionPaths(remoteSQLiteShellPath)
+	return fmt.Sprintf(
+		"rm -f -- %s %s && mv -- %s %s",
+		sidecars[0],
+		sidecars[1],
+		remoteSQLiteShellPath+".incoming",
+		remoteSQLiteShellPath,
+	)
 }
 
 func sshTargetArgs(host string) ([]string, string, error) {
@@ -1033,14 +1052,53 @@ func scpTargetArgs(host string) ([]string, string, error) {
 	return args, target, nil
 }
 
-func remoteSQLiteExists(host string) bool {
-	args, _, err := sshTargetArgs(host)
-	if err != nil {
-		return false
-	}
-	args = append(args, "test", "-f", remoteSQLiteShellPath)
-	_, err = runCommandCapture("ssh", args...)
+func remoteFileExists(host, remotePath string) bool {
+	_, err := runSSHCommand(host, fmt.Sprintf("test -f %s", remotePath))
 	return err == nil
+}
+
+func copyRemoteFileToLocal(host, remotePath, dest string) error {
+	args, target, err := scpTargetArgs(host)
+	if err != nil {
+		return err
+	}
+	args = append(args, fmt.Sprintf("%s:%s", target, remotePath), dest)
+	if output, err := utilsw.RunCmdWithTimeout(buildCommandLine("scp", args...), remoteCmdTimeout); err != nil {
+		if output != "" {
+			return fmt.Errorf("failed to download remote sqlite: %s", output)
+		}
+		return fmt.Errorf("failed to download remote sqlite: %v", err)
+	}
+	return nil
+}
+
+func copyLocalFileToRemote(host, src, remotePath string) error {
+	args, target, err := scpTargetArgs(host)
+	if err != nil {
+		return err
+	}
+	args = append(args, src, fmt.Sprintf("%s:%s", target, remotePath))
+	if output, err := utilsw.RunCmdWithTimeout(buildCommandLine("scp", args...), remoteCmdTimeout); err != nil {
+		if output != "" {
+			return fmt.Errorf("failed to upload remote sqlite: %s", output)
+		}
+		return fmt.Errorf("failed to upload remote sqlite: %v", err)
+	}
+	return nil
+}
+
+func replaceRemoteSQLite(host string) error {
+	if output, err := runSSHCommand(host, buildRemoteSQLiteReplaceCommand()); err != nil {
+		if output != "" {
+			return fmt.Errorf("failed to replace remote sqlite: %s", output)
+		}
+		return fmt.Errorf("failed to replace remote sqlite: %v", err)
+	}
+	return nil
+}
+
+func remoteSQLiteExists(host string) bool {
+	return remoteFileExists(host, remoteSQLiteShellPath)
 }
 
 func pullRemoteSQLiteToTemp(host, dest string, required bool) error {
@@ -1050,35 +1108,38 @@ func pullRemoteSQLiteToTemp(host, dest string, required bool) error {
 		}
 		return nil
 	}
-	args, target, err := scpTargetArgs(host)
-	if err != nil {
+	if err := copyRemoteFileToLocal(host, defaultLocalSQLite, dest); err != nil {
 		return err
 	}
-	args = append(args, fmt.Sprintf("%s:%s", target, defaultLocalSQLite), dest)
-	if output, err := runCommandCapture("scp", args...); err != nil {
-		if output != "" {
-			return fmt.Errorf("failed to download remote sqlite: %s", output)
+	remoteSidecars := sqliteCompanionPaths(defaultLocalSQLite)
+	remoteShellSidecars := sqliteCompanionPaths(remoteSQLiteShellPath)
+	localSidecars := sqliteSidecarPaths(dest)
+	for i, remotePath := range remoteSidecars {
+		if !remoteFileExists(host, remoteShellSidecars[i]) {
+			continue
 		}
-		return fmt.Errorf("failed to download remote sqlite: %v", err)
+		if err := copyRemoteFileToLocal(host, remotePath, localSidecars[i]); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func pushTempSQLiteToRemote(host, src string) error {
-	args, target, err := scpTargetArgs(host)
-	if err != nil {
+	if err := prepareSQLitePathForTransfer(src); err != nil {
 		return err
 	}
-	args = append(args, src, fmt.Sprintf("%s:%s", target, defaultLocalSQLite))
-	if output, err := runCommandCapture("scp", args...); err != nil {
-		if output != "" {
-			return fmt.Errorf("failed to upload remote sqlite: %s", output)
-		}
-		return fmt.Errorf("failed to upload remote sqlite: %v", err)
+	if err := copyLocalFileToRemote(host, src, defaultLocalSQLite+".incoming"); err != nil {
+		return err
+	}
+	if err := replaceRemoteSQLite(host); err != nil {
+		return err
 	}
 	return nil
 }
 
+// loadRecordFromCurrentLocal reads from the active local backend (mongo or sqlite)
+// before the remote sqlite staging path temporarily switches the process into sqlite mode.
 func loadRecordFromCurrentLocal(ref string) *Record {
 	resolvedID := resolveRecordReferenceID(ref, false)
 	hexID, err := primitive.ObjectIDFromHex(resolvedID)
