@@ -42,6 +42,18 @@ func init() {
 	}
 }
 
+func truncateHintText(text string) string {
+	text = strings.ReplaceAll(text, "\r", "")
+	buf := bytes.NewBufferString("")
+	for i, ch := range text {
+		if i >= hintLen {
+			break
+		}
+		buf.WriteRune(ch)
+	}
+	return buf.String()
+}
+
 func _print(urlsWithNo, info []string) {
 	for i := range urlsWithNo {
 		fmt.Println(urlsWithNo[i])
@@ -117,28 +129,43 @@ func WriteInfo(objectIDs []*primitive.ObjectID, titles []string) bool {
 		title := titles[i]
 		objectID := objectIDs[i]
 		titleOneLine := strings.ReplaceAll(title, "\n", "|")
-		titleOneLine = strings.ReplaceAll(titleOneLine, "\r", "")
-		buf := bytes.NewBufferString("")
-		for i, ch := range titleOneLine {
-			if i >= hintLen {
-				break
-			}
-			buf.WriteRune(ch)
-		}
-		titleOneLine = buf.String()
-		buf = bytes.NewBufferString(title)
+		titleOneLine = truncateHintText(titleOneLine)
+		buf := bytes.NewBufferString(title)
 		scanner := bufio.NewScanner(buf)
+		lastContextLine := ""
 		for scanner.Scan() {
 			line := scanner.Text()
 			line = strings.TrimSpace(line)
 			line = strings.ReplaceAll(line, "\x00", "")
+			if line == "" {
+				continue
+			}
 			// write urls
 			// only when matched
 			if p.MatchString(line) {
 				matched++
-				f.WriteString(p.ReplaceAllString(line, "") + "\x00" + titleOneLine)
+				urlLine := strings.TrimSpace(p.ReplaceAllString(line, ""))
+				contextParts := p.Split(line, 2)
+				contextLine := lastContextLine
+				if len(contextParts) == 2 {
+					inlineContext := strings.TrimSpace(contextParts[0])
+					if inlineContext != "" {
+						contextLine = inlineContext
+					}
+				}
+				hint := urlLine
+				if contextLine != "" {
+					hint = fmt.Sprintf("%s | url:%s", contextLine, urlLine)
+				}
+				hint = truncateHintText(hint)
+				if hint == "" {
+					hint = titleOneLine
+				}
+				f.WriteString(urlLine + "\x00" + hint)
 				f.WriteString("\n")
+				continue
 			}
+			lastContextLine = line
 		}
 		// write information all the time
 		commonF.WriteString(objectID.Hex() + "\x00" + titleOneLine)
