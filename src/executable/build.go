@@ -2,20 +2,22 @@ package main
 
 import (
 	"fmt"
-	"go/parser"
+	"go/ast"
 	"go/token"
-	"io/fs"
+	"go/types"
 	"log"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/grewwc/go_tools/src/cw"
 	"github.com/grewwc/go_tools/src/terminalw"
 	"github.com/grewwc/go_tools/src/utilsw"
+	"golang.org/x/tools/go/packages"
 )
 
 var ignoreName = cw.NewSet()
@@ -25,15 +27,14 @@ type localPackage struct {
 	importPath string
 	dir        string
 	files      []string
-	imports    []string
-	modTime    time.Time
 }
 
 type dependencyGraph struct {
-	modulePath string
-	moduleFile string
-	packages   map[string]*localPackage
-	graph      *cw.DirectedGraph[string]
+	modulePath  string
+	moduleFile  string
+	packages    map[string]*localPackage
+	fileGraph   *cw.DirectedGraph[string]
+	fileModTime map[string]time.Time
 }
 
 type buildTarget struct {
@@ -104,153 +105,204 @@ func loadDependencyGraph(repoRoot string) (*dependencyGraph, error) {
 		return nil, err
 	}
 
-	packages, err := discoverLocalPackages(repoRoot, modulePath)
+	packages, loaded, err := discoverLocalPackages(repoRoot, modulePath)
 	if err != nil {
 		return nil, err
 	}
 
-	graph := cw.NewDirectedGraph[string](nil)
-	for importPath := range packages {
-		graph.AddNode(importPath)
-	}
-	for importPath, pkg := range packages {
-		for _, dep := range pkg.imports {
-			graph.AddEdge(importPath, dep)
-		}
-	}
-	graph.Mark()
-	if graph.HasCycle() {
-		return nil, fmt.Errorf("local package import graph contains a cycle: %v", graph.Cycle())
+	fileGraph, fileModTime, err := buildFileDependencyGraph(packages, loaded)
+	if err != nil {
+		return nil, err
 	}
 
 	return &dependencyGraph{
-		modulePath: modulePath,
-		moduleFile: moduleFile,
-		packages:   packages,
-		graph:      graph,
+		modulePath:  modulePath,
+		moduleFile:  moduleFile,
+		packages:    packages,
+		fileGraph:   fileGraph,
+		fileModTime: fileModTime,
 	}, nil
 }
 
-func discoverLocalPackages(repoRoot, modulePath string) (map[string]*localPackage, error) {
+func discoverLocalPackages(repoRoot, modulePath string) (map[string]*localPackage, map[string]*packages.Package, error) {
+	cfg := &packages.Config{
+		Mode: packages.NeedName |
+			packages.NeedCompiledGoFiles |
+			packages.NeedImports |
+			packages.NeedDeps |
+			packages.NeedSyntax |
+			packages.NeedTypes |
+			packages.NeedTypesInfo,
+		Dir: repoRoot,
+	}
+
+	roots, err := packages.Load(cfg, "./src/executable/...")
+	if err != nil {
+		return nil, nil, err
+	}
+	if n := packages.PrintErrors(roots); n > 0 {
+		return nil, nil, fmt.Errorf("failed to load local package dependency graph: %d package errors", n)
+	}
+
+	loaded := collectLoadedPackages(roots)
 	packages := make(map[string]*localPackage)
-	err := filepath.WalkDir(repoRoot, func(curr string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() {
-			return nil
-		}
-		switch d.Name() {
-		case ".git", "bin", "vendor":
-			return filepath.SkipDir
-		}
-
-		pkg, ok, err := parseLocalPackage(repoRoot, curr, modulePath)
-		if err != nil {
-			return err
-		}
-		if ok {
-			packages[pkg.importPath] = pkg
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	for _, pkg := range packages {
-		filtered := make([]string, 0, len(pkg.imports))
-		seen := make(map[string]struct{})
-		for _, dep := range pkg.imports {
-			if _, ok := packages[dep]; !ok {
-				continue
-			}
-			if _, ok := seen[dep]; ok {
-				continue
-			}
-			seen[dep] = struct{}{}
-			filtered = append(filtered, dep)
-		}
-		pkg.imports = filtered
-	}
-
-	return packages, nil
-}
-
-func parseLocalPackage(repoRoot, dir, modulePath string) (*localPackage, bool, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, false, err
-	}
-
-	files := make([]string, 0, len(entries))
-	imports := make(map[string]struct{})
-	fset := token.NewFileSet()
-	for _, entry := range entries {
-		if entry.IsDir() {
+	for importPath, pkg := range loaded {
+		if !isLocalImportPath(importPath, modulePath) {
 			continue
 		}
-		name := entry.Name()
-		if filepath.Ext(name) != ".go" || strings.HasSuffix(name, "_test.go") {
+		if len(pkg.CompiledGoFiles) == 0 {
 			continue
 		}
 
-		filename := filepath.Join(dir, name)
-		files = append(files, filename)
-		parsed, err := parser.ParseFile(fset, filename, nil, parser.ImportsOnly)
-		if err != nil {
-			return nil, false, err
+		files := make([]string, 0, len(pkg.CompiledGoFiles))
+		for _, filename := range pkg.CompiledGoFiles {
+			files = append(files, filepath.Clean(filename))
 		}
-		for _, item := range parsed.Imports {
-			importPath := strings.Trim(item.Path.Value, "\"")
-			if strings.HasPrefix(importPath, modulePath+"/") {
-				imports[importPath] = struct{}{}
+		sort.Strings(files)
+
+		packages[importPath] = &localPackage{
+			importPath: importPath,
+			dir:        filepath.Dir(files[0]),
+			files:      files,
+		}
+	}
+
+	return packages, loaded, nil
+}
+
+func collectLoadedPackages(roots []*packages.Package) map[string]*packages.Package {
+	loaded := make(map[string]*packages.Package)
+	var visit func(pkg *packages.Package)
+	visit = func(pkg *packages.Package) {
+		if pkg == nil {
+			return
+		}
+		if existing, ok := loaded[pkg.PkgPath]; ok {
+			if len(existing.CompiledGoFiles) >= len(pkg.CompiledGoFiles) {
+				return
+			}
+		}
+		loaded[pkg.PkgPath] = pkg
+		for _, dep := range pkg.Imports {
+			visit(dep)
+		}
+	}
+	for _, pkg := range roots {
+		visit(pkg)
+	}
+	return loaded
+}
+
+func isLocalImportPath(importPath, modulePath string) bool {
+	return importPath == modulePath || strings.HasPrefix(importPath, modulePath+"/")
+}
+
+func buildFileDependencyGraph(localPackages map[string]*localPackage, loaded map[string]*packages.Package) (*cw.DirectedGraph[string], map[string]time.Time, error) {
+	fileGraph := cw.NewDirectedGraph[string](nil)
+	fileModTime := make(map[string]time.Time)
+
+	for _, pkg := range localPackages {
+		for _, filename := range pkg.files {
+			fileGraph.AddNode(filename)
+			info, err := os.Stat(filename)
+			if err != nil {
+				return nil, nil, err
+			}
+			fileModTime[filename] = info.ModTime()
+		}
+	}
+	objDefFile := buildObjectDefinitionFiles(loaded, fileModTime)
+
+	for importPath, pkg := range loaded {
+		localPkg, ok := localPackages[importPath]
+		if !ok || len(localPkg.files) == 0 {
+			continue
+		}
+		if pkg.TypesInfo == nil || pkg.Fset == nil {
+			continue
+		}
+
+		for i, syntaxFile := range pkg.Syntax {
+			if i >= len(pkg.CompiledGoFiles) {
+				break
+			}
+			srcFile := filepath.Clean(pkg.CompiledGoFiles[i])
+			if _, ok := fileModTime[srcFile]; !ok {
+				continue
+			}
+
+			ast.Inspect(syntaxFile, func(n ast.Node) bool {
+				ident, ok := n.(*ast.Ident)
+				if !ok {
+					return true
+				}
+
+				obj := pkg.TypesInfo.Uses[ident]
+				if obj == nil {
+					return true
+				}
+				depFile, ok := objDefFile[obj]
+				if !ok {
+					return true
+				}
+				if depFile == srcFile {
+					return true
+				}
+				fileGraph.AddEdge(srcFile, depFile)
+				return true
+			})
+
+			for _, imp := range syntaxFile.Imports {
+				if imp.Name == nil {
+					continue
+				}
+				alias := imp.Name.Name
+				if alias != "_" && alias != "." {
+					continue
+				}
+				depImportPath := strings.Trim(imp.Path.Value, "\"")
+				depPkg, ok := localPackages[depImportPath]
+				if !ok {
+					continue
+				}
+				for _, depFile := range depPkg.files {
+					if _, ok := fileModTime[depFile]; ok {
+						fileGraph.AddEdge(srcFile, depFile)
+					}
+				}
 			}
 		}
 	}
-	if len(files) == 0 {
-		return nil, false, nil
-	}
 
-	relDir, err := filepath.Rel(repoRoot, dir)
-	if err != nil {
-		return nil, false, err
-	}
-	importPath := modulePath
-	if relDir != "." {
-		importPath = path.Join(modulePath, filepath.ToSlash(relDir))
-	}
-
-	modTime, err := newestFileModTime(files)
-	if err != nil {
-		return nil, false, err
-	}
-
-	pkg := &localPackage{
-		importPath: importPath,
-		dir:        dir,
-		files:      files,
-		imports:    make([]string, 0, len(imports)),
-		modTime:    modTime,
-	}
-	for dep := range imports {
-		pkg.imports = append(pkg.imports, dep)
-	}
-	return pkg, true, nil
+	fileGraph.Mark()
+	return fileGraph, fileModTime, nil
 }
 
-func newestFileModTime(files []string) (time.Time, error) {
-	var latest time.Time
-	for _, filename := range files {
-		info, err := os.Stat(filename)
-		if err != nil {
-			return time.Time{}, err
+func buildObjectDefinitionFiles(loaded map[string]*packages.Package, fileModTime map[string]time.Time) map[types.Object]string {
+	objDefFile := make(map[types.Object]string)
+	for _, pkg := range loaded {
+		if pkg == nil || pkg.TypesInfo == nil || pkg.Fset == nil {
+			continue
 		}
-		if info.ModTime().After(latest) {
-			latest = info.ModTime()
+		for ident, obj := range pkg.TypesInfo.Defs {
+			if ident == nil || obj == nil {
+				continue
+			}
+			pos := ident.Pos()
+			if pos == token.NoPos {
+				continue
+			}
+			filename := filepath.Clean(pkg.Fset.PositionFor(pos, false).Filename)
+			if filename == "" {
+				continue
+			}
+			if _, ok := fileModTime[filename]; !ok {
+				continue
+			}
+			objDefFile[obj] = filename
 		}
 	}
-	return latest, nil
+	return objDefFile
 }
 
 func readModulePath(goModFile string) (string, error) {
@@ -329,7 +381,8 @@ func needsBuild(target buildTarget, graph *dependencyGraph, all, force bool) (bo
 }
 
 func (g *dependencyGraph) latestDependencyModTime(importPath string) (time.Time, error) {
-	if _, ok := g.packages[importPath]; !ok {
+	pkg, ok := g.packages[importPath]
+	if !ok {
 		return time.Time{}, fmt.Errorf("cannot find local package %q", importPath)
 	}
 
@@ -342,16 +395,26 @@ func (g *dependencyGraph) latestDependencyModTime(importPath string) (time.Time,
 		latest = info.ModTime()
 	}
 
-	for _, node := range g.graph.Nodes() {
-		if !g.graph.Reachable(importPath, node) {
-			continue
+	for _, filename := range pkg.files {
+		if modTime, ok := g.fileModTime[filename]; ok && modTime.After(latest) {
+			latest = modTime
 		}
-		pkg, ok := g.packages[node]
-		if !ok {
-			continue
-		}
-		if pkg.modTime.After(latest) {
-			latest = pkg.modTime
+	}
+
+	nodes := g.fileGraph.Nodes()
+	seen := make(map[string]struct{})
+	for _, startFile := range pkg.files {
+		for _, node := range nodes {
+			if _, ok := seen[node]; ok {
+				continue
+			}
+			if !g.fileGraph.Reachable(startFile, node) {
+				continue
+			}
+			seen[node] = struct{}{}
+			if modTime, ok := g.fileModTime[node]; ok && modTime.After(latest) {
+				latest = modTime
+			}
 		}
 	}
 	return latest, nil

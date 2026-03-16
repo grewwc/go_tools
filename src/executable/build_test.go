@@ -91,6 +91,102 @@ func Run() {}
 	}
 }
 
+func TestNeedsBuildSkipsWhenOnlyUnreferencedDependencyFileIsNewer(t *testing.T) {
+	repoRoot := t.TempDir()
+	baseTime := time.Unix(1700000000, 0)
+	writeTestFile(t, filepath.Join(repoRoot, "go.mod"), "module example.com/test\n\ngo 1.24.0\n", baseTime)
+	writeTestFile(t, filepath.Join(repoRoot, "src", "executable", "app", "app.go"), `package main
+
+import "example.com/test/src/lib/dep"
+
+func main() {
+	dep.Used()
+}
+`, baseTime.Add(time.Minute))
+	writeTestFile(t, filepath.Join(repoRoot, "src", "lib", "dep", "used.go"), `package dep
+
+func Used() {
+	helper()
+}
+`, baseTime.Add(2*time.Minute))
+	writeTestFile(t, filepath.Join(repoRoot, "src", "lib", "dep", "helper.go"), `package dep
+
+func helper() {}
+`, baseTime.Add(3*time.Minute))
+	writeTestFile(t, filepath.Join(repoRoot, "src", "lib", "dep", "unrelated.go"), `package dep
+
+func Unrelated() {}
+`, baseTime.Add(6*time.Minute))
+
+	graph, err := loadDependencyGraph(repoRoot)
+	if err != nil {
+		t.Fatalf("loadDependencyGraph() error = %v", err)
+	}
+
+	outputDir := filepath.Join(repoRoot, "bin")
+	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	target := mustFindTarget(t, repoRoot, graph, outputDir, "app.go")
+	writeTestFile(t, target.outputFile, "", baseTime.Add(4*time.Minute))
+
+	shouldBuild, err := needsBuild(target, graph, false, false)
+	if err != nil {
+		t.Fatalf("needsBuild() error = %v", err)
+	}
+	if shouldBuild {
+		t.Fatal("expected unrelated dependency file change to be ignored")
+	}
+}
+
+func TestNeedsBuildWhenReferencedHelperFileIsNewer(t *testing.T) {
+	repoRoot := t.TempDir()
+	baseTime := time.Unix(1700000000, 0)
+	writeTestFile(t, filepath.Join(repoRoot, "go.mod"), "module example.com/test\n\ngo 1.24.0\n", baseTime)
+	writeTestFile(t, filepath.Join(repoRoot, "src", "executable", "app", "app.go"), `package main
+
+import "example.com/test/src/lib/dep"
+
+func main() {
+	dep.Used()
+}
+`, baseTime.Add(time.Minute))
+	writeTestFile(t, filepath.Join(repoRoot, "src", "lib", "dep", "used.go"), `package dep
+
+func Used() {
+	helper()
+}
+`, baseTime.Add(2*time.Minute))
+	writeTestFile(t, filepath.Join(repoRoot, "src", "lib", "dep", "helper.go"), `package dep
+
+func helper() {}
+`, baseTime.Add(6*time.Minute))
+	writeTestFile(t, filepath.Join(repoRoot, "src", "lib", "dep", "unrelated.go"), `package dep
+
+func Unrelated() {}
+`, baseTime.Add(3*time.Minute))
+
+	graph, err := loadDependencyGraph(repoRoot)
+	if err != nil {
+		t.Fatalf("loadDependencyGraph() error = %v", err)
+	}
+
+	outputDir := filepath.Join(repoRoot, "bin")
+	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	target := mustFindTarget(t, repoRoot, graph, outputDir, "app.go")
+	writeTestFile(t, target.outputFile, "", baseTime.Add(4*time.Minute))
+
+	shouldBuild, err := needsBuild(target, graph, false, false)
+	if err != nil {
+		t.Fatalf("needsBuild() error = %v", err)
+	}
+	if !shouldBuild {
+		t.Fatal("expected referenced helper change to trigger rebuild")
+	}
+}
+
 func mustFindTarget(t *testing.T, repoRoot string, graph *dependencyGraph, outputDir, entryFilename string) buildTarget {
 	t.Helper()
 	targets, err := collectBuildTargets(filepath.Join(repoRoot, "src", "executable"), outputDir, graph.modulePath)
